@@ -1,0 +1,19 @@
+{
+  "timestamp": "2026-08-08T03:24:44.206312",
+  "project_path": "/home/user/development/projects/extro_pos",
+  "provider_id": "ollama",
+  "model_name": "qwen3:1.7b",
+  "boot_latency_ms": 3.5,
+  "provider_inference_ms": 8980.16,
+  "tool_execution_ms": 0.0,
+  "total_session_time_ms": 8980.19,
+  "generation_throughput_tok_sec": 30.07,
+  "turns": 1,
+  "tool_calls": 0,
+  "prompt_tokens": 279,
+  "completion_tokens": 270,
+  "total_tokens": 549,
+  "cache_hits": 0,
+  "cache_misses": 3,
+  "cache_hit_rate_pct": 0.0
+}

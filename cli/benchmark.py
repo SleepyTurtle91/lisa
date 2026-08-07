@@ -103,7 +103,7 @@ async def run_benchmark(target_dir: str, model_name: str = "qwen3:1.7b", save_hi
         filename = f"{datetime.now().strftime('%Y-%m-%d_%H%M%S')}_{model_name.replace(':', '_')}.json"
         history_file = bench_dir / filename
         with open(history_file, "w", encoding="utf-8") as f:
-            json.dumps(report_data, f, indent=2)
+            json.dump(report_data, f, indent=2)
         print(f"💾 Benchmark artifact recorded to: {history_file}")
 
 if __name__ == "__main__":
