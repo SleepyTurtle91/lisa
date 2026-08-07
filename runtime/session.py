@@ -1,3 +1,4 @@
+import time
 import uuid
 from typing import List, Dict, Any, Optional
 from lisa.core.runtime import BaseSession
@@ -22,12 +23,14 @@ class LisaSession(BaseSession):
         self._state = SessionState.CREATED
         self._last_result: Optional[InferenceResult] = None
         
-        # Cumulative Session Telemetry
+        # Cumulative Session Telemetry & Latency Breakdown
         self._total_prompt_tokens = 0
         self._total_completion_tokens = 0
         self._total_tokens = 0
         self._total_tool_calls = 0
         self._total_turns = 0
+        self._provider_inference_ms = 0.0
+        self._tool_execution_ms = 0.0
         self._total_latency_ms = 0.0
 
     @property
@@ -51,6 +54,9 @@ class LisaSession(BaseSession):
             total_tokens=self._total_tokens,
             total_tool_calls=self._total_tool_calls,
             total_turns=self._total_turns,
+            boot_latency_ms=0.0,
+            provider_inference_ms=self._provider_inference_ms,
+            tool_execution_ms=self._tool_execution_ms,
             total_latency_ms=self._total_latency_ms,
             cache_hits=hits,
             cache_misses=misses
@@ -62,6 +68,7 @@ class LisaSession(BaseSession):
 
         self._state = SessionState.RUNNING
         self._history.append({"role": "user", "content": message})
+        session_start = time.perf_counter()
         
         try:
             while True:
@@ -86,19 +93,21 @@ class LisaSession(BaseSession):
                     tools=compiled_tools if compiled_tools else None
                 )
                 
+                inf_start = time.perf_counter()
                 inf_result = await self._engine.execute(inf_req, preferred_provider_id=self._context.provider_id)
+                inf_duration = (time.perf_counter() - inf_start) * 1000.0
+                self._provider_inference_ms += inf_duration
                 self._last_result = inf_result
 
                 if not inf_result.success or not inf_result.response:
                     raise SessionError(f"Inference Engine failed: {inf_result.error}")
                 
-                # Accumulate Telemetry metrics across multi-turn re-inference loop
+                # Accumulate Token Telemetry
                 if inf_result.telemetry:
                     tel = inf_result.telemetry
                     self._total_prompt_tokens += tel.prompt_tokens
                     self._total_completion_tokens += tel.completion_tokens
                     self._total_tokens += tel.total_tokens
-                    self._total_latency_ms += inf_result.latency_ms
 
                 response = inf_result.response
                 
@@ -110,7 +119,11 @@ class LisaSession(BaseSession):
                         tool_name = func.get("name")
                         args = func.get("arguments", {})
                         tool_req = ToolRequest(tool_name=tool_name, arguments=args, session_id=self._session_id)
+                        
+                        tool_start = time.perf_counter()
                         result = await self._executor.execute_request(tool_req)
+                        self._tool_execution_ms += (time.perf_counter() - tool_start) * 1000.0
+                        
                         self._history.append({
                             "role": "tool",
                             "content": str(result.output if result.success else result.error)
@@ -120,10 +133,12 @@ class LisaSession(BaseSession):
                 
                 # Final answer
                 self._history.append({"role": "assistant", "content": response.content})
+                self._total_latency_ms = (time.perf_counter() - session_start) * 1000.0
                 self._state = SessionState.READY
                 return response.content
         except Exception as e:
             self._state = SessionState.FAILED
+            self._total_latency_ms = (time.perf_counter() - session_start) * 1000.0
             raise SessionError(f"Session execution failed: {str(e)}") from e
 
     def close(self) -> None:

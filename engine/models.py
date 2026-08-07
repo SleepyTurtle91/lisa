@@ -21,9 +21,28 @@ class SessionTelemetry:
     total_tokens: int = 0
     total_tool_calls: int = 0
     total_turns: int = 0
+    boot_latency_ms: float = 0.0
+    provider_inference_ms: float = 0.0
+    tool_execution_ms: float = 0.0
     total_latency_ms: float = 0.0
     cache_hits: int = 0
     cache_misses: int = 0
+
+@dataclass(frozen=True)
+class BenchmarkReport:
+    project_path: str
+    provider_id: str
+    model_name: str
+    boot_latency_ms: float
+    provider_inference_ms: float
+    tool_execution_ms: float
+    total_latency_ms: float
+    turns: int
+    tool_calls: int
+    prompt_tokens: int
+    completion_tokens: int
+    total_tokens: int
+    cache_hit_rate_pct: float
 
 @dataclass(frozen=True)
 class InferenceRequest:
