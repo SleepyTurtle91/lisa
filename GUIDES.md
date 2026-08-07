@@ -1,85 +1,46 @@
-# 📖 GUIDES.md — L.I.S.A. Quickstart & Command Reference
+# 📖 GUIDES.md — L.I.S.A. User Manual & Concept Guide
 
 ```
 ===================================================
-L.I.S.A. AI Engineering Operating System
+L.I.S.A. AI ENGINEERING OPERATING SYSTEM
 ===================================================
 
 Status  : STABLE (v1.1.0)
-Purpose : User Onboarding, Command Guide & CLI Reference
+Purpose : Concept Guide, Operational Workflows & User Manual
 
 ===================================================
 ```
 
-Welcome to **L.I.S.A.** (Local Engineering Assistant)—an AI Engineering Operating System designed to run deterministic, tool-calling engineering agents on your local codebase.
+Welcome to **L.I.S.A.** (*Logical Intelligence Software Architecture*)—an **AI Engineering Operating System**.
+
+Instead of acting as a simple chatbot or LLM wrapper, L.I.S.A. manages your entire engineering workflow by discovering projects, loading local project governance, selecting AI providers, executing deterministic tools, and enforcing performance gates.
 
 ---
 
-## 🚀 Quickstart Guide (30 Seconds)
-
-### 1. Prerequisites
-Ensure you have the following installed on your machine:
-* **Python**: 3.10 or higher
-* **Git**: System git installed
-* **Ollama**: Local AI runner with `qwen3:1.7b` or `qwen3:4b` pulled (`ollama pull qwen3:1.7b`)
-
-### 2. Set Python Path
-Set `PYTHONPATH` to point to your development directory:
+## 🛠️ First-Time Setup
 
 ```bash
-export PYTHONPATH=/path/to/development/projects
-```
+git clone https://github.com/SleepyTurtle91/lisa.git
+cd lisa
 
----
+python3 -m venv .venv
+source .venv/bin/activate
 
-## 💻 CLI Commands & Usage
-
-L.I.S.A. provides three primary operational entry points:
-
-### 1. Interactive Session (Default)
-Run an AI session against a target project workspace:
-
-```bash
-python3 cli/main.py /path/to/target_project
-```
-
-**Example Output**:
-```text
-🤖 L.I.S.A. Engineering Operating System (v1.1.0)
-===================================================
-💻 System Environment : Linux (x86_64, Python 3.14.6)
-🔍 Discovered Project  : extro_pos (/home/user/development/projects/extro_pos)
-   ✓ BOOT.md present  : True
-   ✓ AGENTS.md present: True
-   ✓ Capabilities     : read_file, write_file, list_directory, flutter
-
-⚡ Initializing L.I.S.A. Kernel...
-   ✓ State: READY
-
-🚀 Executing Sample Prompt...
-📥 Assistant Response: The active milestone is Milestone 2.0 — Experience Foundation v2.0.
-
-📊 Session Operational Report
----------------------------------------------------
-   ✓ Target Project   : extro_pos
-   ✓ Reasoning Turns : 2
-   ✓ Tool Calls Made : 1
-   ✓ Total Tokens     : 1479
-   ✓ Total Latency   : 26628.34 ms
-   ✓ Execution Status: SUCCESS
----------------------------------------------------
+# Install in editable mode to get native 'lisa' command access
+pip install -e .
 ```
 
 ---
 
-### 2. Platform Diagnostics (`doctor`)
-Run health checks, architecture grading, and verify CI performance gates:
+## 🩺 Step 1: Verify Installation
+
+Before working on a codebase, inspect your system environment and runtime readiness:
 
 ```bash
-python3 cli/main.py doctor /path/to/target_project
+lisa doctor
 ```
 
-**Example Output**:
+**Expected Output**:
 ```text
 🩺 L.I.S.A. Platform Diagnostics & Health Doctor (v1.1.0)
 ===================================================
@@ -99,60 +60,95 @@ python3 cli/main.py doctor /path/to/target_project
 
 ---
 
-### 3. Historical Benchmark Comparison (`compare`)
-Analyze token throughput and latency trends across historical runs:
+## 📁 Step 2: Preparing Your First Project
 
-```bash
-python3 cli/main.py compare
-```
+L.I.S.A. is project-aware. To unlock full 2-tier bootstrap discovery, add two governance files to your project root:
 
-**Example Output**:
 ```text
-📊 L.I.S.A. Historical Benchmark Trend Analysis
-=========================================================================================================
-Timestamp            | Model           | Overhead (ms)   | Inference (ms)  | Tokens     | Tok/Sec    | Cache Hit %
----------------------------------------------------------------------------------------------------------
-2026-08-08 03:24     | qwen3:1.7b      | 3.52            | 42367.91        | 1959       | 24.07      | 50.0      
-2026-08-08 03:24     | qwen3:1.7b      | 3.5             | 8980.16         | 549        | 30.07      | 0.0       
-=========================================================================================================
+my_project/
+├── BOOT.md
+├── AGENTS.md
+└── src/
+```
+
+### Minimal `BOOT.md` Example
+```markdown
+# BOOT.md
+Project: My App
+Active Milestone: Milestone 1.0 (MVP Foundation)
+
+Objectives:
+- Build Core REST API
+- Write unit tests
 ```
 
 ---
 
-### 4. Flight Recorder Benchmark (`benchmark.py`)
-Execute a benchmark flight recorder run and record a persistent JSON artifact:
+## 🚀 Step 3: Running L.I.S.A. Engineering Sessions
+
+Start an engineering session on any target project directory:
 
 ```bash
-python3 cli/benchmark.py /path/to/target_project qwen3:1.7b
+lisa /path/to/my_project
+```
+
+### L.I.S.A. Lifecycle Sequence:
+```text
+System Boot (Inspects OS, Python, CPU, Git)
+        ↓
+Project Boot (Discovers BOOT.md, AGENTS.md & Capabilities)
+        ↓
+Kernel Initialization (State: READY)
+        ↓
+Provider Registration (Ollama / OpenAI)
+        ↓
+Tool Execution & ReAct Synthesis Loop
+        ↓
+Production Session Operational Report
 ```
 
 ---
 
-## 🛠️ Tool Calling & Capabilities
+## 💻 Command Reference
 
-L.I.S.A. exposes deterministic filesystem tools to local models via native function calling:
+### `lisa [path]`
+Runs an interactive engineering session on the target codebase.
 
-| Tool | Capability | Description |
-| :--- | :--- | :--- |
-| `read_file` | `FILESYSTEM_READ` | Reads complete contents of a target workspace file |
-| `write_file` | `FILESYSTEM_WRITE` | Writes code contents to a target workspace file |
-| `list_directory` | `FILESYSTEM_LIST` | Lists directory files and subdirectories |
+### `lisa doctor [path]`
+Runs platform health diagnostics, checks system capabilities, and asserts CI performance gates (`< 15.0 ms` boot).
 
----
+### `lisa compare [path]`
+Parses historical benchmark flight logs and displays generation throughput (`tok/sec`), token usage, and cache hit rate trends over time.
 
-## 🧪 Running Automated Unit & Performance Gate Tests
+### `lisa benchmark [path] [model]`
+Executes a flight recorder benchmark run and saves a persistent JSON benchmark artifact in `lisa/benchmarks/`.
 
-Run the complete test suite (34 automated tests, including layer boundary rules and CI performance gates):
-
-```bash
-PYTHONPATH=/path/to/development/projects python3 -m unittest discover -s tests
-```
+### `lisa --help`
+Displays the native command help menu.
 
 ---
 
-## ❓ FAQ & Troubleshooting
+## 📊 Understanding the Output Metrics
 
-* **Q: Why does the first prompt take ~20 seconds?**
-  * *A*: L.I.S.A.'s internal framework overhead is under **4.3 ms**. The remaining latency is spent inside your local GPU/CPU evaluating LLM function call schemas.
-* **Q: How does L.I.S.A. protect itself from getting slower?**
-  * *A*: `tests/test_performance_gate.py` fails CI automatically if framework boot exceeds **15.0 ms** or schema compilation exceeds **2.0 ms**.
+* **`Framework Boot Time` (`< 15.0 ms`)**: The time spent in L.I.S.A.'s Python kernel initialization.
+* **`Provider Inference Time`**: The time spent inside the local or cloud AI provider (e.g. Ollama/Qwen). L.I.S.A. framework overhead accounts for **< 0.02%** of total turn time.
+* **`Schema Cache Hit Rate (%)`**: The percentage of compiled function-calling tool schemas reused from memory.
+* **`Throughput Rate (tok/sec)`**: Model token generation throughput speed.
+
+---
+
+## 🔄 Recommended Daily Workflow
+
+1. **Morning**: Verify platform health with `lisa doctor`.
+2. **Development**: Run `lisa /path/to/project` to inspect code and execute tasks.
+3. **Benchmarking**: Measure model throughput changes using `lisa benchmark`.
+4. **Trend Analysis**: Inspect performance history with `lisa compare`.
+
+---
+
+## 📚 Core Documentation Links
+
+* [**README.md**](file:///home/user/development/projects/lisa/README.md) — Platform overview
+* [**ARCHITECTURE.md**](file:///home/user/development/projects/lisa/ARCHITECTURE.md) — Kernel & Subsystem design
+* [**DECISIONS.md**](file:///home/user/development/projects/lisa/docs/DECISIONS.md) — Architecture Decision Records (ADRs #001 – #013)
+* [**ROADMAP.md**](file:///home/user/development/projects/lisa/docs/ROADMAP.md) — Execution roadmap

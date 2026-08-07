@@ -23,17 +23,17 @@ def print_help():
     print("🤖 L.I.S.A. AI Engineering Operating System CLI (v1.1.0)")
     print("===================================================")
     print("Usage:")
-    print("  python3 cli/main.py [command|path] [options]")
+    print("  lisa [command|path] [options]")
     print("\nCommands:")
     print("  <path>                 Run interactive AI engineering session on target project directory.")
     print("  doctor [path]          Run platform health diagnostics, architecture & performance gate checks.")
     print("  compare [path]         Analyze historical benchmark flight logs and throughput performance trends.")
     print("  --help, -h             Display this CLI usage help menu.")
     print("\nExamples:")
-    print("  PYTHONPATH=. python3 cli/main.py /home/user/development/projects/extro_pos")
-    print("  PYTHONPATH=. python3 cli/main.py doctor /home/user/development/projects/extro_pos")
-    print("  PYTHONPATH=. python3 cli/main.py compare")
-    print("  PYTHONPATH=. python3 cli/benchmark.py /home/user/development/projects/extro_pos qwen3:1.7b")
+    print("  lisa /home/user/development/projects/extro_pos")
+    print("  lisa doctor /home/user/development/projects/extro_pos")
+    print("  lisa compare")
+    print("  python3 cli/benchmark.py /home/user/development/projects/extro_pos qwen3:1.7b")
     print("===================================================")
 
 async def run_doctor(target_dir: str):
@@ -223,5 +223,8 @@ async def main():
     await runtime.shutdown()
     print(f"\n🛑 Kernel Shutdown complete. State: {runtime.state.name}")
 
-if __name__ == "__main__":
+def cli_entrypoint():
     asyncio.run(main())
+
+if __name__ == "__main__":
+    cli_entrypoint()
