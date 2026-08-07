@@ -39,7 +39,7 @@ class MockProvider(BaseProvider):
 class TestPhase4BootstrapAndSession(unittest.TestCase):
     def test_bootstrap_discover(self):
         engine = BootstrapEngine.discover("/home/user/development/projects/lisa")
-        self.assertTrue(engine.agents_md_present)
+        self.assertTrue(engine.project.agents_md_present)
 
     def test_session_execution(self):
         provider = MockProvider()

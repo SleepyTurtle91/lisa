@@ -95,7 +95,7 @@ class TestRuntimeValidationMatrix(unittest.TestCase):
     # Test 5: Bootstrap Engine Discovery
     def test_05_bootstrap_discovery(self):
         boot = BootstrapEngine.discover("/home/user/development/projects/lisa")
-        self.assertTrue(boot.agents_md_present)
+        self.assertTrue(boot.project.agents_md_present)
 
 if __name__ == "__main__":
     unittest.main()

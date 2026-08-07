@@ -46,22 +46,25 @@ async def run_doctor(target_dir: str):
     compile_latency_ms = (time.perf_counter() - compile_start) * 1000.0
 
     # Grade evaluation
-    arch_grade = "A+" if (boot.boot_md_present and boot.agents_md_present) else ("A" if boot.agents_md_present else "B")
+    p_cfg = boot.project
+    s_cfg = boot.system
+    arch_grade = "A+" if (p_cfg.boot_md_present and p_cfg.agents_md_present) else ("A" if p_cfg.agents_md_present else "B")
     perf_grade = "A+" if (boot_latency_ms < 15.0 and compile_latency_ms < 2.0) else "B"
 
     # Inspect historical benchmark artifacts
     bench_dir = Path(__file__).resolve().parent.parent / "benchmarks"
     history_count = len(list(bench_dir.glob("*.json"))) if bench_dir.exists() else 0
 
-    print(f"📁 Target Project Path: {target_dir}")
+    print(f"🖥️ System Environment  : {s_cfg.os_name} ({s_cfg.architecture}, Python {s_cfg.python_version}, Git: {s_cfg.git_present})")
+    print(f"📁 Target Project Path: {p_cfg.project_name} ({p_cfg.project_path})")
     print("---------------------------------------------------")
-    print(f"🏆 Architecture Grade  : {arch_grade} (BOOT: {boot.boot_md_present}, AGENTS: {boot.agents_md_present})")
+    print(f"🏆 Architecture Grade  : {arch_grade} (BOOT: {p_cfg.boot_md_present}, AGENTS: {p_cfg.agents_md_present})")
     print(f"⚡ Performance Grade   : {perf_grade} (Boot Gate <15ms, Compile Gate <2ms)")
     print("---------------------------------------------------")
     print(f"🚀 Framework Boot Time : {boot_latency_ms:.2f} ms")
     print(f"🛠️  Schema Compile Time: {compile_latency_ms:.2f} ms")
     print(f"🔌 Registered Providers: {len(runtime.provider_registry.list_providers())} (Ollama: {ollama.healthy}, OpenAI: {openai.healthy})")
-    print(f"🛠️  Registered Tools    : {len(runtime.tool_registry.list_tools())}")
+    print(f"🛠️  Discovered Capabilities: {', '.join(p_cfg.discovered_capabilities)}")
     print(f"💾 Historical Benchmarks: {history_count} run artifacts recorded in lisa/benchmarks/")
     print("===================================================")
 
@@ -113,12 +116,17 @@ async def main():
     print("===================================================")
     
     target_dir = sys.argv[1] if len(sys.argv) > 1 else os.getcwd()
-    print(f"🔍 Discovering project at: {target_dir}")
     
-    # 1. Bootstrap Discovery
-    boot = BootstrapEngine.discover(target_dir)
-    print(f"   ✓ BOOT.md present  : {boot.boot_md_present}")
-    print(f"   ✓ AGENTS.md present: {boot.agents_md_present}")
+    # 1. 2-Tier Bootstrap Discovery (System Boot -> Project Boot)
+    boot_cfg = BootstrapEngine.discover(target_dir)
+    sys_boot = boot_cfg.system
+    proj_boot = boot_cfg.project
+
+    print(f"💻 System Environment : {sys_boot.os_name} ({sys_boot.architecture}, Python {sys_boot.python_version})")
+    print(f"🔍 Discovered Project  : {proj_boot.project_name} ({proj_boot.project_path})")
+    print(f"   ✓ BOOT.md present  : {proj_boot.boot_md_present}")
+    print(f"   ✓ AGENTS.md present: {proj_boot.agents_md_present}")
+    print(f"   ✓ Capabilities     : {', '.join(proj_boot.discovered_capabilities)}")
     
     # 2. Kernel Initialization
     print("\n⚡ Initializing L.I.S.A. Kernel...")
@@ -162,9 +170,9 @@ async def main():
     # 7. Execute Interactive Prompt / Tool Invocation
     print("\n🚀 Executing Sample Prompt through Inference Engine + Tool Executor...")
     prompt = f"Please read the file {target_dir}/BOOT.md and tell me what the active milestone is."
-    if not boot.boot_md_present and os.path.exists(os.path.join(target_dir, "AGENTS.md")):
+    if not proj_boot.boot_md_present and os.path.exists(os.path.join(target_dir, "AGENTS.md")):
         prompt = f"Please read the file {target_dir}/AGENTS.md and summarize the main objective."
-    elif not boot.boot_md_present and not boot.agents_md_present:
+    elif not proj_boot.boot_md_present and not proj_boot.agents_md_present:
         prompt = f"Please list the files in the directory {target_dir}."
 
     print(f"   ► User Prompt: {prompt}")
@@ -180,7 +188,7 @@ async def main():
     hit_rate = (tel.cache_hits / (tel.cache_hits + tel.cache_misses) * 100.0) if (tel.cache_hits + tel.cache_misses) > 0 else 0.0
     print("\n📊 Session Operational Report")
     print("---------------------------------------------------")
-    print(f"   ✓ Target Project   : {target_dir}")
+    print(f"   ✓ Target Project   : {proj_boot.project_name}")
     print(f"   ✓ Provider        : ollama (qwen3:1.7b)")
     print(f"   ✓ Reasoning Turns : {tel.total_turns}")
     print(f"   ✓ Tool Calls Made : {tel.total_tool_calls}")
