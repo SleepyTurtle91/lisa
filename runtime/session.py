@@ -46,6 +46,7 @@ class LisaSession(BaseSession):
                 inf_req = InferenceRequest(
                     session_id=self._session_id,
                     messages=self._history,
+                    model_name=self._context.model_name,
                     requested_capabilities=self._context.capabilities,
                     tools=compiled_tools if compiled_tools else None
                 )

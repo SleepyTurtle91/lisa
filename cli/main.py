@@ -60,7 +60,7 @@ async def main():
         project_path=target_dir,
         workspace_name="cli_demo",
         provider_id="ollama",
-        model_name="qwen3:4b",
+        model_name="qwen3:1.7b",
         capabilities=[Capability.CHAT, Capability.TOOLS]
     )
     session = runtime.create_session(ctx)

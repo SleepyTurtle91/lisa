@@ -6,6 +6,7 @@ from lisa.core.context import Capability
 class InferenceRequest:
     session_id: str
     messages: List[Dict[str, Any]]
+    model_name: Optional[str] = None
     requested_capabilities: List[Capability] = field(default_factory=list)
     tools: Optional[List[Dict[str, Any]]] = None
     temperature: float = 0.7

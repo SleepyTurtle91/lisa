@@ -6,6 +6,7 @@ from lisa.providers.manifest import ProviderManifest
 @dataclass
 class ChatRequest:
     messages: List[Dict[str, Any]]
+    model: Optional[str] = None
     tools: Optional[List[Dict[str, Any]]] = None
     temperature: float = 0.7
     max_tokens: Optional[int] = None

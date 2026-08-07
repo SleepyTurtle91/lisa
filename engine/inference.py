@@ -34,6 +34,7 @@ class InferenceEngine:
 
         chat_req = ChatRequest(
             messages=request.messages,
+            model=request.model_name,
             tools=request.tools,
             temperature=request.temperature,
             max_tokens=request.max_tokens
