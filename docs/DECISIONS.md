@@ -6,8 +6,8 @@ L.I.S.A. ENGINEERING OPERATING SYSTEM
 ===================================================
 
 Status      : APPROVED ARCHITECTURAL CONSTITUTION LEDGER
-Version     : 1.7.0
-Last Update : 2026-08-07
+Version     : 1.8.0
+Last Update : 2026-08-08
 
 ===================================================
 ```
@@ -145,3 +145,14 @@ Last Update : 2026-08-07
 * **Supersedes**: -
 * **Superseded By**: -
 * **Enforcement**: `lisa/runtime/session.py` and `tests/test_tool_calling_loop.py`.
+
+---
+
+### Decision #013: Operational Telemetry & CI Performance Gates
+* **Status**: Accepted
+* **Version**: v1.1.0
+* **Scope**: Permanent
+* **Reason**: Every session execution must collect cumulative `SessionTelemetry` (latency breakdowns, token throughput tok/sec, schema cache hits/misses, reasoning turns). CI unit test suites MUST enforce performance regression gates (`boot_latency_ms < 15.0`, `tool_dispatch_ms < 2.0`) to guarantee deterministic runtime supremacy over time.
+* **Supersedes**: -
+* **Superseded By**: -
+* **Enforcement**: `lisa/cli/benchmark.py`, `lisa/cli/main.py` (`doctor`/`compare`), and `tests/test_performance_gate.py`.
