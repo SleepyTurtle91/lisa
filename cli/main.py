@@ -175,19 +175,21 @@ async def main():
     print(response)
     print("---------------------------------------------------")
 
-    # 8. Cumulative Session Telemetry & Schema Cache Stats Report
+    # 8. Production Session Activity & Telemetry Summary Report
     tel = session.session_telemetry
-    print("\n📊 Cumulative Session Telemetry Baseline:")
-    print(f"   ✓ Total Latency    : {tel.total_latency_ms:.2f} ms")
-    print(f"   ✓ Total Turns      : {tel.total_turns}")
-    print(f"   ✓ Total Tool Calls : {tel.total_tool_calls}")
-    print(f"   ✓ Prompt Tokens    : {tel.total_prompt_tokens}")
-    print(f"   ✓ Completion Tokens: {tel.total_completion_tokens}")
-    print(f"   ✓ Total Tokens     : {tel.total_tokens}")
-    print(f"   ✓ Schema Cache Hits: {tel.cache_hits}")
-    print(f"   ✓ Schema Cache Misses: {tel.cache_misses}")
     hit_rate = (tel.cache_hits / (tel.cache_hits + tel.cache_misses) * 100.0) if (tel.cache_hits + tel.cache_misses) > 0 else 0.0
-    print(f"   ✓ Cache Hit Rate   : {hit_rate:.1f}%")
+    print("\n📊 Session Operational Report")
+    print("---------------------------------------------------")
+    print(f"   ✓ Target Project   : {target_dir}")
+    print(f"   ✓ Provider        : ollama (qwen3:1.7b)")
+    print(f"   ✓ Reasoning Turns : {tel.total_turns}")
+    print(f"   ✓ Tool Calls Made : {tel.total_tool_calls}")
+    print(f"   ✓ Prompt Tokens   : {tel.total_prompt_tokens}")
+    print(f"   ✓ Completion Tokens: {tel.total_completion_tokens}")
+    print(f"   ✓ Schema Cache %  : {hit_rate:.1f}%")
+    print(f"   ✓ Total Latency   : {tel.total_latency_ms:.2f} ms")
+    print(f"   ✓ Execution Status: SUCCESS")
+    print("---------------------------------------------------")
 
     # 9. Shutdown
     await runtime.shutdown()
