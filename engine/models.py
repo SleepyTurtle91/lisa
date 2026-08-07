@@ -3,6 +3,15 @@ from typing import List, Dict, Any, Optional
 from lisa.core.context import Capability
 
 @dataclass(frozen=True)
+class ExecutionTelemetry:
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    total_tokens: int = 0
+    tool_calls_count: int = 0
+    tools_exposed_count: int = 0
+    retries_count: int = 0
+
+@dataclass(frozen=True)
 class InferenceRequest:
     session_id: str
     messages: List[Dict[str, Any]]
@@ -27,4 +36,5 @@ class InferenceResult:
     provider_id: str
     model_name: str
     latency_ms: float
+    telemetry: ExecutionTelemetry = field(default_factory=ExecutionTelemetry)
     error: Optional[str] = None

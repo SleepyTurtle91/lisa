@@ -17,7 +17,7 @@ from lisa.tools.filesystem.standard import WriteFileTool, ListDirectoryTool
 from lisa.core.context import SessionContext, Capability
 
 async def main():
-    print("🤖 L.I.S.A. Engineering Operating System (v1.0.0-alpha)")
+    print("🤖 L.I.S.A. Engineering Operating System (v1.1.0)")
     print("===================================================")
     
     target_dir = sys.argv[1] if len(sys.argv) > 1 else os.getcwd()
@@ -83,7 +83,21 @@ async def main():
     print(response)
     print("---------------------------------------------------")
 
-    # 8. Shutdown
+    # 8. Report Execution Telemetry Snapshot
+    res = session.last_result
+    if res and res.telemetry:
+        tel = res.telemetry
+        print("\n📊 Session Execution Telemetry Baseline:")
+        print(f"   ✓ Provider        : {res.provider_id} ({res.model_name})")
+        print(f"   ✓ Total Latency   : {res.latency_ms:.2f} ms")
+        print(f"   ✓ Prompt Tokens   : {tel.prompt_tokens}")
+        print(f"   ✓ Completion Tokens: {tel.completion_tokens}")
+        print(f"   ✓ Total Tokens    : {tel.total_tokens}")
+        print(f"   ✓ Tool Calls Made : {tel.tool_calls_count}")
+        print(f"   ✓ Tools Filtered  : {tel.tools_exposed_count} tools exposed to model")
+        print(f"   ✓ Retry Count     : {tel.retries_count}")
+
+    # 9. Shutdown
     await runtime.shutdown()
     print(f"\n🛑 Kernel Shutdown complete. State: {runtime.state.name}")
 

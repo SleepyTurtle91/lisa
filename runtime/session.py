@@ -1,11 +1,11 @@
 import uuid
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from lisa.core.runtime import BaseSession
 from lisa.core.context import SessionContext
 from lisa.core.states import SessionState
 from lisa.core.errors import SessionError
 from lisa.engine.inference import InferenceEngine
-from lisa.engine.models import InferenceRequest
+from lisa.engine.models import InferenceRequest, InferenceResult
 from lisa.tools.registry import ToolRegistry
 from lisa.tools.compiler import ToolCompiler
 from lisa.tools.dispatcher import ToolExecutor
@@ -20,6 +20,7 @@ class LisaSession(BaseSession):
         self._executor = ToolExecutor(registry, max_retries=1)
         self._history: List[Dict[str, Any]] = []
         self._state = SessionState.CREATED
+        self._last_result: Optional[InferenceResult] = None
 
     @property
     def session_id(self) -> str:
@@ -28,6 +29,10 @@ class LisaSession(BaseSession):
     @property
     def state(self) -> SessionState:
         return self._state
+
+    @property
+    def last_result(self) -> Optional[InferenceResult]:
+        return self._last_result
 
     async def send_message(self, message: str) -> str:
         if self._state == SessionState.CLOSED or self._state == SessionState.FAILED:
@@ -38,9 +43,15 @@ class LisaSession(BaseSession):
         
         try:
             while True:
+                # 1. Dynamic Tool Filtering based on prompt keywords
+                keywords = message.split()
+                all_tools = self._registry.list_tools()
+                filtered_tools = ToolCompiler.filter_tools(all_tools, intent_keywords=keywords)
+
+                # 2. Schema Compilation via ToolCompiler Cache
                 compiled_tools = [
                     ToolCompiler.compile_schema(t, self._context.provider_id or "ollama")
-                    for t in self._registry.list_tools()
+                    for t in filtered_tools
                 ]
                 
                 inf_req = InferenceRequest(
@@ -52,12 +63,14 @@ class LisaSession(BaseSession):
                 )
                 
                 inf_result = await self._engine.execute(inf_req, preferred_provider_id=self._context.provider_id)
+                self._last_result = inf_result
+
                 if not inf_result.success or not inf_result.response:
                     raise SessionError(f"Inference Engine failed: {inf_result.error}")
                 
                 response = inf_result.response
                 
-                # If provider returned tool calls, execute each via ToolExecutor and append to history for re-inference
+                # 3. Execute tool calls if returned by model
                 if response.tool_calls:
                     for call in response.tool_calls:
                         func = call.get("function", {})
@@ -69,10 +82,10 @@ class LisaSession(BaseSession):
                             "role": "tool",
                             "content": str(result.output if result.success else result.error)
                         })
-                    # Re-loop to send updated history containing tool results back to the model
+                    # Re-loop to send updated history back to model
                     continue
                 
-                # If no tool calls, model provided final text content
+                # Final answer
                 self._history.append({"role": "assistant", "content": response.content})
                 self._state = SessionState.READY
                 return response.content
