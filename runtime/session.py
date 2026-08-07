@@ -5,7 +5,7 @@ from lisa.core.context import SessionContext
 from lisa.core.states import SessionState
 from lisa.core.errors import SessionError
 from lisa.engine.inference import InferenceEngine
-from lisa.engine.models import InferenceRequest, InferenceResult
+from lisa.engine.models import InferenceRequest, InferenceResult, SessionTelemetry, ExecutionTelemetry
 from lisa.tools.registry import ToolRegistry
 from lisa.tools.compiler import ToolCompiler
 from lisa.tools.dispatcher import ToolExecutor
@@ -21,6 +21,14 @@ class LisaSession(BaseSession):
         self._history: List[Dict[str, Any]] = []
         self._state = SessionState.CREATED
         self._last_result: Optional[InferenceResult] = None
+        
+        # Cumulative Session Telemetry
+        self._total_prompt_tokens = 0
+        self._total_completion_tokens = 0
+        self._total_tokens = 0
+        self._total_tool_calls = 0
+        self._total_turns = 0
+        self._total_latency_ms = 0.0
 
     @property
     def session_id(self) -> str:
@@ -34,6 +42,20 @@ class LisaSession(BaseSession):
     def last_result(self) -> Optional[InferenceResult]:
         return self._last_result
 
+    @property
+    def session_telemetry(self) -> SessionTelemetry:
+        hits, misses = ToolCompiler.get_cache_stats()
+        return SessionTelemetry(
+            total_prompt_tokens=self._total_prompt_tokens,
+            total_completion_tokens=self._total_completion_tokens,
+            total_tokens=self._total_tokens,
+            total_tool_calls=self._total_tool_calls,
+            total_turns=self._total_turns,
+            total_latency_ms=self._total_latency_ms,
+            cache_hits=hits,
+            cache_misses=misses
+        )
+
     async def send_message(self, message: str) -> str:
         if self._state == SessionState.CLOSED or self._state == SessionState.FAILED:
             raise SessionError(f"Cannot send message on session in {self._state.name} state.")
@@ -43,6 +65,8 @@ class LisaSession(BaseSession):
         
         try:
             while True:
+                self._total_turns += 1
+                
                 # 1. Dynamic Tool Filtering based on prompt keywords
                 keywords = message.split()
                 all_tools = self._registry.list_tools()
@@ -68,11 +92,20 @@ class LisaSession(BaseSession):
                 if not inf_result.success or not inf_result.response:
                     raise SessionError(f"Inference Engine failed: {inf_result.error}")
                 
+                # Accumulate Telemetry metrics across multi-turn re-inference loop
+                if inf_result.telemetry:
+                    tel = inf_result.telemetry
+                    self._total_prompt_tokens += tel.prompt_tokens
+                    self._total_completion_tokens += tel.completion_tokens
+                    self._total_tokens += tel.total_tokens
+                    self._total_latency_ms += inf_result.latency_ms
+
                 response = inf_result.response
                 
                 # 3. Execute tool calls if returned by model
                 if response.tool_calls:
                     for call in response.tool_calls:
+                        self._total_tool_calls += 1
                         func = call.get("function", {})
                         tool_name = func.get("name")
                         args = func.get("arguments", {})

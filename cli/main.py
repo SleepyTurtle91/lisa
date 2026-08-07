@@ -83,19 +83,19 @@ async def main():
     print(response)
     print("---------------------------------------------------")
 
-    # 8. Report Execution Telemetry Snapshot
-    res = session.last_result
-    if res and res.telemetry:
-        tel = res.telemetry
-        print("\n📊 Session Execution Telemetry Baseline:")
-        print(f"   ✓ Provider        : {res.provider_id} ({res.model_name})")
-        print(f"   ✓ Total Latency   : {res.latency_ms:.2f} ms")
-        print(f"   ✓ Prompt Tokens   : {tel.prompt_tokens}")
-        print(f"   ✓ Completion Tokens: {tel.completion_tokens}")
-        print(f"   ✓ Total Tokens    : {tel.total_tokens}")
-        print(f"   ✓ Tool Calls Made : {tel.tool_calls_count}")
-        print(f"   ✓ Tools Filtered  : {tel.tools_exposed_count} tools exposed to model")
-        print(f"   ✓ Retry Count     : {tel.retries_count}")
+    # 8. Cumulative Session Telemetry & Schema Cache Stats Report
+    tel = session.session_telemetry
+    print("\n📊 Cumulative Session Telemetry Baseline:")
+    print(f"   ✓ Total Latency    : {tel.total_latency_ms:.2f} ms")
+    print(f"   ✓ Total Turns      : {tel.total_turns}")
+    print(f"   ✓ Total Tool Calls : {tel.total_tool_calls}")
+    print(f"   ✓ Prompt Tokens    : {tel.total_prompt_tokens}")
+    print(f"   ✓ Completion Tokens: {tel.total_completion_tokens}")
+    print(f"   ✓ Total Tokens     : {tel.total_tokens}")
+    print(f"   ✓ Schema Cache Hits: {tel.cache_hits}")
+    print(f"   ✓ Schema Cache Misses: {tel.cache_misses}")
+    hit_rate = (tel.cache_hits / (tel.cache_hits + tel.cache_misses) * 100.0) if (tel.cache_hits + tel.cache_misses) > 0 else 0.0
+    print(f"   ✓ Cache Hit Rate   : {hit_rate:.1f}%")
 
     # 9. Shutdown
     await runtime.shutdown()

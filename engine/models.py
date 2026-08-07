@@ -10,6 +10,20 @@ class ExecutionTelemetry:
     tool_calls_count: int = 0
     tools_exposed_count: int = 0
     retries_count: int = 0
+    turns_count: int = 1
+    cache_hits: int = 0
+    cache_misses: int = 0
+
+@dataclass(frozen=True)
+class SessionTelemetry:
+    total_prompt_tokens: int = 0
+    total_completion_tokens: int = 0
+    total_tokens: int = 0
+    total_tool_calls: int = 0
+    total_turns: int = 0
+    total_latency_ms: float = 0.0
+    cache_hits: int = 0
+    cache_misses: int = 0
 
 @dataclass(frozen=True)
 class InferenceRequest:
