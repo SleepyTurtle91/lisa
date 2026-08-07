@@ -1,4 +1,4 @@
-# 🛣️ L.I.S.A. Release Roadmap & Milestone Protocol
+# 🚀 ROADMAP.md — L.I.S.A. Release Roadmap & Performance Protocol
 
 ```
 ===================================================
@@ -6,65 +6,48 @@ L.I.S.A. ENGINEERING OPERATING SYSTEM
 ===================================================
 
 Status      : APPROVED MILESTONE ROADMAP
-Current Tag : v0.7 (Native Tool Calling & Loop Synthesis)
-Objective   : Implement native LLM tool-calling loop & response synthesis
+Current Tag : v1.1.0 (Execution Path & Performance Optimization)
+Target      : Context Compaction, Tool Schema Filtering & Telemetry
 
 ===================================================
 ```
 
 ---
 
-## 🎯 Release Sequence
+## 🎯 Milestone Sequence & Version Policy
 
-### ✅ `v0.1` — Architecture & Contract Freeze
-* **Goal**: Freeze component boundaries, event bus, context definitions, and tool execution contracts.
-
----
-
-### ✅ `v0.2` — Runtime Predictability & Failure Recovery
-* **Goal**: Guarantee deterministic startup, explicit state machines, typed failure recovery, and health reporting.
+Version numbers in L.I.S.A. represent **proven operational capabilities in production project execution**.
 
 ---
 
-### ✅ `v0.3` — Provider Runtime
-* **Goal**: ProviderRegistry, ProviderSelector, ProviderManifest, and Capability negotiation.
+### ✅ `v1.0.0-alpha` — The Foundation Release
+* **Goal**: 3-Tier Layer Architecture (`Runtime Layer`, `Execution Layer`, `Infrastructure Layer`), governance constitution stack (`AGENTS.md`, `ARCHITECTURE.md`, `LAYER_MODEL.md`, `DECISIONS.md`, `SUBSYSTEM_TEMPLATE.md`, `VISION.md`), automated CI architecture rule enforcement (`test_architecture_rules.py`), zero-mock integration suite.
 
 ---
 
-### ✅ `v0.4` — Inference Engine & Normalization
-* **Goal**: Standardized `InferenceRequest`, `InferenceResponse`, and `InferenceResult` payload objects with `ResponseNormalizer` and `InferenceEngine` single-shot retries.
+### ✅ `v0.7` — Native Tool Calling Loop & Re-Inference Synthesis
+* **Goal**: ReAct execution loop (`InferenceEngine` $\rightarrow$ Provider `/api/chat` tool call request $\rightarrow$ `ToolExecutor` real filesystem read $\rightarrow$ Message History append $\rightarrow$ Re-Inference synthesis $\rightarrow$ Final response). Operational validation against `extro_pos`.
 
 ---
 
-### ✅ `v0.5` — Tool Runtime & Contract Runtime Pattern
-* **Goal**: Formalized `ToolManifest`, `ToolContext`, `ToolResolver`, and `ToolExecutor` executing `ToolRequest` $\rightarrow$ `ToolResult`.
+### 🟢 `v1.1.0` — Execution Path & Performance Optimization (Active Focus)
+* **Objective**: Optimize inference speed, prompt efficiency, and token usage for local models.
+1. **Tool Schema Filtering**: Only expose relevant tool schemas dynamically per session context to reduce model context overhead.
+2. **Context Compaction & Token Budgeting**: Automatically compress redundant history and prevent repeated system prompt evaluation.
+3. **Provider Telemetry & Profiling**: Track exact token counts, evaluation latency, and retry metrics in `InferenceResult`.
+4. **Prompt Caching / Schema Optimization**: Pre-compile static tool definition schemas.
 
 ---
 
-### ✅ `v0.6` — Vertical Slice Integration
-* **Goal**: Validated zero-mock end-to-end pipeline against `examples/golden_project`: Project Discovery $\rightarrow$ `BOOT.md` parse $\rightarrow$ `InferenceEngine` $\rightarrow$ `ToolExecutor` $\rightarrow$ `ReadFileTool` $\rightarrow$ `InferenceResult`.
+### ⏳ `v1.2.0` — Workflow Engine & State Machine
+* **Objective**: Execute multi-step deterministic workflows defined in `BOOT.md` without bypass.
 
 ---
 
-### ✅ `v0.6.5` — Platform Stabilization & Refinement
-* **Goal**: Audited 38 modules for circular imports, recorded benchmark performance (<1.5ms cold boot), created `ARCHITECTURE_SCORE.md` (Grade A+), and synchronized all documentation.
+### ⏳ `v1.3.0` — Memory Runtime
+* **Objective**: Persistent cross-session knowledge indexing and project profile memory.
 
 ---
 
-### 🟢 `v0.7` — Native Tool Calling & Loop Synthesis (Current Milestone)
-* **Goal**: Complete multi-turn native LLM tool-calling loop: Prompt $\rightarrow$ Provider Tool Call $\rightarrow$ `ToolExecutor` $\rightarrow$ Real Execution $\rightarrow$ Message History $\rightarrow$ Re-Inference Synthesis $\rightarrow$ Final Answer.
-
----
-
-### ⏳ `v0.8` — Workflow Runtime
-* **Goal**: Deterministic workflow state machine execution (`BOOT.md` workflows, step transitions).
-
----
-
-### ⏳ `v0.9` — Memory Runtime
-* **Goal**: Context budgeting, conversation state management, token compression, and long-term history.
-
----
-
-### ⏳ `v1.0` — Plugin Runtime & Platform Integration
-* **Goal**: Domain extension loader (`extropos`, `android`, `flutter`, `docker`).
+### ⏳ `v2.0.0` — Multi-Project Operating Platform
+* **Objective**: Unmodified execution across `ExtroPOS`, `Music Home`, `RetroStash`, and `Kakeibo`.
