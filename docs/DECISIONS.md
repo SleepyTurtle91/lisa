@@ -6,7 +6,7 @@ L.I.S.A. ENGINEERING OPERATING SYSTEM
 ===================================================
 
 Status      : APPROVED ARCHITECTURAL CONSTITUTION LEDGER
-Version     : 1.6.0
+Version     : 1.7.0
 Last Update : 2026-08-07
 
 ===================================================
@@ -126,7 +126,7 @@ Last Update : 2026-08-07
 
 ---
 
-### Decision #011: Core Runtime Architecture Freeze (Foundation Phase Freeze)
+### Decision #011: Core Runtime Architecture Freeze
 * **Status**: Accepted
 * **Version**: v0.6.5
 * **Scope**: Permanent
@@ -134,3 +134,14 @@ Last Update : 2026-08-07
 * **Supersedes**: -
 * **Superseded By**: -
 * **Enforcement**: `tests/test_architecture_rules.py` and `docs/ARCHITECTURE_SCORE.md`.
+
+---
+
+### Decision #012: Native Tool Calling Loop & Re-Inference Synthesis
+* **Status**: Accepted
+* **Version**: v0.7
+* **Scope**: Permanent
+* **Reason**: When an AI provider returns tool calls in `InferenceResponse`, `LisaSession` executes each call via `ToolExecutor.execute_request(ToolRequest)`, appends the `ToolResult` output to message history, and re-invokes `InferenceEngine` for multi-turn synthesis before returning the final response to the caller.
+* **Supersedes**: -
+* **Superseded By**: -
+* **Enforcement**: `lisa/runtime/session.py` and `tests/test_tool_calling_loop.py`.

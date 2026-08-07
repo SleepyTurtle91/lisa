@@ -6,8 +6,8 @@ L.I.S.A. ENGINEERING OPERATING SYSTEM
 ===================================================
 
 Status      : APPROVED MILESTONE ROADMAP
-Current Tag : v0.7 (Workflow Runtime)
-Objective   : Build deterministic state machine workflow orchestration
+Current Tag : v0.7 (Native Tool Calling & Loop Synthesis)
+Objective   : Implement native LLM tool-calling loop & response synthesis
 
 ===================================================
 ```
@@ -51,20 +51,20 @@ Objective   : Build deterministic state machine workflow orchestration
 
 ---
 
-### 🟢 `v0.7` — Workflow Runtime (Current Milestone)
-* **Goal**: Deterministic workflow state machine execution (`BOOT.md` workflows, step transitions) adhering strictly to `WorkflowManifest`, `WorkflowContext`, `WorkflowRequest`, `WorkflowResult`, `WorkflowRegistry`, and `WorkflowExecutor`.
+### 🟢 `v0.7` — Native Tool Calling & Loop Synthesis (Current Milestone)
+* **Goal**: Complete multi-turn native LLM tool-calling loop: Prompt $\rightarrow$ Provider Tool Call $\rightarrow$ `ToolExecutor` $\rightarrow$ Real Execution $\rightarrow$ Message History $\rightarrow$ Re-Inference Synthesis $\rightarrow$ Final Answer.
 
 ---
 
-### ⏳ `v0.8` — Memory Runtime
+### ⏳ `v0.8` — Workflow Runtime
+* **Goal**: Deterministic workflow state machine execution (`BOOT.md` workflows, step transitions).
+
+---
+
+### ⏳ `v0.9` — Memory Runtime
 * **Goal**: Context budgeting, conversation state management, token compression, and long-term history.
 
 ---
 
-### ⏳ `v0.9` — Plugin Runtime
+### ⏳ `v1.0` — Plugin Runtime & Platform Integration
 * **Goal**: Domain extension loader (`extropos`, `android`, `flutter`, `docker`).
-
----
-
-### 🚀 `v1.0` — Stable Engineering Operating System
-* **Goal**: Autonomous, multi-provider Engineering Operating System Kernel.
