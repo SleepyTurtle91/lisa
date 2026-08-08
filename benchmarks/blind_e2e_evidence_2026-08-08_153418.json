@@ -1,0 +1,197 @@
+{
+  "experiment_id": "BLIND-E2E-003",
+  "title": "Evidence Expansion Blind Flight",
+  "timestamp": "2026-08-08T15:34:18.482265",
+  "session_id": "blind_e2e_evidence_2026-08-08_153418",
+  "prompt": "Find a small defect in the runtime contract handling, fix it with the minimum necessary change, and verify the fix with tests. Do not modify unrelated behavior.",
+  "response": "I inspected the runtime session flow, the end-to-end flight tests, and the kernel lifecycle. I still need more evidence to identify a concrete defect with confidence.",
+  "stages": [
+    "objective_received",
+    "target_discovery",
+    "task_analysis",
+    "model_selection",
+    "scaffolding_decision",
+    "tool_call",
+    "tool_result",
+    "tool_call",
+    "tool_result",
+    "tool_call",
+    "tool_result",
+    "final_conclusion"
+  ],
+  "events": [
+    {
+      "timestamp": "2026-08-08T15:34:18.480662",
+      "time_epoch_ms": 1786174458480.67,
+      "session_id": "blind_e2e_evidence_2026-08-08_153418",
+      "event_type": "runtime_initialized",
+      "payload": {
+        "state": "INITIALIZING"
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:34:18.480895",
+      "time_epoch_ms": 1786174458480.9,
+      "session_id": "blind_e2e_evidence_2026-08-08_153418",
+      "event_type": "runtime_ready",
+      "payload": {
+        "state": "READY"
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:34:18.481062",
+      "time_epoch_ms": 1786174458481.07,
+      "session_id": "blind_e2e_evidence_2026-08-08_153418",
+      "event_type": "session_created",
+      "payload": {
+        "session_id": "14050b09-b5b1-4822-a597-81158a184b7b",
+        "project_path": "/home/user/Projects/lisa"
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:34:18.481127",
+      "time_epoch_ms": 1786174458481.13,
+      "session_id": "blind_e2e_evidence_2026-08-08_153418",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "objective_received",
+        "session_id": "14050b09-b5b1-4822-a597-81158a184b7b",
+        "message": "Find a small defect in the runtime contract handling, fix it with the minimum necessary change, and verify the fix with tests. Do not modify unrelated behavior.",
+        "project_path": "/home/user/Projects/lisa"
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:34:18.481171",
+      "time_epoch_ms": 1786174458481.17,
+      "session_id": "blind_e2e_evidence_2026-08-08_153418",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "target_discovery",
+        "session_id": "14050b09-b5b1-4822-a597-81158a184b7b",
+        "message": "Find a small defect in the runtime contract handling, fix it with the minimum necessary change, and verify the fix with tests. Do not modify unrelated behavior."
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:34:18.481209",
+      "time_epoch_ms": 1786174458481.21,
+      "session_id": "blind_e2e_evidence_2026-08-08_153418",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "task_analysis",
+        "session_id": "14050b09-b5b1-4822-a597-81158a184b7b",
+        "message": "Find a small defect in the runtime contract handling, fix it with the minimum necessary change, and verify the fix with tests. Do not modify unrelated behavior."
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:34:18.481239",
+      "time_epoch_ms": 1786174458481.24,
+      "session_id": "blind_e2e_evidence_2026-08-08_153418",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "model_selection",
+        "session_id": "14050b09-b5b1-4822-a597-81158a184b7b",
+        "message": "Find a small defect in the runtime contract handling, fix it with the minimum necessary change, and verify the fix with tests. Do not modify unrelated behavior."
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:34:18.481267",
+      "time_epoch_ms": 1786174458481.27,
+      "session_id": "blind_e2e_evidence_2026-08-08_153418",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "scaffolding_decision",
+        "session_id": "14050b09-b5b1-4822-a597-81158a184b7b",
+        "message": "Find a small defect in the runtime contract handling, fix it with the minimum necessary change, and verify the fix with tests. Do not modify unrelated behavior."
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:34:18.481404",
+      "time_epoch_ms": 1786174458481.41,
+      "session_id": "blind_e2e_evidence_2026-08-08_153418",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "tool_call",
+        "session_id": "14050b09-b5b1-4822-a597-81158a184b7b",
+        "tool_name": "read_file",
+        "arguments": {
+          "path": "/home/user/Projects/lisa/runtime/session.py"
+        }
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:34:18.481564",
+      "time_epoch_ms": 1786174458481.57,
+      "session_id": "blind_e2e_evidence_2026-08-08_153418",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "tool_result",
+        "session_id": "14050b09-b5b1-4822-a597-81158a184b7b",
+        "tool_name": "read_file",
+        "success": true
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:34:18.481699",
+      "time_epoch_ms": 1786174458481.7,
+      "session_id": "blind_e2e_evidence_2026-08-08_153418",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "tool_call",
+        "session_id": "14050b09-b5b1-4822-a597-81158a184b7b",
+        "tool_name": "read_file",
+        "arguments": {
+          "path": "/home/user/Projects/lisa/tests/test_end_to_end_flight.py"
+        }
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:34:18.481816",
+      "time_epoch_ms": 1786174458481.82,
+      "session_id": "blind_e2e_evidence_2026-08-08_153418",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "tool_result",
+        "session_id": "14050b09-b5b1-4822-a597-81158a184b7b",
+        "tool_name": "read_file",
+        "success": true
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:34:18.481921",
+      "time_epoch_ms": 1786174458481.92,
+      "session_id": "blind_e2e_evidence_2026-08-08_153418",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "tool_call",
+        "session_id": "14050b09-b5b1-4822-a597-81158a184b7b",
+        "tool_name": "read_file",
+        "arguments": {
+          "path": "/home/user/Projects/lisa/core/kernel.py"
+        }
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:34:18.481998",
+      "time_epoch_ms": 1786174458482.0,
+      "session_id": "blind_e2e_evidence_2026-08-08_153418",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "tool_result",
+        "session_id": "14050b09-b5b1-4822-a597-81158a184b7b",
+        "tool_name": "read_file",
+        "success": true
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:34:18.482074",
+      "time_epoch_ms": 1786174458482.08,
+      "session_id": "blind_e2e_evidence_2026-08-08_153418",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "final_conclusion",
+        "session_id": "14050b09-b5b1-4822-a597-81158a184b7b",
+        "content": "I inspected the runtime session flow, the end-to-end flight tests, and the kernel lifecycle. I still need more evidence to identify a concrete defect with confidence."
+      }
+    }
+  ]
+}

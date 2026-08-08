@@ -1,0 +1,47 @@
+{
+  "experiment_id": "BLIND-E2E-013",
+  "title": "Selection Complexity Ladder \u2014 Multi-candidate Overlap",
+  "timestamp": "2026-08-08T17:08:57.948487",
+  "result": {
+    "id": "S-004",
+    "title": "Multi-candidate overlap",
+    "response": "C",
+    "normalized_response": "C",
+    "expected_selection": "C",
+    "validity": "valid_selection",
+    "prompt": "Select the single best candidate. If the evidence is insufficient to justify a choice, return ABSTAIN. Return the ID only.\n\nCandidate set:\n{\"candidates\": [{\"confidence\": 0.62, \"contradictions\": 2, \"id\": \"A\", \"notes\": \"Partial validation but no execution evidence.\", \"support\": 4}, {\"confidence\": 0.59, \"contradictions\": 1, \"id\": \"B\", \"notes\": \"Solid inspection but weaker cross-checks.\", \"support\": 4}, {\"confidence\": 0.71, \"contradictions\": 2, \"id\": \"C\", \"notes\": \"Best overall evidence with one unresolved contradiction.\", \"support\": 5}, {\"confidence\": 0.58, \"contradictions\": 0, \"id\": \"D\", \"notes\": \"Low volume evidence and no corroboration.\", \"support\": 3}]}",
+    "candidate_payload": {
+      "candidates": [
+        {
+          "id": "A",
+          "confidence": 0.62,
+          "support": 4,
+          "contradictions": 2,
+          "notes": "Partial validation but no execution evidence."
+        },
+        {
+          "id": "B",
+          "confidence": 0.59,
+          "support": 4,
+          "contradictions": 1,
+          "notes": "Solid inspection but weaker cross-checks."
+        },
+        {
+          "id": "C",
+          "confidence": 0.71,
+          "support": 5,
+          "contradictions": 2,
+          "notes": "Best overall evidence with one unresolved contradiction."
+        },
+        {
+          "id": "D",
+          "confidence": 0.58,
+          "support": 3,
+          "contradictions": 0,
+          "notes": "Low volume evidence and no corroboration."
+        }
+      ]
+    },
+    "timestamp": "2026-08-08T17:08:57.948464"
+  }
+}

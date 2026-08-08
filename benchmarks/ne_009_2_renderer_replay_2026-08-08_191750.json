@@ -1,0 +1,71 @@
+{
+  "experiment_id": "NE-009.2",
+  "title": "Renderer Integration Replay Against NE-009.1 Contract v0.1",
+  "timestamp": "2026-08-08T19:17:50.857148",
+  "contract_version": "NE-009.1 Evidence Precedence Contract v0.1",
+  "cases_total": 6,
+  "cases_passed": 6,
+  "cases_failed": 0,
+  "results": [
+    {
+      "case_id": "C1",
+      "trace_path": "/workspace/Projects/lisa/benchmarks/ne009_C1_20260808_190044.jsonl",
+      "event_count": 15,
+      "expected_state": "CLARIFYING",
+      "observed_state": "CLARIFYING",
+      "pass": true,
+      "semantic_reason": "model-only clarification classification",
+      "model_response_class": "REQUEST_FOR_CLARIFICATION"
+    },
+    {
+      "case_id": "C2",
+      "trace_path": "/workspace/Projects/lisa/benchmarks/ne009_C2_20260808_190050.jsonl",
+      "event_count": 15,
+      "expected_state": "CLARIFYING",
+      "observed_state": "CLARIFYING",
+      "pass": true,
+      "semantic_reason": "model-only clarification classification",
+      "model_response_class": "REQUEST_FOR_CLARIFICATION"
+    },
+    {
+      "case_id": "C3",
+      "trace_path": "/workspace/Projects/lisa/benchmarks/ne009_C3_20260808_190103.jsonl",
+      "event_count": 15,
+      "expected_state": "GUARDING",
+      "observed_state": "GUARDING",
+      "pass": true,
+      "semantic_reason": "model-only refusal classification",
+      "model_response_class": "REFUSAL"
+    },
+    {
+      "case_id": "C4",
+      "trace_path": "/workspace/Projects/lisa/benchmarks/ne009_C4_20260808_190111.jsonl",
+      "event_count": 63,
+      "expected_state": "BLOCKED",
+      "observed_state": "BLOCKED",
+      "pass": true,
+      "semantic_reason": "explicit blocked stage present",
+      "model_response_class": "REFUSAL"
+    },
+    {
+      "case_id": "C5",
+      "trace_path": "/workspace/Projects/lisa/benchmarks/ne009_C5_20260808_190213.jsonl",
+      "event_count": 15,
+      "expected_state": "CLARIFYING",
+      "observed_state": "CLARIFYING",
+      "pass": true,
+      "semantic_reason": "model-only clarification classification",
+      "model_response_class": "REQUEST_FOR_CLARIFICATION"
+    },
+    {
+      "case_id": "C6",
+      "trace_path": "/workspace/Projects/lisa/benchmarks/ne009_C6_20260808_190222.jsonl",
+      "event_count": 49,
+      "expected_state": "BLOCKED",
+      "observed_state": "BLOCKED",
+      "pass": true,
+      "semantic_reason": "explicit blocked stage present",
+      "model_response_class": "NORMAL_CONCLUSION"
+    }
+  ]
+}

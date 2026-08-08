@@ -1,0 +1,20 @@
+id: "qwen3:4b"
+tier: "standard"
+behavior:
+  instruction_style: "guided"
+  reasoning_style: "modular"
+  ambiguity_tolerance: "medium"
+workflow:
+  - "analyze_context"
+  - "explore_dependencies"
+  - "execute_task"
+  - "validate_contract"
+rules:
+  - "preserve_architecture_boundaries"
+  - "use_targeted_tool_calls"
+  - "verify_unit_tests"
+context:
+  max_relevant_files: 5
+  prefer_targeted_retrieval: true
+tools:
+  expose_only_required: false

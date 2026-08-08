@@ -1,6 +1,6 @@
 import time
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from lisa.tools.registry import ToolRegistry
 from lisa.tools.resolver import ToolResolver
 from lisa.tools.base import ToolRequest, ToolResult
@@ -13,7 +13,7 @@ class ToolExecutor:
         self._resolver = ToolResolver(registry)
         self._max_retries = max_retries
 
-    async def execute_request(self, request: ToolRequest) -> ToolResult:
+    async def execute_request(self, request: ToolRequest, project_path: Optional[str] = None) -> ToolResult:
         start_time = time.perf_counter()
         
         try:
@@ -27,10 +27,14 @@ class ToolExecutor:
                 duration_ms=elapsed_ms
             )
         
+        exec_args = dict(request.arguments)
+        if project_path and "project_path" not in exec_args:
+            exec_args["project_path"] = project_path
+
         last_error = None
         for attempt in range(self._max_retries + 1):
             try:
-                raw_res = await tool.execute(**request.arguments)
+                raw_res = await tool.execute(**exec_args)
                 elapsed_ms = (time.perf_counter() - start_time) * 1000.0
                 return ToolResult(
                     success=raw_res.success,

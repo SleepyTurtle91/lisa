@@ -1,0 +1,76 @@
+{
+  "experiment_id": "BLIND-E2E-012",
+  "title": "Selection Complexity Ladder (Fast)",
+  "timestamp": "2026-08-08T16:12:36.929885",
+  "results": [
+    {
+      "id": "S-001",
+      "title": "Deterministic",
+      "response": "A",
+      "prompt": "Select the candidate with the strongest evidence. Return its ID only.\n\nCandidate set:\n{\"candidates\": [{\"confidence\": 0.9, \"contradictions\": 0, \"id\": \"A\", \"support\": 5}, {\"confidence\": 0.4, \"contradictions\": 3, \"id\": \"B\", \"support\": 2}]}",
+      "candidate_payload": {
+        "candidates": [
+          {
+            "id": "A",
+            "confidence": 0.9,
+            "support": 5,
+            "contradictions": 0
+          },
+          {
+            "id": "B",
+            "confidence": 0.4,
+            "support": 2,
+            "contradictions": 3
+          }
+        ]
+      },
+      "timestamp": "2026-08-08T16:09:04.060598"
+    },
+    {
+      "id": "S-002",
+      "title": "Balanced",
+      "response": "A",
+      "prompt": "Select the candidate with the strongest evidence. Return its ID only.\n\nCandidate set:\n{\"candidates\": [{\"confidence\": 0.72, \"contradictions\": 1, \"id\": \"A\", \"support\": 4}, {\"confidence\": 0.7, \"contradictions\": 1, \"id\": \"B\", \"support\": 4}]}",
+      "candidate_payload": {
+        "candidates": [
+          {
+            "id": "A",
+            "confidence": 0.72,
+            "support": 4,
+            "contradictions": 1
+          },
+          {
+            "id": "B",
+            "confidence": 0.7,
+            "support": 4,
+            "contradictions": 1
+          }
+        ]
+      },
+      "timestamp": "2026-08-08T16:09:31.340688"
+    },
+    {
+      "id": "S-003",
+      "title": "Contradictory",
+      "response": "A",
+      "prompt": "Select the candidate with the strongest evidence. Return its ID only.\n\nCandidate set:\n{\"candidates\": [{\"confidence\": 0.68, \"contradictions\": 3, \"id\": \"A\", \"support\": 5}, {\"confidence\": 0.67, \"contradictions\": 1, \"id\": \"B\", \"support\": 3}]}",
+      "candidate_payload": {
+        "candidates": [
+          {
+            "id": "A",
+            "confidence": 0.68,
+            "support": 5,
+            "contradictions": 3
+          },
+          {
+            "id": "B",
+            "confidence": 0.67,
+            "support": 3,
+            "contradictions": 1
+          }
+        ]
+      },
+      "timestamp": "2026-08-08T16:12:36.929837"
+    }
+  ]
+}

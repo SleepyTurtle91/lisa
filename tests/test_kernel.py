@@ -1,12 +1,40 @@
 import unittest
 import asyncio
 from lisa.core.context import SessionContext, Capability
+from lisa.core.errors import ProviderError, SessionError
 from lisa.core.events import EventBus, Event
+from lisa.providers.base import BaseProvider, ChatRequest, ChatResponse
+from lisa.providers.manifest import ProviderManifest
 from lisa.tools.registry import ToolRegistry
 from lisa.tools.compiler import ToolCompiler
 from lisa.tools.dispatcher import ToolExecutor
 from lisa.tools.base import ToolRequest
 from lisa.tools.filesystem.read_file import ReadFileTool
+
+class MockProviderForKernelTests(BaseProvider):
+    @property
+    def id(self) -> str:
+        return "mock_kernel"
+
+    @property
+    def name(self) -> str:
+        return "Mock Kernel Provider"
+
+    async def handshake(self) -> ProviderManifest:
+        return ProviderManifest(
+            id=self.id,
+            name=self.name,
+            version="1.0.0",
+            healthy=True,
+            supported_models=["mock-kernel-v1"],
+            capabilities=[]
+        )
+
+    async def is_healthy(self) -> bool:
+        return True
+
+    async def chat(self, request: ChatRequest) -> ChatResponse:
+        return ChatResponse(content="mock")
 
 class TestLisaKernelAndTools(unittest.TestCase):
     def test_session_context_immutable(self):
@@ -46,6 +74,31 @@ class TestLisaKernelAndTools(unittest.TestCase):
         res = asyncio.run(executor.execute_request(req))
         self.assertFalse(res.success)
         self.assertIn("File not found", res.error)
+
+    def test_create_session_rejects_invalid_context(self):
+        from lisa.core.kernel import LisaRuntime
+
+        runtime = LisaRuntime()
+        asyncio.run(runtime.initialize())
+
+        invalid_ctx = SessionContext(
+            project_path="",
+            workspace_name="",
+            provider_id=None,
+            model_name="",
+            capabilities=[]
+        )
+
+        with self.assertRaises(SessionError):
+            runtime.create_session(invalid_ctx)
+
+    def test_register_provider_requires_runtime_initialization(self):
+        from lisa.core.kernel import LisaRuntime
+
+        runtime = LisaRuntime()
+
+        with self.assertRaises(ProviderError):
+            asyncio.run(runtime.register_provider(MockProviderForKernelTests()))
 
 if __name__ == "__main__":
     unittest.main()

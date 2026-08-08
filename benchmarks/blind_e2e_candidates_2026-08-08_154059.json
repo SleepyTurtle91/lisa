@@ -1,0 +1,197 @@
+{
+  "experiment_id": "BLIND-E2E-005",
+  "title": "Candidate Generation Blind Flight",
+  "timestamp": "2026-08-08T15:40:59.757780",
+  "session_id": "blind_e2e_candidates_2026-08-08_154059",
+  "prompt": "Based only on the collected evidence, generate possible engineering targets. For each candidate, provide supporting evidence, contradictory evidence, and confidence. Do not modify anything.",
+  "response": "Candidate A: session lifecycle boundary in runtime/session.py. Candidate B: end-to-end flight trace expectations in tests/test_end_to_end_flight.py. Candidate C: runtime initialization lifecycle in core/kernel.py. Supporting evidence: staged execution and runtime lifecycle transitions are present. Contradictory evidence: no concrete defect is yet established. Confidence: moderate. Conclusion: insufficient evidence to select a single concrete defect target.",
+  "stages": [
+    "objective_received",
+    "target_discovery",
+    "task_analysis",
+    "model_selection",
+    "scaffolding_decision",
+    "tool_call",
+    "tool_result",
+    "tool_call",
+    "tool_result",
+    "tool_call",
+    "tool_result",
+    "final_conclusion"
+  ],
+  "events": [
+    {
+      "timestamp": "2026-08-08T15:40:59.756064",
+      "time_epoch_ms": 1786174859756.07,
+      "session_id": "blind_e2e_candidates_2026-08-08_154059",
+      "event_type": "runtime_initialized",
+      "payload": {
+        "state": "INITIALIZING"
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:40:59.756322",
+      "time_epoch_ms": 1786174859756.33,
+      "session_id": "blind_e2e_candidates_2026-08-08_154059",
+      "event_type": "runtime_ready",
+      "payload": {
+        "state": "READY"
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:40:59.756503",
+      "time_epoch_ms": 1786174859756.51,
+      "session_id": "blind_e2e_candidates_2026-08-08_154059",
+      "event_type": "session_created",
+      "payload": {
+        "session_id": "6e649466-d9c9-4ff5-ae21-ea1e79327d25",
+        "project_path": "/home/user/Projects/lisa"
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:40:59.756597",
+      "time_epoch_ms": 1786174859756.6,
+      "session_id": "blind_e2e_candidates_2026-08-08_154059",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "objective_received",
+        "session_id": "6e649466-d9c9-4ff5-ae21-ea1e79327d25",
+        "message": "Based only on the collected evidence, generate possible engineering targets. For each candidate, provide supporting evidence, contradictory evidence, and confidence. Do not modify anything.",
+        "project_path": "/home/user/Projects/lisa"
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:40:59.756642",
+      "time_epoch_ms": 1786174859756.65,
+      "session_id": "blind_e2e_candidates_2026-08-08_154059",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "target_discovery",
+        "session_id": "6e649466-d9c9-4ff5-ae21-ea1e79327d25",
+        "message": "Based only on the collected evidence, generate possible engineering targets. For each candidate, provide supporting evidence, contradictory evidence, and confidence. Do not modify anything."
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:40:59.756676",
+      "time_epoch_ms": 1786174859756.68,
+      "session_id": "blind_e2e_candidates_2026-08-08_154059",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "task_analysis",
+        "session_id": "6e649466-d9c9-4ff5-ae21-ea1e79327d25",
+        "message": "Based only on the collected evidence, generate possible engineering targets. For each candidate, provide supporting evidence, contradictory evidence, and confidence. Do not modify anything."
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:40:59.756708",
+      "time_epoch_ms": 1786174859756.71,
+      "session_id": "blind_e2e_candidates_2026-08-08_154059",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "model_selection",
+        "session_id": "6e649466-d9c9-4ff5-ae21-ea1e79327d25",
+        "message": "Based only on the collected evidence, generate possible engineering targets. For each candidate, provide supporting evidence, contradictory evidence, and confidence. Do not modify anything."
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:40:59.756753",
+      "time_epoch_ms": 1786174859756.76,
+      "session_id": "blind_e2e_candidates_2026-08-08_154059",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "scaffolding_decision",
+        "session_id": "6e649466-d9c9-4ff5-ae21-ea1e79327d25",
+        "message": "Based only on the collected evidence, generate possible engineering targets. For each candidate, provide supporting evidence, contradictory evidence, and confidence. Do not modify anything."
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:40:59.756911",
+      "time_epoch_ms": 1786174859756.91,
+      "session_id": "blind_e2e_candidates_2026-08-08_154059",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "tool_call",
+        "session_id": "6e649466-d9c9-4ff5-ae21-ea1e79327d25",
+        "tool_name": "read_file",
+        "arguments": {
+          "path": "/home/user/Projects/lisa/runtime/session.py"
+        }
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:40:59.757051",
+      "time_epoch_ms": 1786174859757.05,
+      "session_id": "blind_e2e_candidates_2026-08-08_154059",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "tool_result",
+        "session_id": "6e649466-d9c9-4ff5-ae21-ea1e79327d25",
+        "tool_name": "read_file",
+        "success": true
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:40:59.757184",
+      "time_epoch_ms": 1786174859757.19,
+      "session_id": "blind_e2e_candidates_2026-08-08_154059",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "tool_call",
+        "session_id": "6e649466-d9c9-4ff5-ae21-ea1e79327d25",
+        "tool_name": "read_file",
+        "arguments": {
+          "path": "/home/user/Projects/lisa/tests/test_end_to_end_flight.py"
+        }
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:40:59.757287",
+      "time_epoch_ms": 1786174859757.29,
+      "session_id": "blind_e2e_candidates_2026-08-08_154059",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "tool_result",
+        "session_id": "6e649466-d9c9-4ff5-ae21-ea1e79327d25",
+        "tool_name": "read_file",
+        "success": true
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:40:59.757391",
+      "time_epoch_ms": 1786174859757.39,
+      "session_id": "blind_e2e_candidates_2026-08-08_154059",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "tool_call",
+        "session_id": "6e649466-d9c9-4ff5-ae21-ea1e79327d25",
+        "tool_name": "read_file",
+        "arguments": {
+          "path": "/home/user/Projects/lisa/core/kernel.py"
+        }
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:40:59.757478",
+      "time_epoch_ms": 1786174859757.48,
+      "session_id": "blind_e2e_candidates_2026-08-08_154059",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "tool_result",
+        "session_id": "6e649466-d9c9-4ff5-ae21-ea1e79327d25",
+        "tool_name": "read_file",
+        "success": true
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:40:59.757557",
+      "time_epoch_ms": 1786174859757.56,
+      "session_id": "blind_e2e_candidates_2026-08-08_154059",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "final_conclusion",
+        "session_id": "6e649466-d9c9-4ff5-ae21-ea1e79327d25",
+        "content": "Candidate A: session lifecycle boundary in runtime/session.py. Candidate B: end-to-end flight trace expectations in tests/test_end_to_end_flight.py. Candidate C: runtime initialization lifecycle in core/kernel.py. Supporting evidence: staged execution and runtime lifecycle transitions are present. Contradictory evidence: no concrete defect is yet established. Confidence: moderate. Conclusion: insufficient evidence to select a single concrete defect target."
+      }
+    }
+  ]
+}

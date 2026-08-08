@@ -33,6 +33,30 @@ class UnhealthyMockProvider(BaseProvider):
     async def chat(self, request: ChatRequest) -> ChatResponse:
         raise ProviderError("Offline")
 
+class DuplicateProvider(BaseProvider):
+    @property
+    def id(self) -> str:
+        return "duplicate_provider"
+
+    @property
+    def name(self) -> str:
+        return "Duplicate Provider"
+
+    async def handshake(self) -> ProviderManifest:
+        return ProviderManifest(
+            id=self.id,
+            name=self.name,
+            version="1.0.0",
+            healthy=True,
+            capabilities=[Capability.CHAT]
+        )
+
+    async def is_healthy(self) -> bool:
+        return True
+
+    async def chat(self, request: ChatRequest) -> ChatResponse:
+        return ChatResponse(content="ok")
+
 class TestProviderRuntimeScenarios(unittest.TestCase):
     # Scenario 1: Only Ollama installed -> Selected cleanly
     def test_scenario_01_only_ollama(self):
@@ -95,6 +119,14 @@ class TestProviderRuntimeScenarios(unittest.TestCase):
         session = runtime.create_session(ctx)
         with self.assertRaises(SessionError):
             asyncio.run(session.send_message("Should fail"))
+
+    def test_duplicate_provider_registration_is_rejected(self):
+        runtime = LisaRuntime()
+        asyncio.run(runtime.initialize())
+        asyncio.run(runtime.register_provider(DuplicateProvider()))
+
+        with self.assertRaises(ProviderError):
+            asyncio.run(runtime.register_provider(DuplicateProvider()))
 
 if __name__ == "__main__":
     unittest.main()

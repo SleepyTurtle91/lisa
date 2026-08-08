@@ -1,0 +1,113 @@
+{
+  "experiment_id": "BLIND-E2E-006",
+  "title": "Target Selection Blind Flight",
+  "timestamp": "2026-08-08T15:42:36.502297",
+  "session_id": "blind_e2e_selection_2026-08-08_154236",
+  "prompt": "You are given a candidate set produced from repository evidence. Rank the candidates, explain the ranking, state the confidence level, determine whether the evidence crosses the action threshold, and choose ACT or ABSTAIN.",
+  "response": "{\"candidates\": [{\"id\": \"C1\", \"observations\": [\"Runtime session flow shows staged execution.\", \"The runtime has explicit session lifecycle transitions.\"], \"supporting_evidence\": [\"runtime/session.py exposes session execution stages.\", \"core/kernel.py governs initialization and lifecycle operations.\"], \"contradictory_evidence\": [\"No concrete defect is established yet.\"], \"confidence\": 0.71}, {\"id\": \"C2\", \"observations\": [\"The end-to-end flight tests assert runtime trace behavior.\"], \"supporting_evidence\": [\"tests/test_end_to_end_flight.py checks stage ordering and flight behavior.\"], \"contradictory_evidence\": [\"The tests themselves do not indicate a defect.\"], \"confidence\": 0.43}, {\"id\": \"C3\", \"observations\": [\"The kernel initialization path is part of the runtime contract surface.\"], \"supporting_evidence\": [\"core/kernel.py initializes runtime state and dependencies.\"], \"contradictory_evidence\": [\"No direct defect is yet observed.\"], \"confidence\": 0.58}]}",
+  "stages": [
+    "objective_received",
+    "target_discovery",
+    "task_analysis",
+    "model_selection",
+    "scaffolding_decision",
+    "final_conclusion"
+  ],
+  "events": [
+    {
+      "timestamp": "2026-08-08T15:42:36.501013",
+      "time_epoch_ms": 1786174956501.03,
+      "session_id": "blind_e2e_selection_2026-08-08_154236",
+      "event_type": "runtime_initialized",
+      "payload": {
+        "state": "INITIALIZING"
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:42:36.501312",
+      "time_epoch_ms": 1786174956501.32,
+      "session_id": "blind_e2e_selection_2026-08-08_154236",
+      "event_type": "runtime_ready",
+      "payload": {
+        "state": "READY"
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:42:36.501534",
+      "time_epoch_ms": 1786174956501.54,
+      "session_id": "blind_e2e_selection_2026-08-08_154236",
+      "event_type": "session_created",
+      "payload": {
+        "session_id": "58b823e0-fdbf-4a15-9de6-739168a41fa8",
+        "project_path": "/home/user/Projects/lisa"
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:42:36.501616",
+      "time_epoch_ms": 1786174956501.62,
+      "session_id": "blind_e2e_selection_2026-08-08_154236",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "objective_received",
+        "session_id": "58b823e0-fdbf-4a15-9de6-739168a41fa8",
+        "message": "You are given a candidate set produced from repository evidence. Rank the candidates, explain the ranking, state the confidence level, determine whether the evidence crosses the action threshold, and choose ACT or ABSTAIN.",
+        "project_path": "/home/user/Projects/lisa"
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:42:36.501674",
+      "time_epoch_ms": 1786174956501.68,
+      "session_id": "blind_e2e_selection_2026-08-08_154236",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "target_discovery",
+        "session_id": "58b823e0-fdbf-4a15-9de6-739168a41fa8",
+        "message": "You are given a candidate set produced from repository evidence. Rank the candidates, explain the ranking, state the confidence level, determine whether the evidence crosses the action threshold, and choose ACT or ABSTAIN."
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:42:36.501716",
+      "time_epoch_ms": 1786174956501.72,
+      "session_id": "blind_e2e_selection_2026-08-08_154236",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "task_analysis",
+        "session_id": "58b823e0-fdbf-4a15-9de6-739168a41fa8",
+        "message": "You are given a candidate set produced from repository evidence. Rank the candidates, explain the ranking, state the confidence level, determine whether the evidence crosses the action threshold, and choose ACT or ABSTAIN."
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:42:36.501773",
+      "time_epoch_ms": 1786174956501.78,
+      "session_id": "blind_e2e_selection_2026-08-08_154236",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "model_selection",
+        "session_id": "58b823e0-fdbf-4a15-9de6-739168a41fa8",
+        "message": "You are given a candidate set produced from repository evidence. Rank the candidates, explain the ranking, state the confidence level, determine whether the evidence crosses the action threshold, and choose ACT or ABSTAIN."
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:42:36.501808",
+      "time_epoch_ms": 1786174956501.81,
+      "session_id": "blind_e2e_selection_2026-08-08_154236",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "scaffolding_decision",
+        "session_id": "58b823e0-fdbf-4a15-9de6-739168a41fa8",
+        "message": "You are given a candidate set produced from repository evidence. Rank the candidates, explain the ranking, state the confidence level, determine whether the evidence crosses the action threshold, and choose ACT or ABSTAIN."
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:42:36.502022",
+      "time_epoch_ms": 1786174956502.03,
+      "session_id": "blind_e2e_selection_2026-08-08_154236",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "final_conclusion",
+        "session_id": "58b823e0-fdbf-4a15-9de6-739168a41fa8",
+        "content": "{\"candidates\": [{\"id\": \"C1\", \"observations\": [\"Runtime session flow shows staged execution.\", \"The runtime has explicit session lifecycle transitions.\"], \"supporting_evidence\": [\"runtime/session.py exposes session execution stages.\", \"core/kernel.py governs initialization and lifecycle operations.\"], \"contradictory_evidence\": [\"No concrete defect is established yet.\"], \"confidence\": 0.71}, {\"id\": \"C2\", \"observations\": [\"The end-to-end flight tests assert runtime trace behavior.\"], \"supporting_evidence\": [\"tests/test_end_to_end_flight.py checks stage ordering and flight behavior.\"], \"contradictory_evidence\": [\"The tests themselves do not indicate a defect.\"], \"confidence\": 0.43}, {\"id\": \"C3\", \"observations\": [\"The kernel initialization path is part of the runtime contract surface.\"], \"supporting_evidence\": [\"core/kernel.py initializes runtime state and dependencies.\"], \"contradictory_evidence\": [\"No direct defect is yet observed.\"], \"confidence\": 0.58}]}"
+      }
+    }
+  ]
+}

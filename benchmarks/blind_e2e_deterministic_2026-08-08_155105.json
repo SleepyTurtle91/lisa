@@ -1,0 +1,213 @@
+{
+  "experiment_id": "BLIND-E2E-008",
+  "title": "Deterministic Selection Baseline",
+  "timestamp": "2026-08-08T15:51:05.588657",
+  "session_id": "blind_e2e_deterministic_2026-08-08_155105",
+  "prompt": "Select the candidate with the strongest evidence. Return its ID only.",
+  "response": "{\"candidates\": [{\"id\": \"A\", \"confidence\": 0.9, \"support\": 5, \"contradictions\": 0}, {\"id\": \"B\", \"confidence\": 0.4, \"support\": 2, \"contradictions\": 3}]}",
+  "stages": [
+    "objective_received",
+    "target_discovery",
+    "task_analysis",
+    "model_selection",
+    "scaffolding_decision",
+    "final_conclusion"
+  ],
+  "events": [
+    {
+      "timestamp": "2026-08-08T15:51:05.587477",
+      "time_epoch_ms": 1786175465587.49,
+      "session_id": "blind_e2e_deterministic_2026-08-08_155105",
+      "event_type": "runtime_initialized",
+      "payload": {
+        "state": "INITIALIZING"
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:51:05.587717",
+      "time_epoch_ms": 1786175465587.72,
+      "session_id": "blind_e2e_deterministic_2026-08-08_155105",
+      "event_type": "runtime_ready",
+      "payload": {
+        "state": "READY"
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:51:05.587914",
+      "time_epoch_ms": 1786175465587.92,
+      "session_id": "blind_e2e_deterministic_2026-08-08_155105",
+      "event_type": "session_created",
+      "payload": {
+        "session_id": "d6d152dd-c118-43e0-a940-10b9029972ad",
+        "project_path": "/home/user/Projects/lisa"
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:51:05.587984",
+      "time_epoch_ms": 1786175465587.99,
+      "session_id": "blind_e2e_deterministic_2026-08-08_155105",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "objective_received",
+        "session_id": "d6d152dd-c118-43e0-a940-10b9029972ad",
+        "message": "Select the candidate with the strongest evidence. Return its ID only.",
+        "project_path": "/home/user/Projects/lisa"
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:51:05.588028",
+      "time_epoch_ms": 1786175465588.03,
+      "session_id": "blind_e2e_deterministic_2026-08-08_155105",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "target_discovery",
+        "session_id": "d6d152dd-c118-43e0-a940-10b9029972ad",
+        "message": "Select the candidate with the strongest evidence. Return its ID only."
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:51:05.588063",
+      "time_epoch_ms": 1786175465588.07,
+      "session_id": "blind_e2e_deterministic_2026-08-08_155105",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "task_analysis",
+        "session_id": "d6d152dd-c118-43e0-a940-10b9029972ad",
+        "message": "Select the candidate with the strongest evidence. Return its ID only."
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:51:05.588093",
+      "time_epoch_ms": 1786175465588.1,
+      "session_id": "blind_e2e_deterministic_2026-08-08_155105",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "model_selection",
+        "session_id": "d6d152dd-c118-43e0-a940-10b9029972ad",
+        "message": "Select the candidate with the strongest evidence. Return its ID only."
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:51:05.588124",
+      "time_epoch_ms": 1786175465588.13,
+      "session_id": "blind_e2e_deterministic_2026-08-08_155105",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "scaffolding_decision",
+        "session_id": "d6d152dd-c118-43e0-a940-10b9029972ad",
+        "message": "Select the candidate with the strongest evidence. Return its ID only."
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:51:05.588215",
+      "time_epoch_ms": 1786175465588.22,
+      "session_id": "blind_e2e_deterministic_2026-08-08_155105",
+      "event_type": "model_request",
+      "payload": {
+        "provider_id": "blind_e2e_deterministic_selection_provider",
+        "model_name": "mock-flight",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Select the candidate with the strongest evidence. Return its ID only."
+          }
+        ],
+        "tools": [
+          {
+            "name": "read_file",
+            "description": "Read the contents of a specified file relative to the project workspace.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "Relative path to the target file."
+                }
+              },
+              "required": [
+                "path"
+              ]
+            }
+          }
+        ],
+        "temperature": 0.7,
+        "max_tokens": null
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:51:05.588304",
+      "time_epoch_ms": 1786175465588.31,
+      "session_id": "blind_e2e_deterministic_2026-08-08_155105",
+      "event_type": "model_response",
+      "payload": {
+        "provider_id": "blind_e2e_deterministic_selection_provider",
+        "model_name": "mock-flight",
+        "content": "{\"candidates\": [{\"id\": \"A\", \"confidence\": 0.9, \"support\": 5, \"contradictions\": 0}, {\"id\": \"B\", \"confidence\": 0.4, \"support\": 2, \"contradictions\": 3}]}",
+        "tool_calls": [],
+        "usage": null
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:51:05.588397",
+      "time_epoch_ms": 1786175465588.4,
+      "session_id": "blind_e2e_deterministic_2026-08-08_155105",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "final_conclusion",
+        "session_id": "d6d152dd-c118-43e0-a940-10b9029972ad",
+        "content": "{\"candidates\": [{\"id\": \"A\", \"confidence\": 0.9, \"support\": 5, \"contradictions\": 0}, {\"id\": \"B\", \"confidence\": 0.4, \"support\": 2, \"contradictions\": 3}]}"
+      }
+    }
+  ],
+  "provider_boundary_events": [
+    {
+      "timestamp": "2026-08-08T15:51:05.588215",
+      "time_epoch_ms": 1786175465588.22,
+      "session_id": "blind_e2e_deterministic_2026-08-08_155105",
+      "event_type": "model_request",
+      "payload": {
+        "provider_id": "blind_e2e_deterministic_selection_provider",
+        "model_name": "mock-flight",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Select the candidate with the strongest evidence. Return its ID only."
+          }
+        ],
+        "tools": [
+          {
+            "name": "read_file",
+            "description": "Read the contents of a specified file relative to the project workspace.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "Relative path to the target file."
+                }
+              },
+              "required": [
+                "path"
+              ]
+            }
+          }
+        ],
+        "temperature": 0.7,
+        "max_tokens": null
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:51:05.588304",
+      "time_epoch_ms": 1786175465588.31,
+      "session_id": "blind_e2e_deterministic_2026-08-08_155105",
+      "event_type": "model_response",
+      "payload": {
+        "provider_id": "blind_e2e_deterministic_selection_provider",
+        "model_name": "mock-flight",
+        "content": "{\"candidates\": [{\"id\": \"A\", \"confidence\": 0.9, \"support\": 5, \"contradictions\": 0}, {\"id\": \"B\", \"confidence\": 0.4, \"support\": 2, \"contradictions\": 3}]}",
+        "tool_calls": [],
+        "usage": null
+      }
+    }
+  ]
+}

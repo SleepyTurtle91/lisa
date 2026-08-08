@@ -1,0 +1,113 @@
+{
+  "experiment_id": "BLIND-E2E-007",
+  "title": "Selection Protocol Validation",
+  "timestamp": "2026-08-08T15:44:28.012304",
+  "session_id": "blind_e2e_protocol_2026-08-08_154428",
+  "prompt": "You are selecting between candidate hypotheses. You MUST rank every candidate, assign a score to each candidate, cite supporting evidence, cite contradictory evidence, select exactly one candidate or return ABSTAIN, and never invent evidence. Return the result in a structured format.",
+  "response": "{\"candidates\": [{\"id\": \"C1\", \"observations\": [\"Runtime session flow shows staged execution.\"], \"supporting_evidence\": [\"runtime/session.py exposes session execution stages.\"], \"contradictory_evidence\": [\"No concrete defect is established yet.\"], \"confidence\": 0.71}, {\"id\": \"C2\", \"observations\": [\"End-to-end tests check flight trace behavior.\"], \"supporting_evidence\": [\"tests/test_end_to_end_flight.py checks stage ordering.\"], \"contradictory_evidence\": [\"The tests do not indicate a defect.\"], \"confidence\": 0.43}, {\"id\": \"C3\", \"observations\": [\"Kernel lifecycle initialization is part of the runtime contract surface.\"], \"supporting_evidence\": [\"core/kernel.py initializes runtime state.\"], \"contradictory_evidence\": [\"No direct defect is yet observed.\"], \"confidence\": 0.58}]}",
+  "stages": [
+    "objective_received",
+    "target_discovery",
+    "task_analysis",
+    "model_selection",
+    "scaffolding_decision",
+    "final_conclusion"
+  ],
+  "events": [
+    {
+      "timestamp": "2026-08-08T15:44:28.011148",
+      "time_epoch_ms": 1786175068011.16,
+      "session_id": "blind_e2e_protocol_2026-08-08_154428",
+      "event_type": "runtime_initialized",
+      "payload": {
+        "state": "INITIALIZING"
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:44:28.011398",
+      "time_epoch_ms": 1786175068011.41,
+      "session_id": "blind_e2e_protocol_2026-08-08_154428",
+      "event_type": "runtime_ready",
+      "payload": {
+        "state": "READY"
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:44:28.011589",
+      "time_epoch_ms": 1786175068011.59,
+      "session_id": "blind_e2e_protocol_2026-08-08_154428",
+      "event_type": "session_created",
+      "payload": {
+        "session_id": "99fa6bb9-69bd-4cdf-8b13-8d720111f3ca",
+        "project_path": "/home/user/Projects/lisa"
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:44:28.011662",
+      "time_epoch_ms": 1786175068011.67,
+      "session_id": "blind_e2e_protocol_2026-08-08_154428",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "objective_received",
+        "session_id": "99fa6bb9-69bd-4cdf-8b13-8d720111f3ca",
+        "message": "You are selecting between candidate hypotheses. You MUST rank every candidate, assign a score to each candidate, cite supporting evidence, cite contradictory evidence, select exactly one candidate or return ABSTAIN, and never invent evidence. Return the result in a structured format.",
+        "project_path": "/home/user/Projects/lisa"
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:44:28.011710",
+      "time_epoch_ms": 1786175068011.71,
+      "session_id": "blind_e2e_protocol_2026-08-08_154428",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "target_discovery",
+        "session_id": "99fa6bb9-69bd-4cdf-8b13-8d720111f3ca",
+        "message": "You are selecting between candidate hypotheses. You MUST rank every candidate, assign a score to each candidate, cite supporting evidence, cite contradictory evidence, select exactly one candidate or return ABSTAIN, and never invent evidence. Return the result in a structured format."
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:44:28.011771",
+      "time_epoch_ms": 1786175068011.77,
+      "session_id": "blind_e2e_protocol_2026-08-08_154428",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "task_analysis",
+        "session_id": "99fa6bb9-69bd-4cdf-8b13-8d720111f3ca",
+        "message": "You are selecting between candidate hypotheses. You MUST rank every candidate, assign a score to each candidate, cite supporting evidence, cite contradictory evidence, select exactly one candidate or return ABSTAIN, and never invent evidence. Return the result in a structured format."
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:44:28.011805",
+      "time_epoch_ms": 1786175068011.81,
+      "session_id": "blind_e2e_protocol_2026-08-08_154428",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "model_selection",
+        "session_id": "99fa6bb9-69bd-4cdf-8b13-8d720111f3ca",
+        "message": "You are selecting between candidate hypotheses. You MUST rank every candidate, assign a score to each candidate, cite supporting evidence, cite contradictory evidence, select exactly one candidate or return ABSTAIN, and never invent evidence. Return the result in a structured format."
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:44:28.011839",
+      "time_epoch_ms": 1786175068011.84,
+      "session_id": "blind_e2e_protocol_2026-08-08_154428",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "scaffolding_decision",
+        "session_id": "99fa6bb9-69bd-4cdf-8b13-8d720111f3ca",
+        "message": "You are selecting between candidate hypotheses. You MUST rank every candidate, assign a score to each candidate, cite supporting evidence, cite contradictory evidence, select exactly one candidate or return ABSTAIN, and never invent evidence. Return the result in a structured format."
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:44:28.012034",
+      "time_epoch_ms": 1786175068012.04,
+      "session_id": "blind_e2e_protocol_2026-08-08_154428",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "final_conclusion",
+        "session_id": "99fa6bb9-69bd-4cdf-8b13-8d720111f3ca",
+        "content": "{\"candidates\": [{\"id\": \"C1\", \"observations\": [\"Runtime session flow shows staged execution.\"], \"supporting_evidence\": [\"runtime/session.py exposes session execution stages.\"], \"contradictory_evidence\": [\"No concrete defect is established yet.\"], \"confidence\": 0.71}, {\"id\": \"C2\", \"observations\": [\"End-to-end tests check flight trace behavior.\"], \"supporting_evidence\": [\"tests/test_end_to_end_flight.py checks stage ordering.\"], \"contradictory_evidence\": [\"The tests do not indicate a defect.\"], \"confidence\": 0.43}, {\"id\": \"C3\", \"observations\": [\"Kernel lifecycle initialization is part of the runtime contract surface.\"], \"supporting_evidence\": [\"core/kernel.py initializes runtime state.\"], \"contradictory_evidence\": [\"No direct defect is yet observed.\"], \"confidence\": 0.58}]}"
+      }
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+id: "qwen3:1.7b"
+tier: "small"
+behavior:
+  instruction_style: "explicit"
+  reasoning_style: "stepwise"
+  ambiguity_tolerance: "low"
+workflow:
+  - "understand_request"
+  - "inspect_relevant_files"
+  - "identify_evidence"
+  - "perform_one_action"
+  - "verify_result"
+rules:
+  - "do_not_guess"
+  - "inspect_before_editing"
+  - "use_tools_for_facts"
+  - "change_only_requested_files"
+  - "verify_after_modification"
+context:
+  max_relevant_files: 3
+  prefer_targeted_retrieval: true
+tools:
+  expose_only_required: true

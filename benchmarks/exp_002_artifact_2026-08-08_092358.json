@@ -1,0 +1,125 @@
+{
+  "experiment_id": "EXP-002",
+  "title": "Repeated Controlled Trial of Model Cognitive Scaffolding",
+  "evidence_class": "Repeated Controlled Trial",
+  "confidence_level": "Moderate",
+  "timestamp": "2026-08-08T09:23:58.156588",
+  "brain_model": "qwen3:1.7b",
+  "sample_size": "N=10",
+  "pre_defined_success_criteria": {
+    "variant_b_tool_call_rate_target": ">= 80%",
+    "variant_b_hallucination_rate_target": "< 20%"
+  },
+  "aggregated_metrics": {
+    "variant_a_baseline": {
+      "avg_latency_ms": 18143.13,
+      "avg_tok_sec": 42.16,
+      "tool_call_rate_pct": 60.0
+    },
+    "variant_b_scaffolded": {
+      "avg_latency_ms": 24302.1,
+      "avg_tok_sec": 42.54,
+      "tool_call_rate_pct": 100.0
+    },
+    "performance_deltas": {
+      "latency_reduction_pct": -33.95,
+      "throughput_boost_pct": 0.9
+    }
+  },
+  "raw_trials": {
+    "variant_a": [
+      {
+        "trial": 1,
+        "latency_ms": 20048.41,
+        "tok_sec": 36.31,
+        "tool_calls": 0,
+        "prompt_tokens": 158,
+        "completion_tokens": 728,
+        "hallucination_detected": false
+      },
+      {
+        "trial": 2,
+        "latency_ms": 17982.03,
+        "tok_sec": 44.71,
+        "tool_calls": 1,
+        "prompt_tokens": 335,
+        "completion_tokens": 804,
+        "hallucination_detected": true
+      },
+      {
+        "trial": 3,
+        "latency_ms": 18112.82,
+        "tok_sec": 43.73,
+        "tool_calls": 1,
+        "prompt_tokens": 340,
+        "completion_tokens": 792,
+        "hallucination_detected": false
+      },
+      {
+        "trial": 4,
+        "latency_ms": 15435.36,
+        "tok_sec": 43.47,
+        "tool_calls": 0,
+        "prompt_tokens": 158,
+        "completion_tokens": 671,
+        "hallucination_detected": false
+      },
+      {
+        "trial": 5,
+        "latency_ms": 19137.03,
+        "tok_sec": 42.59,
+        "tool_calls": 1,
+        "prompt_tokens": 340,
+        "completion_tokens": 815,
+        "hallucination_detected": false
+      }
+    ],
+    "variant_b": [
+      {
+        "trial": 1,
+        "latency_ms": 16751.07,
+        "tok_sec": 42.33,
+        "tool_calls": 1,
+        "prompt_tokens": 582,
+        "completion_tokens": 709,
+        "hallucination_detected": false
+      },
+      {
+        "trial": 2,
+        "latency_ms": 22882.91,
+        "tok_sec": 43.09,
+        "tool_calls": 1,
+        "prompt_tokens": 582,
+        "completion_tokens": 986,
+        "hallucination_detected": false
+      },
+      {
+        "trial": 3,
+        "latency_ms": 24254.21,
+        "tok_sec": 42.59,
+        "tool_calls": 1,
+        "prompt_tokens": 582,
+        "completion_tokens": 1033,
+        "hallucination_detected": false
+      },
+      {
+        "trial": 4,
+        "latency_ms": 34608.3,
+        "tok_sec": 42.48,
+        "tool_calls": 2,
+        "prompt_tokens": 911,
+        "completion_tokens": 1470,
+        "hallucination_detected": false
+      },
+      {
+        "trial": 5,
+        "latency_ms": 23014.02,
+        "tok_sec": 42.19,
+        "tool_calls": 1,
+        "prompt_tokens": 582,
+        "completion_tokens": 971,
+        "hallucination_detected": false
+      }
+    ]
+  }
+}

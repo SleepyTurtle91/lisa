@@ -1,0 +1,19 @@
+id: "default"
+tier: "standard"
+behavior:
+  instruction_style: "flexible"
+  reasoning_style: "autonomous"
+  ambiguity_tolerance: "high"
+workflow:
+  - "understand_objective"
+  - "inspect_codebase"
+  - "formulate_plan"
+  - "execute_and_verify"
+rules:
+  - "preserve_existing_architecture"
+  - "verify_after_edits"
+context:
+  max_relevant_files: 10
+  prefer_targeted_retrieval: false
+tools:
+  expose_only_required: false

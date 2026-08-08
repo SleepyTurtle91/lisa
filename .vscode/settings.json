@@ -1,0 +1,16 @@
+{
+  "chat.tools.terminal.autoApprove": {
+    "/^python3 -m pytest -q tests/test_environmental_grounding_regression\\.py$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^python3 -m unittest -q tests\\.test_environmental_grounding_regression$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^python3 -m unittest -q tests\\.test_end_to_end_flight$/": {
+      "approve": true,
+      "matchCommandLine": true
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "timestamp": "2026-08-08T09:13:33.422052",
+  "task_id": "AB_T1_debug_analysis",
+  "prompt": "Inspect cli/main.py and explain how command options 'doctor' and 'compare' are handled.",
+  "variant_a_baseline": {
+    "model": "qwen3:1.7b",
+    "latency_ms": 21645.83,
+    "tok_sec": 35.53,
+    "tool_calls": 0,
+    "prompt_tokens": 158,
+    "completion_tokens": 769,
+    "response_snippet": "The requested file `cli/main.py` is not accessible via the provided tools. To analyze how command options like `'doctor'` and `'compare'` are handled, we would typically need to inspect the code's implementation, such as:\n\n1. **Parsing Arguments**: Check if the script uses `argparse` or similar libr"
+  },
+  "variant_b_scaffolded": {
+    "model": "qwen3:1.7b",
+    "scaffold_tier": "small",
+    "latency_ms": 18756.71,
+    "tok_sec": 44.25,
+    "tool_calls": 1,
+    "prompt_tokens": 582,
+    "completion_tokens": 830,
+    "response_snippet": "The error indicates that `cli/main.py` is not a directory, so the tool for listing directory contents cannot be applied here. The file itself is a Python script, and its contents (including command handling logic) would need to be inspected directly. \n\nTo proceed, you would need to:\n1. Open `cli/mai"
+  }
+}

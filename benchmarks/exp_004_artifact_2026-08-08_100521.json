@@ -1,0 +1,256 @@
+{
+  "experiment_id": "EXP-004",
+  "title": "Task Complexity x Scaffolding Response Surface Discovery Matrix",
+  "evidence_class": "Task Complexity x Scaffolding Surface Matrix",
+  "confidence_level": "Moderate",
+  "timestamp": "2026-08-08T10:05:21.911361",
+  "brain_model": "qwen3:1.7b",
+  "task_count": 6,
+  "levels_tested": [
+    "L0 (None)",
+    "L2 (Explicit Tool Discipline)",
+    "L4 (Full Construction Profile)"
+  ],
+  "matrix_data": [
+    {
+      "task_id": "T1_file_retrieval",
+      "complexity": "Low",
+      "prompt": "Read AGENTS.md in the current project and tell me the primary operating mode rules.",
+      "levels": {
+        "L0": {
+          "level": 0,
+          "name": "L0 (None)",
+          "latency_ms": 50193.38,
+          "tok_sec": 39.83,
+          "tool_calls": 3,
+          "tool_used": true,
+          "hallucination": false,
+          "prompt_tokens": 1888,
+          "completion_tokens": 1999
+        },
+        "L2": {
+          "level": 2,
+          "name": "L2 (Explicit Tool Discipline)",
+          "latency_ms": 19521.03,
+          "tok_sec": 41.7,
+          "tool_calls": 2,
+          "tool_used": true,
+          "hallucination": false,
+          "prompt_tokens": 1248,
+          "completion_tokens": 814
+        },
+        "L4": {
+          "level": 4,
+          "name": "L4 (Full Construction Profile)",
+          "latency_ms": 228008.15,
+          "tok_sec": 38.62,
+          "tool_calls": 19,
+          "tool_used": true,
+          "hallucination": false,
+          "prompt_tokens": 39700,
+          "completion_tokens": 8805
+        }
+      }
+    },
+    {
+      "task_id": "T2_single_file_edit",
+      "complexity": "Low",
+      "prompt": "Inspect cli/main.py and explain how command options 'doctor' and 'compare' are handled.",
+      "levels": {
+        "L0": {
+          "level": 0,
+          "name": "L0 (None)",
+          "latency_ms": 17925.18,
+          "tok_sec": 41.9,
+          "tool_calls": 0,
+          "tool_used": false,
+          "hallucination": false,
+          "prompt_tokens": 158,
+          "completion_tokens": 751
+        },
+        "L2": {
+          "level": 2,
+          "name": "L2 (Explicit Tool Discipline)",
+          "latency_ms": 27754.6,
+          "tok_sec": 38.3,
+          "tool_calls": 1,
+          "tool_used": true,
+          "hallucination": false,
+          "prompt_tokens": 2102,
+          "completion_tokens": 1063
+        },
+        "L4": {
+          "level": 4,
+          "name": "L4 (Full Construction Profile)",
+          "latency_ms": 33251.17,
+          "tok_sec": 41.53,
+          "tool_calls": 2,
+          "tool_used": true,
+          "hallucination": false,
+          "prompt_tokens": 912,
+          "completion_tokens": 1381
+        }
+      }
+    },
+    {
+      "task_id": "T3_debugging",
+      "complexity": "Medium",
+      "prompt": "Diagnose potential unawaited coroutine warnings in provider registry registration loops.",
+      "levels": {
+        "L0": {
+          "level": 0,
+          "name": "L0 (None)",
+          "latency_ms": 8779.55,
+          "tok_sec": 41.8,
+          "tool_calls": 0,
+          "tool_used": false,
+          "hallucination": false,
+          "prompt_tokens": 154,
+          "completion_tokens": 367
+        },
+        "L2": {
+          "level": 2,
+          "name": "L2 (Explicit Tool Discipline)",
+          "latency_ms": 71765.38,
+          "tok_sec": 41.54,
+          "tool_calls": 7,
+          "tool_used": true,
+          "hallucination": false,
+          "prompt_tokens": 2855,
+          "completion_tokens": 2981
+        },
+        "L4": {
+          "level": 4,
+          "name": "L4 (Full Construction Profile)",
+          "latency_ms": 37185.97,
+          "tok_sec": 41.79,
+          "tool_calls": 4,
+          "tool_used": true,
+          "hallucination": false,
+          "prompt_tokens": 974,
+          "completion_tokens": 1554
+        }
+      }
+    },
+    {
+      "task_id": "T4_repo_exploration",
+      "complexity": "Medium",
+      "prompt": "List and inspect the main directories of the LISA codebase and identify core modules.",
+      "levels": {
+        "L0": {
+          "level": 0,
+          "name": "L0 (None)",
+          "latency_ms": 34149.96,
+          "tok_sec": 41.7,
+          "tool_calls": 1,
+          "tool_used": true,
+          "hallucination": false,
+          "prompt_tokens": 498,
+          "completion_tokens": 1424
+        },
+        "L2": {
+          "level": 2,
+          "name": "L2 (Explicit Tool Discipline)",
+          "latency_ms": 28067.33,
+          "tok_sec": 41.61,
+          "tool_calls": 1,
+          "tool_used": true,
+          "hallucination": false,
+          "prompt_tokens": 560,
+          "completion_tokens": 1168
+        },
+        "L4": {
+          "level": 4,
+          "name": "L4 (Full Construction Profile)",
+          "latency_ms": 45642.06,
+          "tok_sec": 41.52,
+          "tool_calls": 2,
+          "tool_used": true,
+          "hallucination": false,
+          "prompt_tokens": 1262,
+          "completion_tokens": 1895
+        }
+      }
+    },
+    {
+      "task_id": "T5_multi_file_edit",
+      "complexity": "High",
+      "prompt": "Design a multi-file refactoring strategy for linking ExecutionPlanner directly into SessionContext.",
+      "levels": {
+        "L0": {
+          "level": 0,
+          "name": "L0 (None)",
+          "latency_ms": 34701.17,
+          "tok_sec": 41.55,
+          "tool_calls": 7,
+          "tool_used": true,
+          "hallucination": false,
+          "prompt_tokens": 689,
+          "completion_tokens": 1442
+        },
+        "L2": {
+          "level": 2,
+          "name": "L2 (Explicit Tool Discipline)",
+          "latency_ms": 41388.24,
+          "tok_sec": 41.65,
+          "tool_calls": 3,
+          "tool_used": true,
+          "hallucination": false,
+          "prompt_tokens": 1298,
+          "completion_tokens": 1724
+        },
+        "L4": {
+          "level": 4,
+          "name": "L4 (Full Construction Profile)",
+          "latency_ms": 43986.2,
+          "tok_sec": 24.71,
+          "tool_calls": 3,
+          "tool_used": true,
+          "hallucination": true,
+          "prompt_tokens": 1646,
+          "completion_tokens": 1087
+        }
+      }
+    },
+    {
+      "task_id": "T6_architecture",
+      "complexity": "High",
+      "prompt": "Analyze L.I.S.A. system architecture and evaluate decoupling between InferenceEngine and ProviderSelector.",
+      "levels": {
+        "L0": {
+          "level": 0,
+          "name": "L0 (None)",
+          "latency_ms": 34403.35,
+          "tok_sec": 42.15,
+          "tool_calls": 1,
+          "tool_used": true,
+          "hallucination": false,
+          "prompt_tokens": 398,
+          "completion_tokens": 1450
+        },
+        "L2": {
+          "level": 2,
+          "name": "L2 (Explicit Tool Discipline)",
+          "latency_ms": 22213.78,
+          "tok_sec": 41.64,
+          "tool_calls": 4,
+          "tool_used": true,
+          "hallucination": false,
+          "prompt_tokens": 559,
+          "completion_tokens": 925
+        },
+        "L4": {
+          "level": 4,
+          "name": "L4 (Full Construction Profile)",
+          "latency_ms": 28808.68,
+          "tok_sec": 41.86,
+          "tool_calls": 1,
+          "tool_used": true,
+          "hallucination": false,
+          "prompt_tokens": 640,
+          "completion_tokens": 1206
+        }
+      }
+    }
+  ]
+}

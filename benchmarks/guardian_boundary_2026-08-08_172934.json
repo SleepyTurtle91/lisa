@@ -1,0 +1,61 @@
+{
+  "experiment_id": "BLIND-E2E-015",
+  "title": "Guardian Boundary",
+  "timestamp": "2026-08-08T17:29:34.329636",
+  "results": [
+    {
+      "id": "G-A",
+      "title": "Sufficient evidence",
+      "expected": "ACT",
+      "response": "ACT",
+      "normalized_decision": "ACT",
+      "prompt": "You are evaluating candidate engineering targets. If the evidence justifies a concrete action, return ACT. If the evidence is too weak or contradictory, return ABSTAIN. Return the decision only.\n\nCandidate set:\n{\"candidates\": [{\"confidence\": 0.88, \"contradictions\": 0, \"id\": \"A\", \"notes\": \"Direct runtime evidence, explicit failing behavior, and a concrete contract violation.\", \"support\": 6}, {\"confidence\": 0.21, \"contradictions\": 2, \"id\": \"B\", \"notes\": \"Vague conjecture without replication.\", \"support\": 1}]}",
+      "candidate_payload": {
+        "candidates": [
+          {
+            "id": "A",
+            "confidence": 0.88,
+            "support": 6,
+            "contradictions": 0,
+            "notes": "Direct runtime evidence, explicit failing behavior, and a concrete contract violation."
+          },
+          {
+            "id": "B",
+            "confidence": 0.21,
+            "support": 1,
+            "contradictions": 2,
+            "notes": "Vague conjecture without replication."
+          }
+        ]
+      },
+      "timestamp": "2026-08-08T17:28:08.852609"
+    },
+    {
+      "id": "G-B",
+      "title": "Insufficient evidence",
+      "expected": "ABSTAIN",
+      "response": "ABSTAIN",
+      "normalized_decision": "ABSTAIN",
+      "prompt": "You are evaluating candidate engineering targets. If the evidence justifies a concrete action, return ACT. If the evidence is too weak or contradictory, return ABSTAIN. Return the decision only.\n\nCandidate set:\n{\"candidates\": [{\"confidence\": 0.41, \"contradictions\": 3, \"id\": \"A\", \"notes\": \"Partial observations but no concrete failure signature.\", \"support\": 2}, {\"confidence\": 0.39, \"contradictions\": 3, \"id\": \"B\", \"notes\": \"Competing weak hypotheses with no decisive evidence.\", \"support\": 2}]}",
+      "candidate_payload": {
+        "candidates": [
+          {
+            "id": "A",
+            "confidence": 0.41,
+            "support": 2,
+            "contradictions": 3,
+            "notes": "Partial observations but no concrete failure signature."
+          },
+          {
+            "id": "B",
+            "confidence": 0.39,
+            "support": 2,
+            "contradictions": 3,
+            "notes": "Competing weak hypotheses with no decisive evidence."
+          }
+        ]
+      },
+      "timestamp": "2026-08-08T17:29:34.329607"
+    }
+  ]
+}

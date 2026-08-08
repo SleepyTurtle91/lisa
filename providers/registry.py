@@ -12,6 +12,8 @@ class ProviderRegistry:
         manifest = await provider.handshake()
         if not manifest.healthy:
             raise ProviderError(f"Provider '{provider.id}' reported unhealthy manifest.")
+        if provider.id in self._providers or provider.id in self._manifests:
+            raise ProviderError(f"Provider '{provider.id}' is already registered.")
         self._providers[provider.id] = provider
         self._manifests[provider.id] = manifest
         return manifest

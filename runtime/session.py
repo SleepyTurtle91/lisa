@@ -11,13 +11,15 @@ from lisa.tools.registry import ToolRegistry
 from lisa.tools.compiler import ToolCompiler
 from lisa.tools.dispatcher import ToolExecutor
 from lisa.tools.base import ToolRequest
+from lisa.telemetry.flight_recorder import FlightRecorder
 
 class LisaSession(BaseSession):
-    def __init__(self, context: SessionContext, engine: InferenceEngine, registry: ToolRegistry):
+    def __init__(self, context: SessionContext, engine: InferenceEngine, registry: ToolRegistry, flight_recorder: Optional[FlightRecorder] = None):
         self._session_id = str(uuid.uuid4())
         self._context = context
         self._engine = engine
         self._registry = registry
+        self._flight_recorder = flight_recorder
         self._executor = ToolExecutor(registry, max_retries=1)
         self._history: List[Dict[str, Any]] = []
         self._state = SessionState.CREATED
@@ -62,11 +64,26 @@ class LisaSession(BaseSession):
             cache_misses=misses
         )
 
+    def _record_stage(self, stage: str, payload: Optional[Dict[str, Any]] = None) -> None:
+        if self._flight_recorder is None:
+            return
+        event_payload = {"stage": stage, "session_id": self._session_id}
+        if payload:
+            event_payload.update(payload)
+        self._flight_recorder.record_event("flight_stage", event_payload)
+
     async def send_message(self, message: str) -> str:
         if self._state == SessionState.CLOSED or self._state == SessionState.FAILED:
             raise SessionError(f"Cannot send message on session in {self._state.name} state.")
 
         self._state = SessionState.RUNNING
+        self._record_stage("task_received", {"message": message})
+        self._record_stage("project_context", {"project_path": str(self._context.project_path)})
+        self._record_stage("objective_received", {"message": message, "project_path": str(self._context.project_path)})
+        self._record_stage("target_discovery", {"message": message})
+        self._record_stage("task_analysis", {"message": message})
+        self._record_stage("model_selection", {"message": message})
+        self._record_stage("scaffolding_decision", {"message": message})
         self._history.append({"role": "user", "content": message})
         session_start = time.perf_counter()
         
@@ -110,6 +127,7 @@ class LisaSession(BaseSession):
                     self._total_tokens += tel.total_tokens
 
                 response = inf_result.response
+                self._record_stage("model_response", {"has_tool_calls": bool(response.tool_calls)})
                 
                 # 3. Execute tool calls if returned by model
                 if response.tool_calls:
@@ -121,8 +139,33 @@ class LisaSession(BaseSession):
                         tool_req = ToolRequest(tool_name=tool_name, arguments=args, session_id=self._session_id)
                         
                         tool_start = time.perf_counter()
-                        result = await self._executor.execute_request(tool_req)
+                        self._record_stage("tool_request", {"tool_name": tool_name, "arguments": args})
+                        self._record_stage("tool_call", {"tool_name": tool_name, "arguments": args})
+                        result = await self._executor.execute_request(tool_req, project_path=self._context.project_path)
                         self._tool_execution_ms += (time.perf_counter() - tool_start) * 1000.0
+                        if result.metadata:
+                            resolution_payload = {
+                                "tool_name": tool_name,
+                                "input_path": result.metadata.get("input_path"),
+                                "resolved_path": result.metadata.get("resolved_path"),
+                                "path_kind": result.metadata.get("path_kind")
+                            }
+                            self._record_stage("path_resolution", resolution_payload)
+                            if result.metadata.get("resolved_path") is not None:
+                                self._record_stage("resolved_path", {
+                                    "tool_name": tool_name,
+                                    "resolved_path": result.metadata.get("resolved_path")
+                                })
+                        self._record_stage("tool_result", {"tool_name": tool_name, "success": result.success})
+                        if not result.success:
+                            self._record_stage("guarding_decision", {
+                                "tool_name": tool_name,
+                                "reason": result.error,
+                            })
+                            self._record_stage("blocked", {
+                                "reason": result.error,
+                                "tool_name": tool_name,
+                            })
                         
                         self._history.append({
                             "role": "tool",
@@ -133,12 +176,15 @@ class LisaSession(BaseSession):
                 
                 # Final answer
                 self._history.append({"role": "assistant", "content": response.content})
+                self._record_stage("model_response", {"content": response.content})
+                self._record_stage("final_conclusion", {"content": response.content})
                 self._total_latency_ms = (time.perf_counter() - session_start) * 1000.0
                 self._state = SessionState.READY
                 return response.content
         except Exception as e:
             self._state = SessionState.FAILED
             self._total_latency_ms = (time.perf_counter() - session_start) * 1000.0
+            self._record_stage("blocked", {"reason": str(e)})
             raise SessionError(f"Session execution failed: {str(e)}") from e
 
     def close(self) -> None:

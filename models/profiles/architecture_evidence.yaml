@@ -1,0 +1,27 @@
+id: "architecture_evidence"
+domain: "architecture"
+discipline: "evidence_first"
+tier: "heavy"
+behavior:
+  instruction_style: "evidence_disciplined"
+  reasoning_style: "fact_checked"
+  ambiguity_tolerance: "zero"
+workflow:
+  - "observe_project_instructions"
+  - "inspect_relevant_source_files"
+  - "distinguish_fact_from_inference"
+  - "analyze_observed_evidence"
+  - "stop_if_evidence_missing"
+  - "recommend_safest_change"
+rules:
+  - "label_evidence_types_file_fact_tool_fact_execution_fact_inference_unknown"
+  - "distinguish_declared_procedure_from_executed_evidence"
+  - "never_invent_uninspected_files"
+  - "verify_file_existence_before_recommending"
+  - "distinguish_observed_fact_from_expectation"
+  - "if_evidence_missing_stop_and_request_inspection"
+context:
+  max_relevant_files: 5
+  prefer_targeted_retrieval: true
+tools:
+  expose_only_required: true

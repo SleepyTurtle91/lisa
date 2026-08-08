@@ -6,13 +6,15 @@ from lisa.engine.normalizer import ResponseNormalizer
 from lisa.providers.selector import ProviderSelector
 from lisa.providers.base import ChatRequest
 from lisa.core.errors import ProviderError
+from lisa.telemetry.flight_recorder import FlightRecorder
 
 logger = logging.getLogger(__name__)
 
 class InferenceEngine:
-    def __init__(self, selector: ProviderSelector, max_retries: int = 1):
+    def __init__(self, selector: ProviderSelector, max_retries: int = 1, flight_recorder: Optional[FlightRecorder] = None):
         self._selector = selector
         self._max_retries = max_retries
+        self._flight_recorder = flight_recorder
 
     async def execute(self, request: InferenceRequest, preferred_provider_id: Optional[str] = None) -> InferenceResult:
         """Executes inference via selected provider with normalization, retries, and telemetry recording."""
@@ -40,10 +42,28 @@ class InferenceEngine:
             max_tokens=request.max_tokens
         )
 
+        if self._flight_recorder is not None:
+            self._flight_recorder.record_event("model_request", {
+                "provider_id": provider.id,
+                "model_name": request.model_name,
+                "messages": request.messages,
+                "tools": request.tools,
+                "temperature": request.temperature,
+                "max_tokens": request.max_tokens,
+            })
+
         last_error = None
         for attempt in range(self._max_retries + 1):
             try:
                 raw_resp = await provider.chat(chat_req)
+                if self._flight_recorder is not None:
+                    self._flight_recorder.record_event("model_response", {
+                        "provider_id": provider.id,
+                        "model_name": request.model_name,
+                        "content": getattr(raw_resp, "content", None),
+                        "tool_calls": getattr(raw_resp, "tool_calls", None),
+                        "usage": getattr(raw_resp, "usage", None),
+                    })
                 elapsed_ms = (time.perf_counter() - start_time) * 1000.0
                 manifest = await provider.handshake()
                 model_name = request.model_name or (manifest.supported_models[0] if manifest.supported_models else "default")

@@ -1,0 +1,26 @@
+id: "engineering_evidence"
+domain: "engineering"
+discipline: "evidence_gate"
+tier: "heavy"
+behavior:
+  instruction_style: "strict_evidence_gate"
+  reasoning_style: "read_before_think"
+  ambiguity_tolerance: "zero"
+workflow:
+  - "identify_relevant_project_files"
+  - "inspect_files_using_read_file_tool"
+  - "establish_observed_facts_file_fact_tool_fact"
+  - "separate_observed_facts_from_assumptions"
+  - "produce_evidence_grounded_plan"
+  - "request_confirmation_before_file_modification"
+rules:
+  - "must_read_file_before_proposing_code"
+  - "never_substitute_generic_patterns_for_missing_evidence"
+  - "label_facts_vs_inferences_vs_unknowns"
+  - "distinguish_declared_procedure_from_executed_evidence"
+  - "do_not_modify_files_without_permission"
+context:
+  max_relevant_files: 10
+  prefer_targeted_retrieval: true
+tools:
+  expose_only_required: true

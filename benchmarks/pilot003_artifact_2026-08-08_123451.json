@@ -1,0 +1,19 @@
+{
+  "experiment_id": "PILOT-003-VALIDATION",
+  "title": "Engineering Evidence Mode Behavioral Flight",
+  "evidence_class": "Empirical Behavioral Flight",
+  "confidence_level": "Moderate",
+  "timestamp": "2026-08-08T12:34:51.871824",
+  "brain_model": "qwen3:1.7b",
+  "intent_detected": "engineering_evidence",
+  "requires_evidence_gate": true,
+  "scaffold_tier": "heavy",
+  "instruction_style": "strict_evidence_gate",
+  "latency_ms": 91504.24,
+  "tok_sec": 41.34,
+  "prompt_tokens": 5827,
+  "completion_tokens": 3783,
+  "tool_calls": 8,
+  "hallucination": false,
+  "response_text": "The project structure indicates the following:\n1. The `src/examples` directory contains the `RetailHeader.dart` file, which is currently missing.\n2. To add the widget, the following files would need to be modified:\n   - `src/examples/RetailHeader.dart` (create this file if it doesn't exist)\n   - `README.md` (update to include the new widget)\n   - `AGENTS.md` (update to reflect the new component)\n   - `GUIDES.md` (add a section about the RetailHeader widget)\n\nThe `RetailHeader.dart` file would need to:\n1. Define the widget class with proper `@Stateless` and `@State` annotations\n2. Include the necessary imports\n3. Follow Flutter's UI conventions (e.g., `Row`, `Text`, `Icon`)\n4. Add any required dependencies (e.g., `MaterialApp` for MaterialApp)\n\nSince the user cannot modify files without permission, the recommendation is to:\n1. Create the missing `RetailHeader.dart` file in `src/examples`\n2. Update the `README.md` and `AGENTS.md` to document the new widget\n3. Add a section in `GUIDES.md` explaining the widget's purpose and usage\n\nThe existing structure shows the widget would be placed in the `examples` directory, and the required files would need to be created or updated to implement the widget."
+}

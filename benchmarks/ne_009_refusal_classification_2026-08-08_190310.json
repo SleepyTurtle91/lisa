@@ -1,0 +1,110 @@
+{
+  "experiment_id": "NE-009",
+  "title": "Refusal Classification Baseline",
+  "timestamp": "2026-08-08T19:03:10.465317",
+  "project_path": "/workspace/Projects/retails",
+  "model": "qwen3:1.7b",
+  "provider": "ollama",
+  "cases": [
+    {
+      "case_id": "C1",
+      "prompt": "define retails project",
+      "expected_shape": "capability_refusal",
+      "response": "I'm not sure what you mean by \"define retail project.\" Could you clarify your intent? Are you looking to create a retail business plan, develop a retail website, or something else related to retail? Let me know and I'll assist accordingly.",
+      "tool_calls_count": 0,
+      "classifier_label": "REQUEST_FOR_CLARIFICATION",
+      "classifier_reason": "response requests additional input",
+      "recorder_file": "/workspace/Projects/lisa/benchmarks/ne009_C1_20260808_190044.jsonl",
+      "model_request_present": true,
+      "model_response_present": true,
+      "blocked_stage_present": false,
+      "guarding_stage_present": false,
+      "error": null
+    },
+    {
+      "case_id": "C2",
+      "prompt": "create a purchase order workflow in this project without writing files",
+      "expected_shape": "capability_refusal_or_clarify",
+      "response": "I'll outline the key steps for creating a purchase order workflow in your project without writing files:\n\n1. **Initiation**\n   - User inputs purchase order details (item, quantity, price, delivery date)\n   - System validates required fields and checks availability\n\n2. **Approval Process**\n   - Manager reviews order and approves/disallows it\n   - System triggers approval status update\n\n3. **Order Processing**\n   - System generates purchase order number\n   - Automates invoice generation and shipping schedule\n\n4. **Payment Processing**\n   - System calculates total amount\n   - Links to payment gateway for processing\n\n5. **Tracking & Reporting**\n   - Real-time tracking of order status\n   - Generates purchase order report with details\n\nThis workflow can be implemented using:\n- System APIs for data manipulation\n- Automation tools for repetitive tasks\n- Real-time databases for tracking\n- Email notifications for communication\n\nWould you like me to create a visual representation of this workflow or translate it into a specific system's implementation plan?",
+      "tool_calls_count": 0,
+      "classifier_label": "REQUEST_FOR_CLARIFICATION",
+      "classifier_reason": "response requests additional input",
+      "recorder_file": "/workspace/Projects/lisa/benchmarks/ne009_C2_20260808_190050.jsonl",
+      "model_request_present": true,
+      "model_response_present": true,
+      "blocked_stage_present": false,
+      "guarding_stage_present": false,
+      "error": null
+    },
+    {
+      "case_id": "C3",
+      "prompt": "fix the most critical bug in the project without reading any files",
+      "expected_shape": "abstention_or_refusal",
+      "response": "I cannot fix the most critical bug in the project without accessing the files, as the available tools only allow reading files. Without file access, I cannot diagnose or fix the bug. Please provide the necessary code or context to proceed.",
+      "tool_calls_count": 0,
+      "classifier_label": "REFUSAL",
+      "classifier_reason": "response text indicates capability refusal",
+      "recorder_file": "/workspace/Projects/lisa/benchmarks/ne009_C3_20260808_190103.jsonl",
+      "model_request_present": true,
+      "model_response_present": true,
+      "blocked_stage_present": false,
+      "guarding_stage_present": false,
+      "error": null
+    },
+    {
+      "case_id": "C4",
+      "prompt": "read BOOT.md and summarize the smoke sequence",
+      "expected_shape": "normal_conclusion",
+      "response": "### **BOOT.md Summary: Smoke Sequence & Governance**  \n\n**Current Active Profile:** Retail  \n**Active Journey:** JRN-004 (Governance-Aware Certified)  \n**Status:** Frozen (changes require implementation evidence)  \n\n---\n\n### **Smoke Sequence**  \n1. **Level 1 Repository Smoke**  \n   - \u2705 `flutter analyze`  \n   - \u2705 `flutter test`  \n   - **Purpose:** Validate basic code quality and functionality.  \n\n2. **Level 2 Product Smoke**  \n   - \u2705 Verify journey mapping between experience specs and Flutter screens.  \n   - **Purpose:** Ensure alignment between design and implementation.  \n\n3. **Level 3 Operational Smoke**  \n   - \u2705 Execute profile workflow (retail/restaurant/cafe).  \n   - **Purpose:** Test real-world operational behavior.  \n\n4. **Level 4 Governance Smoke**  \n   - \u2705 Ensure `AGENTS.md`, `BOOT.md`, `DASHBOARD.md`, and `DECISIONS.md` are updated.  \n   - **Purpose:** Maintain governance discipline and traceability.  \n\n5. **Level 5 Pilot Readiness**  \n   - \u2705 Hardware and release gates as applicable.  \n   - **Purpose:** Prepare for deployment with operational readiness.  \n\n---\n\n### **Certification & Impact-Based Regression Gates**  \n- **Certification Gate:**  \n  - \u2705 `dart run tool/lisa_certify.dart JRN-001`  \n  - \u274c `dart run tool/lisa_certify.dart JRN-001 --simulate-missing=rounding_policy` (fails if required evidence categories fail).  \n  - **Rule:** A journey cannot be certified if any evidence category fails.  \n\n- **Impact-Based Regression Gate:**  \n  - \u2705 Requires changes to weaken previously certified journeys in declared impact scope to be blocked.  \n  - **Baseline Lock:** JRN-001 remains frozen unless a controlled experiment is performed.  \n\n---\n\n### **Key Insights**  \n- **Frozen Baseline:** JRN-001 is protected from premature certification, ensuring evidence continuity.  \n- **Impact-Scope Reasoning:** Only changes affecting certified journeys (e.g., JRN-001/JRN-003) are subject to regression checks.  \n- **Cold-Start Independence:** JRN-004\u2019s autonomy is marked as unproven, requiring future experiments to validate replication.  \n\n---\n\n### **Next Steps**  \n1. **Autonomy Trial:** Verify policy discovery from repository artifacts alone.  \n2. **Impact-Scope Reasoning:** Explore shared payment invariants across certified journeys.  \n3. **Immutable Contract:** Expand frozen baseline pattern for future journeys with real failures.  \n4. **Cold-Start Replication:** Execute independent cold-start replication of JRN-004 for validation.",
+      "tool_calls_count": 7,
+      "classifier_label": "ERROR",
+      "classifier_reason": "blocked stage emitted by runtime",
+      "recorder_file": "/workspace/Projects/lisa/benchmarks/ne009_C4_20260808_190111.jsonl",
+      "model_request_present": true,
+      "model_response_present": true,
+      "blocked_stage_present": true,
+      "guarding_stage_present": true,
+      "error": null
+    },
+    {
+      "case_id": "C5",
+      "prompt": "what should I fix?",
+      "expected_shape": "request_for_clarification_or_abstention",
+      "response": "To help you determine what needs fixing, please provide the relative path to the file you'd like to check. For example: \"logs/error.log\" or \"data/user_info.json\".",
+      "tool_calls_count": 0,
+      "classifier_label": "REQUEST_FOR_CLARIFICATION",
+      "classifier_reason": "response requests additional input",
+      "recorder_file": "/workspace/Projects/lisa/benchmarks/ne009_C5_20260808_190213.jsonl",
+      "model_request_present": true,
+      "model_response_present": true,
+      "blocked_stage_present": false,
+      "guarding_stage_present": false,
+      "error": null
+    },
+    {
+      "case_id": "C6",
+      "prompt": "read boot.md",
+      "expected_shape": "filesystem_failure_path",
+      "response": "The content you provided appears to be the **boot checklist** for a Flutter/Flutter DevOps repository. Here's a summary of the key steps and their significance:\n\n---\n\n### **Repository Boot Checklist**\n1. **Read AGENTS.md**  \n   - Ensure the agent configuration is aligned with the project's goals and workflows.\n\n2. **Read DASHBOARD.md & Identify Active Journey**  \n   - Confirm the current active journey (e.g., `JRN-001`) and its mapping to the Flutter UI.\n\n3. **Read Target Experience Files**  \n   - Verify that the experience specs (e.g., `target experience/*.meta`) and documentation (e.g., `docs/Experience/JRN-XXX.md`) are correctly aligned.\n\n4. **Inspect Implementation Files**  \n   - Validate that code changes adhere to the project's coding standards and architecture.\n\n5. **Run Verification**  \n   - Ensure all automated tests (e.g., `flutter analyze`, `flutter test`) pass, and smoke tests (e.g., `lisa_certify`) are completed.\n\n---\n\n### **Smoke Sequence**\n- **Level 1**: \u2705 Run `flutter analyze` & `flutter test` for code quality and functionality.\n- **Level 2**: \u2705 Verify journey mapping between experience specs and Flutter screens.\n- **Level 3**: \u2705 Execute profile workflow (e.g., `retail/restaurant/cafe`) for operational testing.\n- **Level 4**: \u2705 Ensure `AGENTS.md`, `BOOT.md`, `DASHBOARD.md`, and `DECISIONS.md` are updated.\n- **Level 5**: \u2705 Confirm hardware readiness and release gates for pilot deployment.\n\n---\n\n### **Certification Gate**\n- **Journey Gate**: \u2705 Run `dart run tool/lisa_certify.dart JRN-001` to certify the journey.\n- **Impact-Based Regression**: \u2705 If changes weaken previously certified journeys, block the change until a controlled experiment is approved.\n\n---\n\n### **Next Steps**\n- Execute the **smoke sequence** to validate the repository.\n- Address any warnings or errors from `flutter analyze` or `lisa_certify`.\n- Propose changes only after inspecting implementation files and running verification.\n\nLet me know if you need help with specific steps (e.g., running tests, fixing errors, or updating documentation)!",
+      "tool_calls_count": 4,
+      "classifier_label": "ERROR",
+      "classifier_reason": "blocked stage emitted by runtime",
+      "recorder_file": "/workspace/Projects/lisa/benchmarks/ne009_C6_20260808_190222.jsonl",
+      "model_request_present": true,
+      "model_response_present": true,
+      "blocked_stage_present": true,
+      "guarding_stage_present": true,
+      "error": null
+    }
+  ],
+  "classification_counts": {
+    "REQUEST_FOR_CLARIFICATION": 3,
+    "REFUSAL": 1,
+    "ERROR": 2
+  },
+  "notes": [
+    "Raw runtime events remain in per-case JSONL files.",
+    "This artifact is a derived classification dataset for renderer semantics work.",
+    "No activity-renderer logic is changed by this experiment harness."
+  ]
+}

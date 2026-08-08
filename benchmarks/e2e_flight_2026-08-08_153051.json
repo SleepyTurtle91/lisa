@@ -1,0 +1,141 @@
+{
+  "experiment_id": "NE-007",
+  "title": "Composition-Level End-to-End Flight Trace",
+  "timestamp": "2026-08-08T15:30:51.695871",
+  "session_id": "e2e_flight_2026-08-08_153051",
+  "prompt": "Inspect AGENTS.md and summarize the runtime guidance.",
+  "response": "The runtime guidance in AGENTS.md is grounded in L.I.S.A. evidence discipline.",
+  "stages": [
+    "objective_received",
+    "target_discovery",
+    "task_analysis",
+    "model_selection",
+    "scaffolding_decision",
+    "tool_call",
+    "tool_result",
+    "final_conclusion"
+  ],
+  "events": [
+    {
+      "timestamp": "2026-08-08T15:30:51.694637",
+      "time_epoch_ms": 1786174251694.65,
+      "session_id": "e2e_flight_2026-08-08_153051",
+      "event_type": "runtime_initialized",
+      "payload": {
+        "state": "INITIALIZING"
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:30:51.694869",
+      "time_epoch_ms": 1786174251694.88,
+      "session_id": "e2e_flight_2026-08-08_153051",
+      "event_type": "runtime_ready",
+      "payload": {
+        "state": "READY"
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:30:51.695042",
+      "time_epoch_ms": 1786174251695.05,
+      "session_id": "e2e_flight_2026-08-08_153051",
+      "event_type": "session_created",
+      "payload": {
+        "session_id": "3b727201-ef26-4d0d-bcc5-5b65e62e938c",
+        "project_path": "/home/user/Projects/lisa"
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:30:51.695105",
+      "time_epoch_ms": 1786174251695.11,
+      "session_id": "e2e_flight_2026-08-08_153051",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "objective_received",
+        "session_id": "3b727201-ef26-4d0d-bcc5-5b65e62e938c",
+        "message": "Inspect AGENTS.md and summarize the runtime guidance.",
+        "project_path": "/home/user/Projects/lisa"
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:30:51.695146",
+      "time_epoch_ms": 1786174251695.15,
+      "session_id": "e2e_flight_2026-08-08_153051",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "target_discovery",
+        "session_id": "3b727201-ef26-4d0d-bcc5-5b65e62e938c",
+        "message": "Inspect AGENTS.md and summarize the runtime guidance."
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:30:51.695178",
+      "time_epoch_ms": 1786174251695.18,
+      "session_id": "e2e_flight_2026-08-08_153051",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "task_analysis",
+        "session_id": "3b727201-ef26-4d0d-bcc5-5b65e62e938c",
+        "message": "Inspect AGENTS.md and summarize the runtime guidance."
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:30:51.695207",
+      "time_epoch_ms": 1786174251695.21,
+      "session_id": "e2e_flight_2026-08-08_153051",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "model_selection",
+        "session_id": "3b727201-ef26-4d0d-bcc5-5b65e62e938c",
+        "message": "Inspect AGENTS.md and summarize the runtime guidance."
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:30:51.695234",
+      "time_epoch_ms": 1786174251695.24,
+      "session_id": "e2e_flight_2026-08-08_153051",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "scaffolding_decision",
+        "session_id": "3b727201-ef26-4d0d-bcc5-5b65e62e938c",
+        "message": "Inspect AGENTS.md and summarize the runtime guidance."
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:30:51.695383",
+      "time_epoch_ms": 1786174251695.39,
+      "session_id": "e2e_flight_2026-08-08_153051",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "tool_call",
+        "session_id": "3b727201-ef26-4d0d-bcc5-5b65e62e938c",
+        "tool_name": "read_file",
+        "arguments": {
+          "path": "/home/user/Projects/lisa/AGENTS.md"
+        }
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:30:51.695533",
+      "time_epoch_ms": 1786174251695.54,
+      "session_id": "e2e_flight_2026-08-08_153051",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "tool_result",
+        "session_id": "3b727201-ef26-4d0d-bcc5-5b65e62e938c",
+        "tool_name": "read_file",
+        "success": true
+      }
+    },
+    {
+      "timestamp": "2026-08-08T15:30:51.695670",
+      "time_epoch_ms": 1786174251695.67,
+      "session_id": "e2e_flight_2026-08-08_153051",
+      "event_type": "flight_stage",
+      "payload": {
+        "stage": "final_conclusion",
+        "session_id": "3b727201-ef26-4d0d-bcc5-5b65e62e938c",
+        "content": "The runtime guidance in AGENTS.md is grounded in L.I.S.A. evidence discipline."
+      }
+    }
+  ]
+}
