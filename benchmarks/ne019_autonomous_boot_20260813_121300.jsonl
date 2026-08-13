@@ -1,0 +1,4 @@
+{"timestamp": "2026-08-13T12:13:00.713766", "time_epoch_ms": 1786594380713.77, "session_id": "ne019_autonomous_boot_20260813_121300", "event_type": "runtime_initialized", "payload": {"state": "INITIALIZING"}}
+{"timestamp": "2026-08-13T12:13:00.713893", "time_epoch_ms": 1786594380713.9, "session_id": "ne019_autonomous_boot_20260813_121300", "event_type": "runtime_ready", "payload": {"state": "READY"}}
+{"timestamp": "2026-08-13T12:13:00.713941", "time_epoch_ms": 1786594380713.94, "session_id": "ne019_autonomous_boot_20260813_121300", "event_type": "flight_stage", "payload": {"stage": "autonomous_boot_started", "project_path": "/home/user/development/projects/retails"}}
+{"timestamp": "2026-08-13T12:13:00.713977", "time_epoch_ms": 1786594380713.98, "session_id": "ne019_autonomous_boot_20260813_121300", "event_type": "flight_stage", "payload": {"stage": "initial_knowledge_evaluated", "score": 1, "mode": "RESEARCH_MODE"}}

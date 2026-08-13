@@ -1,0 +1,64 @@
+{
+  "experiment": "NE-018.2",
+  "title": "Question-Driven Research & Investigation Integrity Benchmark",
+  "timestamp": "2026-08-13T12:14:57.097718Z",
+  "target_project_path": "/home/user/development/projects/retails",
+  "investigation_results": {
+    "questions": [
+      {
+        "qid": "Q-001",
+        "domain": "Project Identity",
+        "question": "What is the primary identity and target of this repository?",
+        "status": "RESOLVED",
+        "evidence_source": "read_file('pubspec.yaml')",
+        "finding": "Flutter POS Project: retails"
+      },
+      {
+        "qid": "Q-002",
+        "domain": "Technology Stack",
+        "question": "Which primary languages and framework dependencies are active?",
+        "status": "RESOLVED",
+        "evidence_source": "read_file('pubspec.yaml')",
+        "finding": "Flutter / Dart with dependencies in pubspec.yaml"
+      },
+      {
+        "qid": "Q-003",
+        "domain": "Architectural Pattern",
+        "question": "What is the primary architectural pattern used in source code?",
+        "status": "RESOLVED",
+        "evidence_source": "read_file('AGENTS.md')",
+        "finding": "ExtroPOS EOS Layered Kernel Architecture"
+      },
+      {
+        "qid": "Q-004",
+        "domain": "Data Persistence",
+        "question": "How is persistent data stored and initialized in the app?",
+        "status": "RESOLVED",
+        "evidence_source": "Deep source inspection of main call graph",
+        "finding": "Drift is active persistence; Hive is legacy."
+      }
+    ],
+    "difficulties": [
+      {
+        "did": "D-001",
+        "question_ref": "Q-004",
+        "difficulty_description": "Documentation references legacy Hive storage, while pubspec contains Drift.",
+        "resolution": "Verified Drift initialization in active main call graph. Hive is legacy.",
+        "is_resolved": true
+      }
+    ],
+    "unresolved_diffs_count": 0,
+    "checkpoint_valid": true,
+    "promoted_mode": "IMPLEMENTATION_MODE"
+  },
+  "total_observed_events": 0,
+  "authoritative_summary": {
+    "verified_in_this_session": [],
+    "documented_in_files": [],
+    "inferred_by_model": [],
+    "unverified_claims": [],
+    "is_provenance_authoritative": true,
+    "total_observed_events": 0
+  },
+  "recorder_file": "/workspace/Projects/lisa/benchmarks/ne018_2_investigation_integrity_20260813_121457.jsonl"
+}

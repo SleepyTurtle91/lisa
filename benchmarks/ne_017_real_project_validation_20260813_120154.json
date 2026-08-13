@@ -1,0 +1,32 @@
+{
+  "experiment": "NE-017",
+  "title": "Real-Project L.I.S.A. OS Validation",
+  "timestamp": "2026-08-13T12:02:13.119025Z",
+  "target_project_path": "/home/user/development/projects/retails",
+  "user_prompt": "Inspect the architecture and project files inside docs, read key project directives, and synthesize an active engineering plan.",
+  "ingress_classification": "NATURAL_LANGUAGE",
+  "ingress_clean": true,
+  "total_events_recorded": 46,
+  "observed_events_count": 3,
+  "unverified_events_count": 1,
+  "inferred_events_count": 1,
+  "authoritative_summary": {
+    "verified_in_this_session": [
+      "Tool 'list_directory' executed successfully",
+      "Tool 'list_directory' executed successfully",
+      "Tool 'list_directory' executed successfully"
+    ],
+    "documented_in_files": [],
+    "inferred_by_model": [
+      "Model response claim"
+    ],
+    "unverified_claims": [
+      "Tool 'read_file' failed execution"
+    ],
+    "is_provenance_authoritative": true,
+    "total_observed_events": 3
+  },
+  "conflation_detected": false,
+  "response_snippet": "The file `docs/project_directives.conf` was not found in the expected location. This could indicate either:\n1. The file is missing from the project structure, or  \n2. The directory path is incorrect (e.g., `docs` might not be a subdirectory of the project root).  \n\nTo proceed, verify the project structure or ensure the file is created in the correc",
+  "recorder_file": "/workspace/Projects/lisa/benchmarks/ne017_real_project_validation_20260813_120154.jsonl"
+}

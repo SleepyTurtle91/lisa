@@ -1,0 +1,182 @@
+{
+  "experiment_id": "NE-010",
+  "profile": "harder",
+  "source_artifact": "2026-08-08T19:39:39.985786",
+  "flights": [
+    {
+      "case": "A",
+      "flight_id": "F1",
+      "prompt": "Inspect runtime/session.py, telemetry/activity_renderer.py, and tests/test_activity_renderer.py. Identify one projection-risk scenario with evidence.",
+      "truth": {
+        "terminal_state": "COMPLETED",
+        "terminal_reason": "no stronger blocking evidence",
+        "model_response_class": "NORMAL_CONCLUSION",
+        "tools_used": [
+          "list_directory"
+        ],
+        "encountered_failure": false,
+        "failure_reasons": [],
+        "encountered_guarding": false,
+        "encountered_blocked": false,
+        "encountered_clarifying": false,
+        "stage_sequence": [
+          "task_received",
+          "project_context",
+          "objective_received",
+          "target_discovery",
+          "task_analysis",
+          "model_selection",
+          "scaffolding_decision",
+          "model_response",
+          "tool_request",
+          "tool_call",
+          "path_resolution",
+          "resolved_path",
+          "tool_result",
+          "tool_request",
+          "tool_call",
+          "path_resolution",
+          "resolved_path",
+          "tool_result",
+          "tool_request",
+          "tool_call",
+          "path_resolution",
+          "resolved_path",
+          "tool_result",
+          "model_response",
+          "model_response",
+          "final_conclusion"
+        ]
+      }
+    },
+    {
+      "case": "B",
+      "flight_id": "F2",
+      "prompt": "Inspect tools/filesystem/read_file.py then read docs/DOES_NOT_EXIST.md and explain the exact failure and path-resolution behavior.",
+      "truth": {
+        "terminal_state": "BLOCKED",
+        "terminal_reason": "explicit blocked stage present",
+        "model_response_class": "NORMAL_CONCLUSION",
+        "tools_used": [
+          "read_file"
+        ],
+        "encountered_failure": true,
+        "failure_reasons": [
+          "File not found: docs/DOES_NOT_EXIST.md (Resolved: /home/user/Projects/lisa/docs/DOES_NOT_EXIST.md)"
+        ],
+        "encountered_guarding": true,
+        "encountered_blocked": true,
+        "encountered_clarifying": false,
+        "stage_sequence": [
+          "task_received",
+          "project_context",
+          "objective_received",
+          "target_discovery",
+          "task_analysis",
+          "model_selection",
+          "scaffolding_decision",
+          "model_response",
+          "tool_request",
+          "tool_call",
+          "path_resolution",
+          "resolved_path",
+          "tool_result",
+          "tool_request",
+          "tool_call",
+          "path_resolution",
+          "resolved_path",
+          "tool_result",
+          "guarding_decision",
+          "blocked",
+          "model_response",
+          "model_response",
+          "final_conclusion"
+        ]
+      }
+    },
+    {
+      "case": "C",
+      "flight_id": "F3",
+      "prompt": "Inspect runtime/session.py and tests/test_end_to_end_flight.py, then propose one concrete additional regression test for mixed success/failure tool flows.",
+      "truth": {
+        "terminal_state": "COMPLETED",
+        "terminal_reason": "no stronger blocking evidence",
+        "model_response_class": "NORMAL_CONCLUSION",
+        "tools_used": [],
+        "encountered_failure": false,
+        "failure_reasons": [],
+        "encountered_guarding": false,
+        "encountered_blocked": false,
+        "encountered_clarifying": false,
+        "stage_sequence": [
+          "task_received",
+          "project_context",
+          "objective_received",
+          "target_discovery",
+          "task_analysis",
+          "model_selection",
+          "scaffolding_decision",
+          "model_response",
+          "model_response",
+          "final_conclusion"
+        ]
+      }
+    },
+    {
+      "case": "D",
+      "flight_id": "F4",
+      "prompt": "Read README.md, then read a non-existent sibling README_MISSING.md, then summarize what succeeded, what failed, and what should be guarded.",
+      "truth": {
+        "terminal_state": "CLARIFYING",
+        "terminal_reason": "model-only clarification classification",
+        "model_response_class": "REQUEST_FOR_CLARIFICATION",
+        "tools_used": [],
+        "encountered_failure": false,
+        "failure_reasons": [],
+        "encountered_guarding": false,
+        "encountered_blocked": false,
+        "encountered_clarifying": true,
+        "stage_sequence": [
+          "task_received",
+          "project_context",
+          "objective_received",
+          "target_discovery",
+          "task_analysis",
+          "model_selection",
+          "scaffolding_decision",
+          "model_response",
+          "model_response",
+          "final_conclusion"
+        ]
+      }
+    },
+    {
+      "case": "E",
+      "flight_id": "F5",
+      "prompt": "Inspect telemetry/flight_recorder.py and telemetry/activity_renderer.py and produce a concise operator checklist for distinguishing model-wait from tool-wait in live flights.",
+      "truth": {
+        "terminal_state": "COMPLETED",
+        "terminal_reason": "no stronger blocking evidence",
+        "model_response_class": "NORMAL_CONCLUSION",
+        "tools_used": [],
+        "encountered_failure": false,
+        "failure_reasons": [],
+        "encountered_guarding": false,
+        "encountered_blocked": false,
+        "encountered_clarifying": false,
+        "stage_sequence": [
+          "task_received",
+          "project_context",
+          "objective_received",
+          "target_discovery",
+          "task_analysis",
+          "model_selection",
+          "scaffolding_decision",
+          "model_response",
+          "model_response",
+          "final_conclusion"
+        ]
+      }
+    }
+  ]
+}

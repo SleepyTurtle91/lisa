@@ -1,0 +1,45 @@
+{
+  "experiment": "NE-014.2",
+  "title": "Live REPL Routing Integration Benchmark",
+  "timestamp": "2026-08-13T11:14:38.420802Z",
+  "project_path": "/home/user/development/projects/lisa",
+  "model": "qwen3:1.7b",
+  "provider": "ollama",
+  "all_passed": true,
+  "results": [
+    {
+      "case_id": "R1",
+      "input_text": "read BOOT.md",
+      "expected_class": "DIRECT_COMMAND",
+      "actual_class": "DIRECT_COMMAND",
+      "class_match": true,
+      "model_received": false,
+      "direct_read_hijacked": false,
+      "response_snippet": "File not found: BOOT.md (Resolved: /home/user/development/projects/lisa/BOOT.md)",
+      "passed": true
+    },
+    {
+      "case_id": "R2",
+      "input_text": "read files inside /docs and suggest a plan",
+      "expected_class": "NATURAL_LANGUAGE",
+      "actual_class": "NATURAL_LANGUAGE",
+      "class_match": true,
+      "model_received": true,
+      "direct_read_hijacked": false,
+      "response_snippet": "The directory `/docs` could not be found. Could you please confirm the correct path or check if the directory should be created first?",
+      "passed": true
+    },
+    {
+      "case_id": "R3",
+      "input_text": "/workspace/Projects/retails",
+      "expected_class": "PATH_INPUT",
+      "actual_class": "PATH_INPUT",
+      "class_match": true,
+      "model_received": false,
+      "direct_read_hijacked": false,
+      "response_snippet": "Listed 30 items",
+      "passed": true
+    }
+  ],
+  "recorder_file": "/workspace/Projects/lisa/benchmarks/ne014_2_live_routing_20260813_111426.jsonl"
+}

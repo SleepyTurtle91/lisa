@@ -136,11 +136,12 @@ class LisaSession(BaseSession):
                         func = call.get("function", {})
                         tool_name = func.get("name")
                         args = func.get("arguments", {})
-                        tool_req = ToolRequest(tool_name=tool_name, arguments=args, session_id=self._session_id)
-                        
-                        tool_start = time.perf_counter()
                         self._record_stage("tool_request", {"tool_name": tool_name, "arguments": args})
                         self._record_stage("tool_call", {"tool_name": tool_name, "arguments": args})
+                        tool_start = time.perf_counter()
+                        tool_req_args = dict(args)
+                        tool_req_args["user_prompt"] = message
+                        tool_req = ToolRequest(tool_name=tool_name, arguments=tool_req_args, session_id=self._session_id)
                         result = await self._executor.execute_request(tool_req, project_path=self._context.project_path)
                         self._tool_execution_ms += (time.perf_counter() - tool_start) * 1000.0
                         if result.metadata:

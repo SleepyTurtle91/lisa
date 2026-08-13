@@ -2,8 +2,9 @@
 
 **Last Updated**: 2026-08-08
 **EOS Version**: 1.1.0
-**Status**: 🔒 FROZEN & STABLE
-**Test Suite**: 47/47 PASSing (`PYTHONPATH=/home/user/development/projects python3 -m unittest discover -s tests`)
+**Status**: 🔒 IMPLEMENTATION LOCKED AT NE-010.2 HUMAN REVIEW BOUNDARY
+**Workspace Root**: `/home/user/Projects/lisa`
+**Checkpoint**: `NE-009.2 frozen` / `NE-010.1 automated stress fidelity passed` / `NE-010.2 blinded reviewer packets generated and validated`
 
 ---
 
@@ -53,7 +54,7 @@
 
 ### The 3 Responsibilities of L.I.S.A.
 1. **Guide (Environmental Grounding)**:
-   - Resolves relative paths deterministically against `SessionContext.project_path` (e.g. `BOOT.md` $\rightarrow$ `/workspace/Projects/retails/BOOT.md`).
+       - Resolves relative paths deterministically against `SessionContext.project_path` (e.g. `BOOT.md` $\rightarrow$ `/workspace/Projects/retails/BOOT.md`).
    - Restricts filesystem tools from escaping project sandboxes.
 2. **Guardian (Safety & Evidence Discipline)**:
    - Triggers `engineering_evidence` intent when engineering verbs (`implement`, `modify`, `fix`, `refactor`, `architect`, `inspect`, `debug`, `add`, `remove`, `change`) are detected.
@@ -63,7 +64,34 @@
 
 ---
 
-## 🔬 BANDURA Evidence Chain (EXP-001 through PILOT-003)
+## 🔒 Current Experimental Lock
+
+- **NE-009.2**: Frozen. Evidence-precedence classifier is integrated into `FlightConsole`, replayed against frozen C1-C6 traces, and validated on live A/B/C flights.
+- **NE-010.1**: Passed. Automated operator-fidelity evaluator validated baseline and harder-profile flights with no observed `FlightConsole` projection failure after evaluator rubric refinement.
+- **NE-010.2**: Infrastructure complete. Blind reviewer packets are generated, leak-checked, and ready for independent human reconstruction.
+- **Lock Rule**: Do not modify `FlightConsole` or its semantics until NE-010.2 human-review results provide evidence that changes are necessary.
+
+---
+
+## 🔬 Current Evidence Frontier
+
+### NE-009.2 — Evidence Precedence Integrated
+- Deterministic precedence contract wired into live projection.
+- Frozen acceptance replay passed `6/6`.
+- Live A/B/C agreement achieved:
+       - `read BOOT.md` $\rightarrow$ `COMPLETED`
+       - `read boot.md` $\rightarrow$ `BLOCKED`
+       - `define retails project` $\rightarrow$ `GUARDING`
+
+### NE-010 — Operator Perception Fidelity
+- Baseline automated fidelity run passed `4/4` flights.
+- Harder-profile automated fidelity run passed `5/5` flights with `0` hard failures after refining the evaluator to score only operator-expected visible checkpoints.
+- Initial harder-profile failures were evaluator false positives, not observed `FlightConsole` failures.
+- NE-010.2 reviewer packets are byte-identical, leak-free, and separated from the truth key.
+
+---
+
+## 🔬 Historical BANDURA Evidence Chain (EXP-001 through PILOT-003)
 
 | Checkpoint | Focus | Primary Finding | Confidence |
 | :--- | :--- | :--- | :---: |
@@ -80,20 +108,27 @@
 
 ## 📂 Key Files & Code Locations
 
-- [`VISION.md`](file:///home/user/development/projects/lisa/VISION.md): Architectural vision document.
-- [`RESEARCH.md`](file:///home/user/development/projects/lisa/RESEARCH.md): BANDURA Evidence Base v0.1.
-- [`telemetry/flight_recorder.py`](file:///home/user/development/projects/lisa/telemetry/flight_recorder.py): EXP-FR-001 Flight Recorder.
-- [`engine/analyzer.py`](file:///home/user/development/projects/lisa/engine/analyzer.py): `TaskAnalyzer` with verb evidence gate detection.
-- [`engine/planner.py`](file:///home/user/development/projects/lisa/engine/planner.py): `ExecutionPlanner` linking hardware load & scaffolding profiles.
-- [`engine/construction.py`](file:///home/user/development/projects/lisa/engine/construction.py): `ModelConstructionEngine` handling domain scaffolding.
-- [`models/profiles/engineering_evidence.yaml`](file:///home/user/development/projects/lisa/models/profiles/engineering_evidence.yaml): Evidence-first scaffolding profile.
-- [`tools/dispatcher.py`](file:///home/user/development/projects/lisa/tools/dispatcher.py): `ToolExecutor` enforcing project path grounding.
-- [`cli/repl.py`](file:///home/user/development/projects/lisa/cli/repl.py): Interactive REPL shell with BIOS boot sequence.
-- [`/home/user/.local/bin/lisa`](file:///home/user/.local/bin/lisa): Global system CLI launcher executable.
+- `RESEARCH.md`: canonical bounded findings and interpretations.
+- `PROGRESSION_LOG.md`: append-only operational milestone log.
+- `DISCOVERY.md`: emerging observations and open questions.
+- `telemetry/activity_renderer.py`: operator-facing live projection surface.
+- `telemetry/flight_recorder.py`: authoritative raw event stream and JSONL persistence.
+- `runtime/session.py`: staged runtime flight emission and tool/model orchestration.
+- `benchmarks/ne_009_2_renderer_replay.py`: frozen precedence replay harness.
+- `benchmarks/ne_010_operator_perception_fidelity.py`: automated fidelity evaluator and blind review packet exporter.
+- `tests/test_activity_renderer.py`: renderer semantics and cross-flight reset coverage.
+- `tests/test_ne_010_operator_perception_fidelity.py`: evaluator and blind-packet regression coverage.
 
 ---
 
 ## 🚀 How to Resume Next Session
 
-1. Run `lisa` or `lisa doctor /home/user/development/projects/extro_pos` from any terminal.
-2. Run test suite: `PYTHONPATH=/home/user/development/projects python3 -m unittest discover -s tests`.
+1. Do not edit `FlightConsole` before human-review evidence arrives.
+2. Hand reviewer packets to two independent humans without the truth key:
+       - `benchmarks/ne_010_2_reviewer_a_packet_2026-08-08_194418.md`
+       - `benchmarks/ne_010_2_reviewer_b_packet_2026-08-08_194418.md`
+3. Keep the truth key separate until scoring:
+       - `benchmarks/ne_010_2_truth_key_2026-08-08_194418.json`
+4. When code validation is needed, use focused checks:
+       - `PYTHONPATH=/home/user/Projects /home/user/Projects/lisa/.venv/bin/python -m unittest tests/test_activity_renderer.py`
+       - `PYTHONPATH=/home/user/Projects /home/user/Projects/lisa/.venv/bin/python -m unittest tests/test_ne_010_operator_perception_fidelity.py`

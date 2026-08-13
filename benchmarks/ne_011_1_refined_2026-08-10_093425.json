@@ -1,0 +1,113 @@
+{
+  "experiment": "NE-011.1",
+  "question": "When L.I.S.A. successfully extracts an intent, did it ground the target in actual repository evidence and select an operation appropriate to the target type?",
+  "timestamp": "2026-08-10T09:34:25.732467+08:00",
+  "source_artifact": "/workspace/Projects/lisa/benchmarks/ne_011_compound_intent_2026-08-10_092224.json",
+  "project_path": "/workspace/Projects/lisa",
+  "model": "qwen3:1.7b",
+  "provider": "ollama",
+  "total_cases": 7,
+  "control_summary": {
+    "DIRECT_PATH": 2,
+    "NO_TOOL_CALL": 1
+  },
+  "compound_summary": {
+    "DIRECT_PATH": 1,
+    "CLARIFICATION": 1,
+    "HALLUCINATED_PATH": 1,
+    "WRONG_TOOL_TYPE": 1
+  },
+  "observations": [
+    {
+      "case_id": "C1",
+      "group": "CONTROL",
+      "prompt": "read README.md",
+      "tool_calls_made": 5,
+      "first_tool_name": "read_file",
+      "first_tool_path_arg": "README.md",
+      "tool_success": true,
+      "ne011_classification": "DIRECT_PATH",
+      "classification": "DIRECT_PATH",
+      "classification_reason": "tool 'read_file' invoked with 'README.md' and succeeded",
+      "failed_resolution": false
+    },
+    {
+      "case_id": "C2",
+      "group": "CONTROL",
+      "prompt": "list docs",
+      "tool_calls_made": 0,
+      "first_tool_name": null,
+      "first_tool_path_arg": null,
+      "tool_success": null,
+      "ne011_classification": "NO_TOOL_CALL",
+      "classification": "NO_TOOL_CALL",
+      "classification_reason": "model answered without invoking any tool",
+      "failed_resolution": false
+    },
+    {
+      "case_id": "C3",
+      "group": "CONTROL",
+      "prompt": "read docs/ARCHITECTURE_SCORE.md",
+      "tool_calls_made": 1,
+      "first_tool_name": "read_file",
+      "first_tool_path_arg": "docs/ARCHITECTURE_SCORE.md",
+      "tool_success": true,
+      "ne011_classification": "DIRECT_PATH",
+      "classification": "DIRECT_PATH",
+      "classification_reason": "tool 'read_file' invoked with 'docs/ARCHITECTURE_SCORE.md' and succeeded",
+      "failed_resolution": false
+    },
+    {
+      "case_id": "X1",
+      "group": "COMPOUND",
+      "prompt": "read files inside docs",
+      "tool_calls_made": 1,
+      "first_tool_name": "list_directory",
+      "first_tool_path_arg": "docs",
+      "tool_success": true,
+      "ne011_classification": "DIRECT_PATH",
+      "classification": "DIRECT_PATH",
+      "classification_reason": "tool 'list_directory' invoked with 'docs' and succeeded",
+      "failed_resolution": false
+    },
+    {
+      "case_id": "X2",
+      "group": "COMPOUND",
+      "prompt": "read docs and suggest a plan",
+      "tool_calls_made": 0,
+      "first_tool_name": null,
+      "first_tool_path_arg": null,
+      "tool_success": null,
+      "ne011_classification": "CLARIFICATION",
+      "classification": "CLARIFICATION",
+      "classification_reason": "model requested clarification without tool use",
+      "failed_resolution": false
+    },
+    {
+      "case_id": "X3",
+      "group": "COMPOUND",
+      "prompt": "inspect documentation before doing anything",
+      "tool_calls_made": 5,
+      "first_tool_name": "list_directory",
+      "first_tool_path_arg": "~/Documents/Documentation",
+      "tool_success": false,
+      "ne011_classification": "DIRECT_PATH",
+      "classification": "HALLUCINATED_PATH",
+      "classification_reason": "path '~/Documents/Documentation' has no project-relative equivalent under '/workspace/Projects/lisa'",
+      "failed_resolution": true
+    },
+    {
+      "case_id": "X4",
+      "group": "COMPOUND",
+      "prompt": "read /docs before we do anything",
+      "tool_calls_made": 1,
+      "first_tool_name": "read_file",
+      "first_tool_path_arg": "/docs",
+      "tool_success": false,
+      "ne011_classification": "DIRECT_PATH",
+      "classification": "WRONG_TOOL_TYPE",
+      "classification_reason": "read_file invoked on directory '/docs'; project-relative equivalent '/workspace/Projects/lisa/docs' is a directory",
+      "failed_resolution": true
+    }
+  ]
+}

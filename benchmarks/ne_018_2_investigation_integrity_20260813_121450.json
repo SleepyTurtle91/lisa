@@ -1,0 +1,12 @@
+{
+  "experiment": "NE-018.2",
+  "title": "Question-Driven Research & Investigation Integrity Benchmark",
+  "timestamp": "2026-08-13T12:14:50.630757Z",
+  "target_project_path": "/home/user/development/projects/retails",
+  "investigation_results": {
+    "questions": [
+      {
+        "qid": "Q-001",
+        "domain": "Project Identity",
+        "question": "What is the primary identity and target of this repository?",
+        "status": 

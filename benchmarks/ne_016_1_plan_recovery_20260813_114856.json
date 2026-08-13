@@ -1,0 +1,56 @@
+{
+  "experiment": "NE-016.1",
+  "title": "Plan Recovery & Replanning Benchmark",
+  "timestamp": "2026-08-13T11:48:56.874350Z",
+  "project_path": "/home/user/development/projects/lisa",
+  "plan_a_step2_failed": true,
+  "plan_a_step3_pending": true,
+  "plan_b_completed": true,
+  "evidence_immutable": true,
+  "plan_a_results": [
+    {
+      "step": 1,
+      "status": "EXECUTED",
+      "reason": null
+    },
+    {
+      "step": 2,
+      "status": "BLOCKED",
+      "reason": "File not found: missing_docs.md (Resolved: /home/user/development/projects/lisa/missing_docs.md)"
+    },
+    {
+      "step": 3,
+      "status": "PENDING",
+      "reason": null
+    }
+  ],
+  "plan_b_results": [
+    {
+      "step": 1,
+      "status": "EXECUTED",
+      "result": "# \ud83d\ude80 L.I.S.A. \u2014 Logical Intelligence Software Architecture (v1.0.0-alpha)\n\n```\n===================================================\nL.I.S.A. ENGINEERING OPERATING SYSTEM\n================================"
+    },
+    {
+      "step": 2,
+      "status": "EXECUTED",
+      "result": "['validator.py', 'base.py', 'filesystem', 'sqlite', '__pycache__', 'git', 'shell', 'web', 'compiler.py', 'memory', 'github', 'registry.py', 'manifest.py', 'dispatcher.py', 'resolver.py']"
+    }
+  ],
+  "total_observed_events": 3,
+  "total_unverified_events": 1,
+  "authoritative_summary": {
+    "verified_in_this_session": [
+      "Tool 'list_directory' executed successfully",
+      "Tool 'read_file' executed successfully",
+      "Tool 'list_directory' executed successfully"
+    ],
+    "documented_in_files": [],
+    "inferred_by_model": [],
+    "unverified_claims": [
+      "Tool 'read_file' failed execution"
+    ],
+    "is_provenance_authoritative": true,
+    "total_observed_events": 3
+  },
+  "recorder_file": "/workspace/Projects/lisa/benchmarks/ne016_1_plan_recovery_20260813_114856.jsonl"
+}

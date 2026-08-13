@@ -16,6 +16,7 @@ from lisa.tools.filesystem.standard import WriteFileTool, ListDirectoryTool
 from lisa.core.context import SessionContext, Capability
 from lisa.telemetry.flight_recorder import FlightRecorder
 from lisa.telemetry.activity_renderer import FlightConsole
+from lisa.cli.input_classifier import InputBoundaryClassifier, InputClass
 
 CONFIG_DIR = Path.home() / ".lisa"
 RECENT_FILE = CONFIG_DIR / "recent.json"
@@ -275,109 +276,125 @@ async def start_repl(target_dir: Optional[str] = None):
             print("  read <file>    Read target file content")
             print("  switch         Switch active project")
             print("  exit / quit    Exit REPL session\n")
-        elif user_input.lower().startswith("activity"):
-            parts = user_input.split()
-            if len(parts) == 1:
-                print(f"Current activity mode: {activity_console.mode}")
-                continue
+        classified = InputBoundaryClassifier.classify(user_input, project_path=target_dir)
 
-            mode = parts[1].strip().lower()
-            if activity_console.set_mode(mode):
-                print(f"Activity mode set to: {mode}")
-            else:
-                print("Invalid activity mode. Use: off | compact | verbose")
-        elif user_input.lower() in ("list", "ls", "dir"):
+        if classified.input_class == InputClass.DIRECT_COMMAND:
+            cmd = classified.command or ""
+            if cmd == "doctor":
+                from lisa.cli.main import run_doctor
+                await run_doctor(target_dir)
+            elif cmd == "compare":
+                from lisa.cli.main import run_benchmark_compare
+                await run_benchmark_compare(target_dir)
+            elif cmd == "switch":
+                await runtime.shutdown()
+                print("\nSwitching project...")
+                await start_repl(None)
+                return
+            elif cmd == "summarize boot":
+                prompt = f"Please read {target_dir}/BOOT.md and summarize the active milestone."
+                res = await session.send_message(prompt)
+                print(f"\n{res}\n")
+            elif cmd in ("list", "ls", "dir"):
+                list_tool = ListDirectoryTool()
+                args = {"path": target_dir}
+                recorder.record_event("flight_stage", {
+                    "stage": "tool_request",
+                    "tool_name": "list_directory",
+                    "arguments": args,
+                    "session_id": session.session_id,
+                })
+                res = await list_tool.execute(path=target_dir, project_path=target_dir)
+                if res.metadata:
+                    recorder.record_event("flight_stage", {
+                        "stage": "path_resolution",
+                        "tool_name": "list_directory",
+                        "input_path": res.metadata.get("input_path"),
+                        "resolved_path": res.metadata.get("resolved_path"),
+                        "path_kind": res.metadata.get("path_kind"),
+                        "session_id": session.session_id,
+                    })
+                    recorder.record_event("flight_stage", {
+                        "stage": "resolved_path",
+                        "tool_name": "list_directory",
+                        "resolved_path": res.metadata.get("resolved_path"),
+                        "session_id": session.session_id,
+                    })
+                recorder.record_event("flight_stage", {
+                    "stage": "tool_result",
+                    "tool_name": "list_directory",
+                    "success": res.success,
+                    "session_id": session.session_id,
+                })
+                if res.success:
+                    print(f"\n📂 Directory Contents of '{proj_name}' ({target_dir}):")
+                    for item in sorted(res.output):
+                        print(f"  • {item}")
+                    print()
+                else:
+                    print(f"❌ {res.error}")
+            elif cmd == "read" and classified.target:
+                file_rel = classified.target
+                read_tool = ReadFileTool()
+                args = {"path": file_rel}
+                recorder.record_event("flight_stage", {
+                    "stage": "tool_request",
+                    "tool_name": "read_file",
+                    "arguments": args,
+                    "session_id": session.session_id,
+                })
+                res = await read_tool.execute(path=file_rel, project_path=target_dir)
+                if res.metadata:
+                    recorder.record_event("flight_stage", {
+                        "stage": "path_resolution",
+                        "tool_name": "read_file",
+                        "input_path": res.metadata.get("input_path"),
+                        "resolved_path": res.metadata.get("resolved_path"),
+                        "path_kind": res.metadata.get("path_kind"),
+                        "session_id": session.session_id,
+                    })
+                    recorder.record_event("flight_stage", {
+                        "stage": "resolved_path",
+                        "tool_name": "read_file",
+                        "resolved_path": res.metadata.get("resolved_path"),
+                        "session_id": session.session_id,
+                    })
+                recorder.record_event("flight_stage", {
+                    "stage": "tool_result",
+                    "tool_name": "read_file",
+                    "success": res.success,
+                    "session_id": session.session_id,
+                })
+
+                if res.success:
+                    print(f"\n--- {file_rel} ---")
+                    print(res.output)
+                    print("-------------------\n")
+                else:
+                    print(f"❌ {res.error}")
+            elif cmd == "activity":
+                parts = user_input.split()
+                if len(parts) == 1:
+                    print(f"Current activity mode: {activity_console.mode}")
+                    continue
+
+                mode = parts[1].strip().lower()
+                if activity_console.set_mode(mode):
+                    print(f"Activity mode set to: {mode}")
+                else:
+                    print("Invalid activity mode. Use: off | compact | verbose")
+
+        elif classified.input_class == InputClass.PATH_INPUT:
+            target_path = classified.target or user_input
             list_tool = ListDirectoryTool()
-            args = {"path": target_dir}
-            recorder.record_event("flight_stage", {
-                "stage": "tool_request",
-                "tool_name": "list_directory",
-                "arguments": args,
-                "session_id": session.session_id,
-            })
-            res = await list_tool.execute(path=target_dir, project_path=target_dir)
-            if res.metadata:
-                recorder.record_event("flight_stage", {
-                    "stage": "path_resolution",
-                    "tool_name": "list_directory",
-                    "input_path": res.metadata.get("input_path"),
-                    "resolved_path": res.metadata.get("resolved_path"),
-                    "path_kind": res.metadata.get("path_kind"),
-                    "session_id": session.session_id,
-                })
-                recorder.record_event("flight_stage", {
-                    "stage": "resolved_path",
-                    "tool_name": "list_directory",
-                    "resolved_path": res.metadata.get("resolved_path"),
-                    "session_id": session.session_id,
-                })
-            recorder.record_event("flight_stage", {
-                "stage": "tool_result",
-                "tool_name": "list_directory",
-                "success": res.success,
-                "session_id": session.session_id,
-            })
+            res = await list_tool.execute(path=target_path, project_path=target_dir)
             if res.success:
-                print(f"\n📂 Directory Contents of '{proj_name}' ({target_dir}):")
+                print(f"\n📂 Deterministic Path Contents ({target_path}):")
                 for item in sorted(res.output):
                     print(f"  • {item}")
                 print()
             else:
-                print(f"❌ {res.error}")
-        elif user_input.lower() == "doctor":
-            from lisa.cli.main import run_doctor
-            await run_doctor(target_dir)
-        elif user_input.lower() == "compare":
-            from lisa.cli.main import run_benchmark_compare
-            await run_benchmark_compare(target_dir)
-        elif user_input.lower() == "switch":
-            await runtime.shutdown()
-            print("\nSwitching project...")
-            await start_repl(None)
-            return
-        elif user_input.lower() == "summarize boot":
-            prompt = f"Please read {target_dir}/BOOT.md and summarize the active milestone."
-            res = await session.send_message(prompt)
-            print(f"\n{res}\n")
-        elif user_input.lower().startswith("read "):
-            file_rel = user_input[5:].strip()
-            read_tool = ReadFileTool()
-            args = {"path": file_rel}
-            recorder.record_event("flight_stage", {
-                "stage": "tool_request",
-                "tool_name": "read_file",
-                "arguments": args,
-                "session_id": session.session_id,
-            })
-            res = await read_tool.execute(path=file_rel, project_path=target_dir)
-            if res.metadata:
-                recorder.record_event("flight_stage", {
-                    "stage": "path_resolution",
-                    "tool_name": "read_file",
-                    "input_path": res.metadata.get("input_path"),
-                    "resolved_path": res.metadata.get("resolved_path"),
-                    "path_kind": res.metadata.get("path_kind"),
-                    "session_id": session.session_id,
-                })
-                recorder.record_event("flight_stage", {
-                    "stage": "resolved_path",
-                    "tool_name": "read_file",
-                    "resolved_path": res.metadata.get("resolved_path"),
-                    "session_id": session.session_id,
-                })
-            recorder.record_event("flight_stage", {
-                "stage": "tool_result",
-                "tool_name": "read_file",
-                "success": res.success,
-                "session_id": session.session_id,
-            })
-
-            if res.success:
-                print(f"\n--- {file_rel} ---")
-                print(res.output)
-                print("-------------------\n")
-            else:
-                print(f"❌ {res.error}")
+                print(f"❌ Path inspection error: {res.error}")
         else:
             from lisa.engine.auto_selector import AutoSelector
             from lisa.providers.selector import ProviderSelector

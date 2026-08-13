@@ -1,0 +1,3 @@
+{"timestamp": "2026-08-13T12:08:50.999770", "time_epoch_ms": 1786594130999.77, "session_id": "ne018_1_checkpoint_integrity_20260813_120850", "event_type": "runtime_initialized", "payload": {"state": "INITIALIZING"}}
+{"timestamp": "2026-08-13T12:08:50.999867", "time_epoch_ms": 1786594130999.87, "session_id": "ne018_1_checkpoint_integrity_20260813_120850", "event_type": "runtime_ready", "payload": {"state": "READY"}}
+{"timestamp": "2026-08-13T12:08:51.004550", "time_epoch_ms": 1786594131004.56, "session_id": "ne018_1_checkpoint_integrity_20260813_120850", "event_type": "flight_stage", "payload": {"stage": "integrity_checkpoint_passed", "integrity_score": 1.0, "promoted_mode": "IMPLEMENTATION_MODE"}}

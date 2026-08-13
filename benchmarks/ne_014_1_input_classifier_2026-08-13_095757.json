@@ -1,0 +1,54 @@
+{
+  "experiment": "NE-014.1",
+  "title": "Input Boundary Classifier Benchmark",
+  "timestamp": "2026-08-13T09:57:57.237577Z",
+  "project_path": "/home/user/development/projects/lisa",
+  "all_passed": true,
+  "results": [
+    {
+      "case_id": "TC1",
+      "prompt": "read files inside /docs and suggest a plan",
+      "expected_class": "NATURAL_LANGUAGE",
+      "actual_class": "NATURAL_LANGUAGE",
+      "command": null,
+      "target": null,
+      "passed": true
+    },
+    {
+      "case_id": "TC2",
+      "prompt": "/workspace/Projects/retails",
+      "expected_class": "PATH_INPUT",
+      "actual_class": "PATH_INPUT",
+      "command": "inspect_path",
+      "target": "/workspace/Projects/retails",
+      "passed": true
+    },
+    {
+      "case_id": "TC3",
+      "prompt": "read BOOT.md",
+      "expected_class": "DIRECT_COMMAND",
+      "actual_class": "DIRECT_COMMAND",
+      "command": "read",
+      "target": "BOOT.md",
+      "passed": true
+    },
+    {
+      "case_id": "TC4",
+      "prompt": "doctor",
+      "expected_class": "DIRECT_COMMAND",
+      "actual_class": "DIRECT_COMMAND",
+      "command": "doctor",
+      "target": null,
+      "passed": true
+    },
+    {
+      "case_id": "TC5",
+      "prompt": "how does the memory architecture work?",
+      "expected_class": "NATURAL_LANGUAGE",
+      "actual_class": "NATURAL_LANGUAGE",
+      "command": null,
+      "target": null,
+      "passed": true
+    }
+  ]
+}

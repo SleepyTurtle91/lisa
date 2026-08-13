@@ -1,0 +1,60 @@
+{
+  "experiment": "NE-012.1-ExperimentA",
+  "title": "Target Type Grounding Pre-Invocation Guard Validation",
+  "timestamp": "2026-08-13T09:24:45.437219Z",
+  "project_path": "/home/user/development/projects/lisa",
+  "observations": [
+    {
+      "case_id": "A1",
+      "prompt": "read README.md",
+      "expected_outcome": "EXECUTE_SUCCESS",
+      "tool_calls_made": 5,
+      "first_tool_name": "read_file",
+      "first_tool_path_arg": "README.md",
+      "tool_success": true,
+      "tool_error": null,
+      "rejected_before_execution": false,
+      "response_text": "The provided text outlines the **L.I.S.A. (Logical Intelligence Software Architecture)**, an open-source AI engineering operating system runtime. Below is a structured summary of its key components and features:\n\n---\n\n### **Core Architecture**\n1. **Layers**:\n   - **Runtime Layer (Frozen)**: Core system components (e.g., `LisaRuntime`, `BootstrapEngine`, `Session`, `EventBus`).\n   - **Execution Layer (Replaceable)**: Modular components like `ProviderRuntime`, `InferenceEngine`, and `ToolRuntime` for flexibility.\n   - **Infrastructure Layer (Replaceable)**: Tools like `Ollama`, `OpenAI`, `Filesystem`, `Git`, `SQLite` for integration.\n\n2. **Governance**:\n   - **Documented Rules**: \n     - `AGENTS.md`: Operating mode and mission directives.\n     - `ARCHITECTURE.md`: Core engineering laws and deterministic supremacy.\n     - `LAYER_MODEL.md`: 3-tier hierarchy (Runtime, Execution, Infrastructure).\n     - `DECISIONS.md`: ADR (Architectural Decision Records) for historical context.\n   - **Metrics**: \n     - **Test Results**: 32/32 passing tests (e.g., `test_architecture_rules.py`, `test_resilience_matrix.py`).\n     - **Performance**: Cold boot time of **1.408 ms** (< 2.0 ms target), indicating efficient startup.\n\n---\n\n### **Key Features**\n- **Modular Design**: Plug-and-play components for customization.\n- **Resilience**: Robust testing (e.g., `test_resilience_matrix.py`) ensures reliability.\n- **Performance**: Optimized cold boot time for efficiency.\n- **Open Source**: Transparent governance with documentation for contributors.\n\n---\n\n### **Next Steps**\nIf you'd like, I can:\n1. **Highlight specific components** (e.g., `ProviderRuntime`, `EventBus`).\n2. **Explain governance principles** (e.g., deterministic supremacy).\n3. **Provide test results** or **architecture diagrams**.\n4. **Offer further assistance** with file reading or analysis.\n\nLet me know what you need! \ud83e\udde0\ud83d\udcca",
+      "recorder_file": "/workspace/Projects/lisa/benchmarks/ne012_1_expA_A1_20260813_092424.jsonl"
+    },
+    {
+      "case_id": "A2",
+      "prompt": "list docs",
+      "expected_outcome": "EXECUTE_SUCCESS",
+      "tool_calls_made": 0,
+      "first_tool_name": null,
+      "first_tool_path_arg": null,
+      "tool_success": null,
+      "tool_error": null,
+      "rejected_before_execution": false,
+      "response_text": "To list the documents in a directory, please provide the specific path of the directory you want to examine. For example: \"/home/user/docs\" or \"C:/Users/username/Documents\".",
+      "recorder_file": "/workspace/Projects/lisa/benchmarks/ne012_1_expA_A2_20260813_092440.jsonl"
+    },
+    {
+      "case_id": "B1",
+      "prompt": "list README.md",
+      "expected_outcome": "GUARD_REJECTED_BEFORE_EXECUTION",
+      "tool_calls_made": 1,
+      "first_tool_name": "list_directory",
+      "first_tool_path_arg": "/",
+      "tool_success": true,
+      "tool_error": null,
+      "rejected_before_execution": false,
+      "response_text": "The path `README.md` refers to a file, not a directory. If you intended to list the contents of a directory, please provide the correct directory path. For example:\n- `list /path/to/directory`\n- `list /path/to/another/directory`\n\nLet me know if you'd like to proceed with the correct directory!",
+      "recorder_file": "/workspace/Projects/lisa/benchmarks/ne012_1_expA_B1_20260813_092441.jsonl"
+    },
+    {
+      "case_id": "B2",
+      "prompt": "read docs",
+      "expected_outcome": "GUARD_REJECTED_BEFORE_EXECUTION_OR_MODEL_CLARIFY",
+      "tool_calls_made": 0,
+      "first_tool_name": null,
+      "first_tool_path_arg": null,
+      "tool_success": null,
+      "tool_error": null,
+      "rejected_before_execution": false,
+      "response_text": "To read the documents, please specify the file path you want to read. For example: \"docs/README.md\" or \"data/user_docs.txt\".",
+      "recorder_file": "/workspace/Projects/lisa/benchmarks/ne012_1_expA_B2_20260813_092444.jsonl"
+    }
+  ]
+}

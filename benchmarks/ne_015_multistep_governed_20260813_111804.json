@@ -1,0 +1,28 @@
+{
+  "experiment": "NE-015",
+  "title": "Multi-Step Governed Execution Diagnostic Baseline",
+  "timestamp": "2026-08-13T11:18:11.213561Z",
+  "project_path": "/home/user/development/projects/lisa",
+  "model": "qwen3:1.7b",
+  "provider": "ollama",
+  "prompt": "Read the files inside /docs before we do anything and suggest a solid plan.",
+  "input_classified": "NATURAL_LANGUAGE",
+  "input_class_passed": true,
+  "tool_calls_made": 1,
+  "observed_events_count": 0,
+  "unverified_events_count": 1,
+  "authoritative_summary": {
+    "verified_in_this_session": [],
+    "documented_in_files": [],
+    "inferred_by_model": [
+      "Model response claim"
+    ],
+    "unverified_claims": [
+      "Tool 'read_file' failed execution"
+    ],
+    "is_provenance_authoritative": true,
+    "total_observed_events": 0
+  },
+  "model_response_snippet": "The directory `/docs` does not exist. Here's a suggested plan:\n\n1. **Create the directory** if needed:  \n   Use `mkdir -p /docs` to create the directory.\n\n2. **Read files** inside `/docs`:  \n   Use `read_file` to list contents, e.g., `read_file /docs/` to view files.\n\n3. **Organize files** by direct",
+  "recorder_file": "/workspace/Projects/lisa/benchmarks/ne015_multistep_governed_20260813_111804.jsonl"
+}

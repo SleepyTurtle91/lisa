@@ -1,0 +1,46 @@
+{
+  "experiment": "NE-016",
+  "title": "Governed Plan Execution Benchmark Baseline",
+  "timestamp": "2026-08-13T11:46:59.653825Z",
+  "project_path": "/home/user/development/projects/lisa",
+  "plan1_completed": true,
+  "plan2_halted_on_rejection": true,
+  "plan1_results": [
+    {
+      "step": 1,
+      "status": "EXECUTED",
+      "result": "['.gitignore', '.venv', 'plugins', '.git', 'bootstrap', 'cli', 'tools', 'engine', 'GUIDES.md', 'providers', 'models', 'core', 'AGENTS.md', 'README.md', 'RESEARCH.md', 'PROJECT_MEMORY.md', 'DISCOVERY.m"
+    },
+    {
+      "step": 2,
+      "status": "EXECUTED",
+      "result": "# \ud83d\ude80 L.I.S.A. \u2014 Logical Intelligence Software Architecture (v1.0.0-alpha)\n\n```\n===================================================\nL.I.S.A. ENGINEERING OPERATING SYSTEM\n================================"
+    }
+  ],
+  "plan2_results": [
+    {
+      "step": 1,
+      "status": "REJECTED",
+      "reason": "Cannot execute list_directory on FILE target 'README.md' (Resolved: /home/user/development/projects/lisa/README.md). Target is a file, not a directory."
+    },
+    {
+      "step": 2,
+      "status": "PENDING",
+      "reason": null
+    }
+  ],
+  "total_observed_events": 2,
+  "total_unverified_events": 0,
+  "authoritative_summary": {
+    "verified_in_this_session": [
+      "Tool 'list_directory' executed successfully",
+      "Tool 'read_file' executed successfully"
+    ],
+    "documented_in_files": [],
+    "inferred_by_model": [],
+    "unverified_claims": [],
+    "is_provenance_authoritative": true,
+    "total_observed_events": 2
+  },
+  "recorder_file": "/workspace/Projects/lisa/benchmarks/ne016_governed_plan_20260813_114659.jsonl"
+}

@@ -1,0 +1,36 @@
+{
+  "experiment": "NE-012.3",
+  "title": "Target Identity Binding Benchmark",
+  "timestamp": "2026-08-13T09:40:46.334376Z",
+  "project_path": "/home/user/development/projects/lisa",
+  "model": "qwen3:1.7b",
+  "provider": "ollama",
+  "observations": [
+    {
+      "case_id": "C1",
+      "prompt": "list README.md",
+      "description": "Prompt specifies file 'README.md'; rejects model fallback '/' or '.'",
+      "tool_calls_made": 0,
+      "first_tool_name": null,
+      "first_tool_path_arg": null,
+      "tool_success": false,
+      "tool_error": null,
+      "identity_mismatch_blocked": false,
+      "response_text": "The tool cannot process the request to list `README.md` as intended. The provided function only supports listing files in the root directory (`/`). To resolve this, please verify the target path or use a different tool that supports specific directory listings.",
+      "recorder_file": "/workspace/Projects/lisa/benchmarks/ne012_3_C1_20260813_094043.jsonl"
+    },
+    {
+      "case_id": "C2",
+      "prompt": "list docs",
+      "description": "Prompt specifies directory 'docs'; valid target execution",
+      "tool_calls_made": 0,
+      "first_tool_name": null,
+      "first_tool_path_arg": null,
+      "tool_success": null,
+      "tool_error": null,
+      "identity_mismatch_blocked": false,
+      "response_text": "To list the documents in a specific directory, please provide the path of the directory you want to explore. For example: \"/home/user/docs\" or \"C:/Documents\".",
+      "recorder_file": "/workspace/Projects/lisa/benchmarks/ne012_3_C2_20260813_094045.jsonl"
+    }
+  ]
+}

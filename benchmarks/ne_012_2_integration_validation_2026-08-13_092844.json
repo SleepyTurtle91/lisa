@@ -1,0 +1,63 @@
+{
+  "experiment": "NE-012.2",
+  "title": "End-to-End Grounded Session Integration Validation",
+  "timestamp": "2026-08-13T09:28:44.047955Z",
+  "project_path": "/home/user/development/projects/lisa",
+  "model": "qwen3:1.7b",
+  "provider": "ollama",
+  "flights": [
+    {
+      "flight_id": "Flight_A",
+      "prompt": "list README.md",
+      "description": "Invalid operation: list_directory on FILE target",
+      "tool_calls_made": 1,
+      "first_tool_name": "list_directory",
+      "first_tool_path_arg": "/",
+      "tool_success": true,
+      "tool_error": null,
+      "rejected_before_execution": false,
+      "response_text": "The path `README.md` is a file, not a directory, so the function cannot list its contents. Please verify the path or ensure you're working with a directory instead.",
+      "evidence_observed_count": 1,
+      "evidence_observed_summaries": [
+        "Tool 'list_directory' executed successfully"
+      ],
+      "recorder_file": "/workspace/Projects/lisa/benchmarks/ne012_2_Flight_A_20260813_092810.jsonl"
+    },
+    {
+      "flight_id": "Flight_B",
+      "prompt": "list docs",
+      "description": "Valid operation: list_directory on DIRECTORY target",
+      "tool_calls_made": 0,
+      "first_tool_name": null,
+      "first_tool_path_arg": null,
+      "tool_success": null,
+      "tool_error": null,
+      "rejected_before_execution": false,
+      "response_text": "To list the documents in a directory, please specify the path to the directory you want to explore. For example: \"/home/user/docs\" or \"C:/Users/username/Documents\".",
+      "evidence_observed_count": 0,
+      "evidence_observed_summaries": [],
+      "recorder_file": "/workspace/Projects/lisa/benchmarks/ne012_2_Flight_B_20260813_092813.jsonl"
+    },
+    {
+      "flight_id": "Flight_C",
+      "prompt": "What has actually been verified in this session?",
+      "description": "Provenance query: EvidenceStore recorder derivation",
+      "tool_calls_made": 5,
+      "first_tool_name": "read_file",
+      "first_tool_path_arg": "README.md",
+      "tool_success": true,
+      "tool_error": null,
+      "rejected_before_execution": false,
+      "response_text": "The session has verified the following key aspects of the L.I.S.A. architecture and its implementation:\n\n---\n\n### **1. Automated Architectural Enforcement**\n- **Test Suite:** `tests/test_architecture_rules.py`  \n  - **Verification:**  \n    - Enforced **6 layer boundary laws** (e.g., dependency boundaries, isolation, determinism).  \n    - Ensures compliance with the **deterministic supremacy principle** (core engineering law).  \n  - **Result:** All tests passed (100% compliance).  \n\n---\n\n### **2. Resilience & Fault Tolerance**\n- **Test Suite:** `tests/test_resilience_matrix.py`  \n  - **Verification:**  \n    - **Typed exception safety** (e.g., handling errors in AI models, tool execution).  \n    - **Isolated tool execution** (e.g., testing OpenAI/Ollama without external dependencies).  \n  - **Result:** All tests passed, confirming robustness under fault scenarios.  \n\n---\n\n### **3. Integration & Validation**\n- **Test Suite:** `tests/integration/test_vertical_slice.py`  \n  - **Verification:**  \n    - Validated **zero-mock integration** with external tools (e.g., OpenAI, Ollama).  \n    - Ensured seamless interaction between the infrastructure layer (e.g., filesystem, Git) and execution layer (e.g., AI models).  \n  - **Result:** All tests passed, confirming compatibility and reliability.  \n\n---\n\n### **4. Performance & Cold Boot**\n- **Metric:** **Cold Boot Time**  \n  - **Result:** `1.408 ms` (under the target of `2.0 ms`), ensuring low-latency startup for real-time applications.  \n\n---\n\n### **5. Governance & Compliance**\n- **Documents:**  \n  - `AGENTS.md`, `ARCHITECTURE.md`, `LAYER_MODEL.md`, `DECISIONS.md`, `ARCHITECTURE_SCORE.md`  \n  - **Verification:**  \n    - All governance rules are enforced (e.g., modular design, replaceable infrastructure).  \n    - CI/CD metrics (e.g., test suite pass rate) ensure quality assurance.  \n\n---\n\n### **Conclusion**\nThe session verified:  \n- **Compliance** with architectural principles (deterministic supremacy, modular design).  \n- **Reliability** through robust testing (resilience, zero-mock).  \n- **Performance** with optimal cold boot times.  \n- **Integration** with critical infrastructure (OpenAI, Ollama, filesystems).  \n\nThis ensures the system is both **scalable** and **reliable** for AI workflows. Let me know if you'd like details on a specific verification point!",
+      "evidence_observed_count": 5,
+      "evidence_observed_summaries": [
+        "Tool 'read_file' executed successfully",
+        "Tool 'read_file' executed successfully",
+        "Tool 'read_file' executed successfully",
+        "Tool 'read_file' executed successfully",
+        "Tool 'read_file' executed successfully"
+      ],
+      "recorder_file": "/workspace/Projects/lisa/benchmarks/ne012_2_Flight_C_20260813_092819.jsonl"
+    }
+  ]
+}

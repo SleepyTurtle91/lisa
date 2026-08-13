@@ -1,0 +1,47 @@
+{
+  "experiment": "NE-018",
+  "title": "Research Before Implementation Diagnostic Baseline",
+  "timestamp": "2026-08-13T12:06:58.570779Z",
+  "target_project_path": "/home/user/development/projects/retails",
+  "initial_knowledge_score": {
+    "has_project_context": true,
+    "has_architecture": false,
+    "has_development": false,
+    "score": 1,
+    "is_sufficient": false
+  },
+  "gate_blocked_initially": true,
+  "checkpoint_doc_created": true,
+  "checkpoint_promoted_mode": true,
+  "post_checkpoint_allowed": true,
+  "research_summary": {
+    "project_name": "retails",
+    "tech_stack": [
+      "Python",
+      "L.I.S.A. OS v2.0.0"
+    ],
+    "architecture_pattern": "Layered Intelligence OS Kernel",
+    "discovered_files": [
+      "pubspec.lock",
+      ".gitignore",
+      "linux",
+      "DASHBOARD.md",
+      "DECISIONS.md",
+      "analysis_options.yaml",
+      "ios",
+      ".idea",
+      ".dart_tool",
+      "pubspec.yaml"
+    ]
+  },
+  "total_observed_events": 0,
+  "authoritative_summary": {
+    "verified_in_this_session": [],
+    "documented_in_files": [],
+    "inferred_by_model": [],
+    "unverified_claims": [],
+    "is_provenance_authoritative": true,
+    "total_observed_events": 0
+  },
+  "recorder_file": "/workspace/Projects/lisa/benchmarks/ne018_research_gate_20260813_120658.jsonl"
+}

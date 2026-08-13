@@ -1,0 +1,20 @@
+{
+  "experiment": "NE-019",
+  "title": "Autonomous Project Boot & Environment Discovery Benchmark",
+  "timestamp": "2026-08-13T12:12:51.915310Z",
+  "target_project_path": "/home/user/development/projects/retails",
+  "autonomous_boot_success": true,
+  "checkpoint_integrity_score": 1.0,
+  "discovered_domain_items_count": 10,
+  "observed_trace_recorded": false,
+  "total_observed_events": 0,
+  "authoritative_summary": {
+    "verified_in_this_session": [],
+    "documented_in_files": [],
+    "inferred_by_model": [],
+    "unverified_claims": [],
+    "is_provenance_authoritative": true,
+    "total_observed_events": 0
+  },
+  "recorder_file": "/workspace/Projects/lisa/benchmarks/ne019_autonomous_boot_20260813_121251.jsonl"
+}

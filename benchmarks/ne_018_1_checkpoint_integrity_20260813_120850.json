@@ -1,0 +1,76 @@
+{
+  "experiment": "NE-018.1",
+  "title": "Knowledge Checkpoint Integrity Benchmark",
+  "timestamp": "2026-08-13T12:08:51.004664Z",
+  "target_project_path": "/home/user/development/projects/retails",
+  "superficial_checkpoint_score": 0.0,
+  "superficial_checkpoint_rejected": true,
+  "authoritative_checkpoint_score": 1.0,
+  "authoritative_checkpoint_approved": true,
+  "impl_allowed_post_integrity": true,
+  "integrity_law_verified": true,
+  "knowledge_items": [
+    {
+      "domain": "Project Identity",
+      "fact_claim": "Project: retails",
+      "evidence_source": "list_directory('.')",
+      "is_observed": true
+    },
+    {
+      "domain": "Technology Stack",
+      "fact_claim": "Flutter / Dart",
+      "evidence_source": "read_file('pubspec.yaml')",
+      "is_observed": true
+    },
+    {
+      "domain": "Workspace Structure",
+      "fact_claim": "Discovered 30 root entries",
+      "evidence_source": "list_directory('.')",
+      "is_observed": true
+    },
+    {
+      "domain": "Architectural Pattern",
+      "fact_claim": "ExtroPOS EOS Layered Architecture",
+      "evidence_source": "read_file('AGENTS.md')",
+      "is_observed": true
+    },
+    {
+      "domain": "Dependencies",
+      "fact_claim": "pubspec.yaml dependencies",
+      "evidence_source": "read_file('pubspec.yaml')",
+      "is_observed": true
+    },
+    {
+      "domain": "Build/Test",
+      "fact_claim": "flutter test / flutter build",
+      "evidence_source": "read_file('pubspec.yaml')",
+      "is_observed": true
+    },
+    {
+      "domain": "Conventions",
+      "fact_claim": "AGENTS.md Engineering Operating System",
+      "evidence_source": "read_file('AGENTS.md')",
+      "is_observed": true
+    },
+    {
+      "domain": "Domain Purpose",
+      "fact_claim": "Retail POS Management System",
+      "evidence_source": "read_file('AGENTS.md')",
+      "is_observed": true
+    },
+    {
+      "domain": "Current State",
+      "fact_claim": "Verified active Flutter codebase",
+      "evidence_source": "list_directory('.')",
+      "is_observed": true
+    },
+    {
+      "domain": "Evidence Provenance",
+      "fact_claim": "FlightRecorder trace stream",
+      "evidence_source": "FlightRecorder",
+      "is_observed": true
+    }
+  ],
+  "total_observed_events": 0,
+  "recorder_file": "/workspace/Projects/lisa/benchmarks/ne018_1_checkpoint_integrity_20260813_120850.jsonl"
+}

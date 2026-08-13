@@ -1,0 +1,32 @@
+{
+  "experiment": "NE-012.1-ExperimentB",
+  "title": "Epistemic Evidence Store Provenance Isolation",
+  "timestamp": "2026-08-13T09:26:21.590777Z",
+  "project_path": "/home/user/development/projects/lisa",
+  "step1_prompt": "read README.md",
+  "step1_response": "The content provided is a detailed overview of the L.I.S.A. (Logical Intelligence Software Architecture) system, including its architecture, governance documents, quality metrics, and performance data. Since the query repeats the same information, there is no new data to process. \n\nIf you'd like, I can help summarize key points, highlight critical components, or assist with specific questions about the architecture, governance, or metrics listed. Let me know how you'd like to proceed!",
+  "provenance_summary": {
+    "OBSERVED_count": 5,
+    "DOCUMENTED_count": 0,
+    "INFERRED_count": 1,
+    "UNVERIFIED_count": 0,
+    "observed_tools": [
+      "Tool 'read_file' executed successfully",
+      "Tool 'read_file' executed successfully",
+      "Tool 'read_file' executed successfully",
+      "Tool 'read_file' executed successfully",
+      "Tool 'read_file' executed successfully"
+    ],
+    "unverified_items": []
+  },
+  "observed_items": [
+    "Tool 'read_file' executed successfully",
+    "Tool 'read_file' executed successfully",
+    "Tool 'read_file' executed successfully",
+    "Tool 'read_file' executed successfully",
+    "Tool 'read_file' executed successfully"
+  ],
+  "inferred_items_count": 1,
+  "unverified_items_count": 0,
+  "recorder_file": "/workspace/Projects/lisa/benchmarks/ne012_1_expB_20260813_092607.jsonl"
+}

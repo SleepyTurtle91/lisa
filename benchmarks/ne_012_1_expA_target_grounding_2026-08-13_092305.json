@@ -1,0 +1,60 @@
+{
+  "experiment": "NE-012.1-ExperimentA",
+  "title": "Target Type Grounding Pre-Invocation Guard Validation",
+  "timestamp": "2026-08-13T09:23:05.377784Z",
+  "project_path": "/home/user/development/projects/lisa",
+  "observations": [
+    {
+      "case_id": "A1",
+      "prompt": "read README.md",
+      "expected_outcome": "EXECUTE_SUCCESS",
+      "tool_calls_made": 2,
+      "first_tool_name": "read_file",
+      "first_tool_path_arg": "README.md",
+      "tool_success": true,
+      "tool_error": null,
+      "rejected_before_execution": false,
+      "response_text": "The file `README.md` has been successfully read. Here's the content:\n\n```\n===================================================\nL.I.S.A. \u2014 Logical Intelligence Software Architecture (v1.0.0-alpha)\n\nVersion     : v1.0.0-alpha (\"The Foundation Release\")\nStatus      : APPROVED PLATFORM FOUNDATION (FROZEN)\nLast Audit  : 2026-08-07\nGrade       : A+ (100% Architecture Compliant)\n\n===================================================\n\n## \ud83c\udfdb\ufe0f Platform Architecture Overview\n\nL.I.S.A. (**Logical Intelligence Software Architecture**) is an open-source, provider-agnostic AI Engineering Operating System Runtime designed to serve as the execution kernel for client applications (`extro_pos`, `music_home`, `retrostash`, etc.).\n\n```\n\nNo further actions are needed.",
+      "recorder_file": "/workspace/Projects/lisa/benchmarks/ne012_1_expA_A1_20260813_092246.jsonl"
+    },
+    {
+      "case_id": "A2",
+      "prompt": "list docs",
+      "expected_outcome": "EXECUTE_SUCCESS",
+      "tool_calls_made": 0,
+      "first_tool_name": null,
+      "first_tool_path_arg": null,
+      "tool_success": null,
+      "tool_error": null,
+      "rejected_before_execution": false,
+      "response_text": "What is the path of the directory you want to list documents from?",
+      "recorder_file": "/workspace/Projects/lisa/benchmarks/ne012_1_expA_A2_20260813_092256.jsonl"
+    },
+    {
+      "case_id": "B1",
+      "prompt": "list README.md",
+      "expected_outcome": "GUARD_REJECTED_BEFORE_EXECUTION",
+      "tool_calls_made": 2,
+      "first_tool_name": "list_directory",
+      "first_tool_path_arg": ".",
+      "tool_success": true,
+      "tool_error": null,
+      "rejected_before_execution": false,
+      "response_text": "The path `README.md` is a file, not a directory. The `list_directory` function requires a valid directory path. Please provide a directory location (e.g., `/home/user/development/projects/lisa/`), and I'll list its contents.",
+      "recorder_file": "/workspace/Projects/lisa/benchmarks/ne012_1_expA_B1_20260813_092257.jsonl"
+    },
+    {
+      "case_id": "B2",
+      "prompt": "read docs",
+      "expected_outcome": "GUARD_REJECTED_BEFORE_EXECUTION_OR_MODEL_CLARIFY",
+      "tool_calls_made": 0,
+      "first_tool_name": null,
+      "first_tool_path_arg": null,
+      "tool_success": null,
+      "tool_error": null,
+      "rejected_before_execution": false,
+      "response_text": "I need to know the specific file or directory path you want to read the contents of. Could you please provide the path?",
+      "recorder_file": "/workspace/Projects/lisa/benchmarks/ne012_1_expA_B2_20260813_092304.jsonl"
+    }
+  ]
+}

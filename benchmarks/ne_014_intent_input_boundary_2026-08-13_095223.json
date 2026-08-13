@@ -1,0 +1,52 @@
+{
+  "experiment": "NE-014",
+  "title": "Intent / Input Command Boundary Diagnostic Baseline",
+  "timestamp": "2026-08-13T09:52:23.980642Z",
+  "project_path": "/home/user/development/projects/lisa",
+  "results": [
+    {
+      "case_id": "X1",
+      "prompt": "read files inside /docs and suggest a plan",
+      "expected_type": "COMPOUND_NATURAL",
+      "actual_type": "DIRECT_REPL_COMMAND",
+      "extracted_operation": "read",
+      "extracted_target": "files inside /docs and suggest a plan",
+      "extracted_followup": null,
+      "type_match": false,
+      "target_match": false
+    },
+    {
+      "case_id": "X2",
+      "prompt": "/workspace/Projects/retails",
+      "expected_type": "ABSOLUTE_PATH_INPUT",
+      "actual_type": "ABSOLUTE_PATH_INPUT",
+      "extracted_operation": "INSPECT_PATH",
+      "extracted_target": "/workspace/Projects/retails",
+      "extracted_followup": null,
+      "type_match": true,
+      "target_match": true
+    },
+    {
+      "case_id": "C1",
+      "prompt": "read BOOT.md",
+      "expected_type": "DIRECT_REPL_COMMAND",
+      "actual_type": "DIRECT_REPL_COMMAND",
+      "extracted_operation": "read",
+      "extracted_target": "BOOT.md",
+      "extracted_followup": null,
+      "type_match": true,
+      "target_match": true
+    },
+    {
+      "case_id": "C2",
+      "prompt": "how does the architecture work?",
+      "expected_type": "AMBIGUOUS_PROSE",
+      "actual_type": "AMBIGUOUS_PROSE",
+      "extracted_operation": null,
+      "extracted_target": null,
+      "extracted_followup": null,
+      "type_match": true,
+      "target_match": true
+    }
+  ]
+}

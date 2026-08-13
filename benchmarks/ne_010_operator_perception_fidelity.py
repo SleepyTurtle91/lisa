@@ -1,4 +1,5 @@
 import asyncio
+import argparse
 import io
 import json
 import sys
@@ -21,11 +22,28 @@ from lisa.tools.filesystem.read_file import ReadFileTool
 from lisa.tools.filesystem.standard import ListDirectoryTool, WriteFileTool
 
 
+REVIEW_QUESTIONS = [
+    "What did L.I.S.A. do during this flight?",
+    "What tools did it use?",
+    "Did it encounter a failure? If so, where?",
+    "Did it guard, block, or clarify?",
+    "How did the flight terminate?",
+]
+
+
 DEFAULT_PROMPTS = [
     "Inspect runtime/session.py and telemetry/activity_renderer.py and explain how blocked state is emitted and projected.",
     "Inspect tests/test_activity_renderer.py and summarize what projection guarantees are covered and one potential gap.",
     "Read docs/DOES_NOT_EXIST.md and explain what happened.",
     "Define a retails project for deployment and operations.",
+]
+
+HARDER_PROMPTS = [
+    "Inspect runtime/session.py, telemetry/activity_renderer.py, and tests/test_activity_renderer.py. Identify one projection-risk scenario with evidence.",
+    "Inspect tools/filesystem/read_file.py then read docs/DOES_NOT_EXIST.md and explain the exact failure and path-resolution behavior.",
+    "Inspect runtime/session.py and tests/test_end_to_end_flight.py, then propose one concrete additional regression test for mixed success/failure tool flows.",
+    "Read README.md, then read a non-existent sibling README_MISSING.md, then summarize what succeeded, what failed, and what should be guarded.",
+    "Inspect telemetry/flight_recorder.py and telemetry/activity_renderer.py and produce a concise operator checklist for distinguishing model-wait from tool-wait in live flights.",
 ]
 
 
@@ -234,6 +252,112 @@ def truth_state_for_event(event_record: Dict[str, Any], terminal_truth: str) -> 
     return stage_map.get(stage)
 
 
+def is_operator_expected_visible(event_record: Dict[str, Any]) -> bool:
+    event_type = event_record.get("event_type", "")
+    payload = event_record.get("payload") or {}
+
+    if event_type in {"model_request", "model_response"}:
+        return True
+    if event_type != "flight_stage":
+        return False
+
+    stage = payload.get("stage")
+    return stage in {
+        "task_received",
+        "project_context",
+        "target_discovery",
+        "task_analysis",
+        "model_selection",
+        "scaffolding_decision",
+        "tool_request",
+        "path_resolution",
+        "tool_result",
+        "guarding_decision",
+        "blocked",
+        "final_conclusion",
+    }
+
+
+def build_timeline(
+    events: List[Dict[str, Any]],
+    snapshots: List[ProjectionSnapshot],
+    terminal_truth: str,
+) -> Tuple[List[Dict[str, Any]], List[str], List[str]]:
+    rows: List[Dict[str, Any]] = []
+    expected_sequence: List[str] = []
+    projected_sequence: List[str] = []
+
+    base_ms = None
+    if events:
+        base_ms = events[0].get("time_epoch_ms")
+
+    for idx, event in enumerate(events):
+        expected_state = truth_state_for_event(event, terminal_truth)
+        snap = snapshots[idx] if idx < len(snapshots) else None
+        projected_state = snap.current_state if snap else None
+
+        t_ms = event.get("time_epoch_ms")
+        elapsed_ms = None
+        if isinstance(t_ms, (int, float)) and isinstance(base_ms, (int, float)):
+            elapsed_ms = round(t_ms - base_ms, 2)
+
+        payload = event.get("payload") or {}
+        row = {
+            "event_index": idx,
+            "t_plus_ms": elapsed_ms,
+            "event_type": event.get("event_type", ""),
+            "stage": payload.get("stage") if event.get("event_type") == "flight_stage" else None,
+            "expected_state": expected_state,
+            "projected_state": projected_state,
+            "messages": snap.messages if snap else [],
+            "visible": bool(snap and snap.messages),
+            "expected_visible": is_operator_expected_visible(event),
+        }
+        rows.append(row)
+
+        if expected_state is not None:
+            expected_sequence.append(expected_state)
+            projected_sequence.append(projected_state or "missing")
+
+    return rows, expected_sequence, projected_sequence
+
+
+def summarize_truth_from_events(events: List[Dict[str, Any]]) -> Dict[str, Any]:
+    tool_names: List[str] = []
+    failure_reasons: List[str] = []
+    stages: List[str] = []
+
+    for event in events:
+        if event.get("event_type") != "flight_stage":
+            continue
+        payload = event.get("payload") or {}
+        stage = payload.get("stage")
+        if stage:
+            stages.append(stage)
+        if stage == "tool_request":
+            tool_name = payload.get("tool_name")
+            if isinstance(tool_name, str) and tool_name and tool_name not in tool_names:
+                tool_names.append(tool_name)
+        if stage == "blocked":
+            reason = payload.get("reason")
+            if isinstance(reason, str) and reason:
+                failure_reasons.append(reason)
+
+    terminal_truth, terminal_reason, model_class = derive_terminal_truth(events)
+    return {
+        "terminal_state": terminal_truth,
+        "terminal_reason": terminal_reason,
+        "model_response_class": model_class,
+        "tools_used": tool_names,
+        "encountered_failure": bool(failure_reasons),
+        "failure_reasons": failure_reasons,
+        "encountered_guarding": "guarding_decision" in stages or terminal_truth == "GUARDING",
+        "encountered_blocked": "blocked" in stages or terminal_truth == "BLOCKED",
+        "encountered_clarifying": terminal_truth == "CLARIFYING",
+        "stage_sequence": stages,
+    }
+
+
 def evaluate_flight(
     flight_id: str,
     prompt: str,
@@ -244,6 +368,16 @@ def evaluate_flight(
     terminal_truth, terminal_reason, model_class = derive_terminal_truth(events)
 
     index_to_snapshot = {s.event_index: s for s in snapshots}
+
+    timeline_rows, expected_sequence, projected_sequence = build_timeline(
+        events=events,
+        snapshots=snapshots,
+        terminal_truth=terminal_truth,
+    )
+    sequence_match = expected_sequence == projected_sequence
+    visible_checks = [r for r in timeline_rows if r["expected_visible"]]
+    visible_count = sum(1 for r in visible_checks if r["visible"])
+    visibility_ratio = (visible_count / len(visible_checks)) if visible_checks else 1.0
 
     timeline_checks = 0
     timeline_matches = 0
@@ -341,10 +475,22 @@ def evaluate_flight(
 
     dims = [
         DimensionResult(
-            name="timeline_fidelity",
+            name="timeline_state_fidelity",
             passed=timeline_score >= 0.9,
             score=timeline_score,
             details=f"{timeline_matches}/{timeline_checks} state checkpoints matched",
+        ),
+        DimensionResult(
+            name="timeline_sequence_fidelity",
+            passed=sequence_match,
+            score=1.0 if sequence_match else 0.0,
+            details=f"expected={expected_sequence}, projected={projected_sequence}",
+        ),
+        DimensionResult(
+            name="timeline_visibility_fidelity",
+            passed=visibility_ratio >= 0.9,
+            score=visibility_ratio,
+            details=f"{visible_count}/{len(visible_checks)} projected checkpoints visibly rendered",
         ),
         DimensionResult(
             name="tool_fidelity",
@@ -400,6 +546,7 @@ def evaluate_flight(
         "hard_failure": hard_failure,
         "event_count": len(events),
         "snapshot_count": len(snapshots),
+        "timeline": timeline_rows,
     }
 
 
@@ -407,8 +554,14 @@ async def run_ne_010(
     project_path: str,
     prompts: Optional[List[str]] = None,
     model_name: str = "qwen3:1.7b",
+    profile: str = "baseline",
 ) -> Path:
-    prompts = prompts or DEFAULT_PROMPTS
+    if prompts is not None:
+        resolved_prompts = prompts
+    elif profile == "harder":
+        resolved_prompts = HARDER_PROMPTS
+    else:
+        resolved_prompts = DEFAULT_PROMPTS
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     session_id = f"ne_010_operator_fidelity_{timestamp}"
@@ -444,7 +597,7 @@ async def run_ne_010(
 
     flight_runs: List[Dict[str, Any]] = []
 
-    for idx, prompt in enumerate(prompts, start=1):
+    for idx, prompt in enumerate(resolved_prompts, start=1):
         events_before = len(recorder.get_events())
         snapshots_before = len(console.snapshots)
         response = await session.send_message(prompt)
@@ -502,6 +655,7 @@ async def run_ne_010(
     artifact = {
         "experiment_id": "NE-010",
         "title": "Operator Perception Fidelity",
+        "profile": profile,
         "timestamp": datetime.now().isoformat(),
         "frozen_dependency": "NE-009.2",
         "policy": {
@@ -513,7 +667,7 @@ async def run_ne_010(
         "project_path": project_path,
         "session_id": session_id,
         "log_file": str(recorder.log_file),
-        "prompts": prompts,
+        "prompts": resolved_prompts,
         "flights": eval_results,
         "summary": {
             "flights_total": len(eval_results),
@@ -553,7 +707,108 @@ def print_summary(artifact_path: Path) -> None:
         )
 
 
+def build_blind_review_packet(artifact: Dict[str, Any]) -> str:
+    lines = [
+        "# NE-010.2 Blind Operator Reconstruction Packet",
+        "",
+        "Instructions:",
+        "- Use only the console transcript below.",
+        "- Do not infer from missing hidden data such as model payloads, recorder traces, or evaluator results.",
+        "- Answer the five review questions for each case.",
+        "",
+    ]
+
+    for idx, flight in enumerate(artifact.get("flights", []), start=1):
+        case_label = chr(ord("A") + idx - 1)
+        lines.append(f"## Case {case_label}")
+        lines.append("")
+        lines.append("Console Transcript:")
+        lines.append("")
+        for row in flight.get("timeline", []):
+            if not row.get("expected_visible"):
+                continue
+            messages = row.get("messages") or []
+            if not messages:
+                continue
+            t_plus_ms = row.get("t_plus_ms")
+            seconds = 0.0 if t_plus_ms is None else float(t_plus_ms) / 1000.0
+            lines.append(f"T+{seconds:.2f}s")
+            for message in messages:
+                lines.append(message)
+            lines.append("")
+
+        lines.append("Review Questions:")
+        for question_idx, question in enumerate(REVIEW_QUESTIONS, start=1):
+            lines.append(f"{question_idx}. {question}")
+            lines.append("")
+        lines.append("---")
+        lines.append("")
+
+    return "\n".join(lines).strip() + "\n"
+
+
+def build_truth_key(artifact: Dict[str, Any], all_events: List[Dict[str, Any]]) -> Dict[str, Any]:
+    truth_flights: List[Dict[str, Any]] = []
+    for idx, flight in enumerate(artifact.get("flights", []), start=1):
+        case_label = chr(ord("A") + idx - 1)
+        e0, e1 = flight.get("event_span", [0, 0])
+        flight_events = all_events[e0:e1]
+        truth = summarize_truth_from_events(flight_events)
+        truth_flights.append({
+            "case": case_label,
+            "flight_id": flight.get("flight_id"),
+            "prompt": flight.get("prompt"),
+            "truth": truth,
+        })
+
+    return {
+        "experiment_id": artifact.get("experiment_id"),
+        "profile": artifact.get("profile"),
+        "source_artifact": artifact.get("timestamp"),
+        "flights": truth_flights,
+    }
+
+
+def export_review_packets(artifact_path: Path) -> Dict[str, str]:
+    with open(artifact_path, "r", encoding="utf-8") as handle:
+        artifact = json.load(handle)
+
+    log_file = Path(artifact["log_file"])
+    all_events = load_jsonl_events(log_file)
+    output_dir = artifact_path.parent
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+
+    packet_text = build_blind_review_packet(artifact)
+    truth_key = build_truth_key(artifact, all_events)
+
+    reviewer_a = output_dir / f"ne_010_2_reviewer_a_packet_{timestamp}.md"
+    reviewer_b = output_dir / f"ne_010_2_reviewer_b_packet_{timestamp}.md"
+    truth_key_path = output_dir / f"ne_010_2_truth_key_{timestamp}.json"
+
+    reviewer_a.write_text(packet_text, encoding="utf-8")
+    reviewer_b.write_text(packet_text, encoding="utf-8")
+    truth_key_path.write_text(json.dumps(truth_key, indent=2), encoding="utf-8")
+
+    return {
+        "reviewer_a": str(reviewer_a),
+        "reviewer_b": str(reviewer_b),
+        "truth_key": str(truth_key_path),
+    }
+
+
 if __name__ == "__main__":
-    target = sys.argv[1] if len(sys.argv) > 1 else "/home/user/Projects/lisa"
-    artifact_file = asyncio.run(run_ne_010(project_path=target))
-    print_summary(artifact_file)
+    parser = argparse.ArgumentParser(description="Run NE-010 operator perception fidelity benchmark")
+    parser.add_argument("project_path", nargs="?", default="/home/user/Projects/lisa")
+    parser.add_argument("--profile", choices=["baseline", "harder"], default="baseline")
+    parser.add_argument("--export-review-packets", dest="export_review_packets", default=None)
+    args = parser.parse_args()
+
+    if args.export_review_packets:
+        exported = export_review_packets(Path(args.export_review_packets))
+        print("NE-010.2 blind review packets exported.")
+        print(f"Reviewer A Packet: {exported['reviewer_a']}")
+        print(f"Reviewer B Packet: {exported['reviewer_b']}")
+        print(f"Truth Key: {exported['truth_key']}")
+    else:
+        artifact_file = asyncio.run(run_ne_010(project_path=args.project_path, profile=args.profile))
+        print_summary(artifact_file)

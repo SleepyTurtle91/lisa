@@ -1,0 +1,42 @@
+{
+  "experiment": "NE-011.2",
+  "question": "Does supplying repository structure upfront suppress grounding hallucination and produce a correctly-grounded target selection?",
+  "hypothesis": "Condition A (no context) \u2192 HALLUCINATED_PATH; Condition B (structure exposed) \u2192 DIRECT_PATH",
+  "probe_prompt": "inspect documentation before doing anything",
+  "timestamp": "2026-08-10T09:36:35.854901+08:00",
+  "project_path": "/workspace/Projects/lisa",
+  "model": "qwen3:1.7b",
+  "provider": "ollama",
+  "verdict": "PARTIAL",
+  "verdict_note": "A=CLARIFICATION, B=DIRECT_PATH: conditions differ but the clean A\u2192HALLUCINATED / B\u2192DIRECT pattern was not observed.",
+  "condition_a": {
+    "condition": "A",
+    "condition_label": "No environmental context",
+    "prompt_sent": "inspect documentation before doing anything",
+    "tool_calls_made": 0,
+    "first_tool_name": null,
+    "first_tool_path_arg": null,
+    "tool_success": null,
+    "tool_error": null,
+    "response_text": "I need to know the specific file or directory you want to inspect for documentation. Could you provide the path relative to the project workspace?",
+    "recorder_file": "/workspace/Projects/lisa/benchmarks/ne011_2_A_20260810_093623.jsonl",
+    "classification": "CLARIFICATION",
+    "classification_reason": "model requested clarification without tool use",
+    "error": null
+  },
+  "condition_b": {
+    "condition": "B",
+    "condition_label": "Repository structure exposed",
+    "prompt_sent": "Repository structure:\n```\nlisa/\n\u251c\u2500\u2500 .github/\n\u2502   \u251c\u2500\u2500 workflows/\n\u2502   \u2514\u2500\u2500 PULL_REQUEST_TEMPLATE.md\n\u251c\u2500\u2500 .vscode/\n\u251c\u2500\u2500 benchmarks/\n\u2502   \u251c\u2500\u2500 ab_test_scaffolding.py\n\u2502   \u251c\u2500\u2500 blind_e2e_candidate_generation.py\n\u2502   \u251c\u2500\u2500 blind_e2e_deterministic_selection.py\n\u2502   \u251c\u2500\u2500 blind_e2e_evidence_expansion.py\n\u2502   \u251c\u2500\u2500 blind_e2e_evidence_synthesis.py\n\u2502   \u251c\u2500\u2500 blind_e2e_harness.py\n\u2502   \u251c\u2500\u2500 blind_e2e_selection_protocol.py\n\u2502   \u2514\u2500\u2500 blind_e2e_target_selection.py\n\u251c\u2500\u2500 bootstrap/\n\u2502   \u2514\u2500\u2500 engine.py\n\u251c\u2500\u2500 cli/\n\u2502   \u251c\u2500\u2500 benchmark.py\n\u2502   \u251c\u2500\u2500 main.py\n\u2502   \u2514\u2500\u2500 repl.py\n\u251c\u2500\u2500 core/\n\u2502   \u251c\u2500\u2500 context.py\n\u2502   \u251c\u2500\u2500 errors.py\n\u2502   \u251c\u2500\u2500 events.py\n\u2502   \u251c\u2500\u2500 kernel.py\n\u2502   \u251c\u2500\u2500 runtime.py\n\u2502   \u2514\u2500\u2500 states.py\n\u251c\u2500\u2500 docs/\n\u2502   \u251c\u2500\u2500 ARCHITECTURE_SCORE.md\n\u2502   \u251c\u2500\u2500 DECISIONS.md\n\u2502   \u251c\u2500\u2500 FIELD_FRICTION_LOG.md\n\u2502   \u251c\u2500\u2500 LAYER_MODEL.md\n\u2502   \u251c\u2500\u2500 LISA_RUNTIME_ARCHITECTURE.md\n\u2502   \u251c\u2500\u2500 MEMORY_ENGINE.md\n\u2502   \u251c\u2500\u2500 PLUGIN_API.md\n\u2502   \u2514\u2500\u2500 PROVIDER_API.md\n\u251c\u2500\u2500 engine/\n\u2502   \u251c\u2500\u2500 analyzer.py\n\u2502   \u251c\u2500\u2500 auto_selector.py\n\u2502   \u251c\u2500\u2500 construction.py\n\u2502   \u251c\u2500\u2500 inference.py\n\u2502   \u251c\u2500\u2500 models.py\n\u2502   \u251c\u2500\u2500 normalizer.py\n\u2502   \u2514\u2500\u2500 planner.py\n\u251c\u2500\u2500 examples/\n\u2502   \u2514\u2500\u2500 golden_project/\n\u251c\u2500\u2500 memory/\n\u2502   \u2514\u2500\u2500 MEMORY.md\n\u251c\u2500\u2500 models/\n\u2502   \u2514\u2500\u2500 profiles/\n\u251c\u2500\u2500 plugins/\n\u2502   \u2514\u2500\u2500 base.py\n\u251c\u2500\u2500 providers/\n\u2502   \u251c\u2500\u2500 claude/\n\u2502   \u251c\u2500\u2500 gemini/\n\u2502   \u251c\u2500\u2500 lmstudio/\n\u2502   \u251c\u2500\u2500 ollama/\n\u2502   \u251c\u2500\u2500 openai/\n\u2502   \u251c\u2500\u2500 base.py\n\u2502   \u251c\u2500\u2500 context.py\n\u2502   \u251c\u2500\u2500 manifest.py\n\u2502   \u251c\u2500\u2500 registry.py\n\u2502   \u2514\u2500\u2500 selector.py\n\u251c\u2500\u2500 runtime/\n\u2502   \u2514\u2500\u2500 session.py\n\u251c\u2500\u2500 src/\n\u2502   \u2514\u2500\u2500 main/\n\u251c\u2500\u2500 telemetry/\n\u2502   \u251c\u2500\u2500 __init__.py\n\u2502   \u251c\u2500\u2500 activity_renderer.py\n\u2502   \u2514\u2500\u2500 flight_recorder.py\n\u251c\u2500\u2500 tests/\n\u2502   \u251c\u2500\u2500 integration/\n\u2502   \u251c\u2500\u2500 test_activity_renderer.py\n\u2502   \u251c\u2500\u2500 test_architecture_rules.py\n\u2502   \u251c\u2500\u2500 test_auto_selector.py\n\u2502   \u251c\u2500\u2500 test_construction.py\n\u2502   \u251c\u2500\u2500 test_e2e_guardian_chain.py\n\u2502   \u251c\u2500\u2500 test_end_to_end_flight.py\n\u2502   \u251c\u2500\u2500 test_engine.py\n\u2502   \u2514\u2500\u2500 test_environmental_grounding_regression.py\n\u251c\u2500\u2500 tools/\n\u2502   \u251c\u2500\u2500 filesystem/\n\u2502   \u251c\u2500\u2500 git/\n\u2502   \u251c\u2500\u2500 github/\n\u2502   \u251c\u2500\u2500 memory/\n\u2502   \u251c\u2500\u2500 shell/\n\u2502   \u251c\u2500\u2500 sqlite/\n\u2502   \u251c\u2500\u2500 web/\n\u2502   \u251c\u2500\u2500 base.py\n\u2502   \u251c\u2500\u2500 compiler.py\n\u2502   \u251c\u2500\u2500 dispatcher.py\n\u2502   \u251c\u2500\u2500 manifest.py\n\u2502   \u251c\u2500\u2500 registry.py\n\u2502   \u251c\u2500\u2500 resolver.py\n\u2502   \u2514\u2500\u2500 validator.py\n\u251c\u2500\u2500 workflows/\n\u2502   \u2514\u2500\u2500 base.py\n\u251c\u2500\u2500 .gitignore\n\u251c\u2500\u2500 AGENTS.md\n\u251c\u2500\u2500 ARCHITECTURE.md\n\u251c\u2500\u2500 DISCOVERY.md\n\u251c\u2500\u2500 GUIDES.md\n\u251c\u2500\u2500 PROGRESSION_LOG.md\n\u251c\u2500\u2500 PROJECT_MEMORY.md\n\u2514\u2500\u2500 README.md\n```\n\ninspect documentation before doing anything",
+    "tool_calls_made": 1,
+    "first_tool_name": "list_directory",
+    "first_tool_path_arg": "docs",
+    "tool_success": true,
+    "tool_error": null,
+    "response_text": "The documentation files in the repository are:\n\n1. `MEMORY_ENGINE.md`  \n2. `DECISIONS.md`  \n3. `TOOL_API.md`  \n4. `ROADMAP.md`  \n5. `LISA_RUNTIME_ARCHITECTURE.md`  \n6. `WORKFLOW_ENGINE.md`  \n7. `VISION.md`  \n8. `PLUGIN_API.md`  \n9. `SESSION_API.md`  \n10. `PROVIDER_API.md`  \n11. `SUBSYSTEM_TEMPLATE.md`  \n12. `FIELD_FRICTION_LOG.md`  \n13. `RUNTIME_API.md`  \n14. `ARCHITECTURE_SCORE.md`  \n15. `LAYER_MODEL.md`  \n\nThese files collectively document the project's architecture, workflows, plugins, and runtime systems.",
+    "recorder_file": "/workspace/Projects/lisa/benchmarks/ne011_2_B_20260810_093629.jsonl",
+    "classification": "DIRECT_PATH",
+    "classification_reason": "tool 'list_directory' succeeded with path 'docs'",
+    "error": null
+  }
+}
