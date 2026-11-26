@@ -22,7 +22,11 @@ class ProjectResolver:
         "flutter": ("pubspec.yaml",),
         "rust": ("Cargo.toml",),
         "go": ("go.mod",),
-        "java": ("pom.xml", "build.gradle", "build.gradle.kts"),
+        "java": (
+            "pom.xml", "build.gradle", "build.gradle.kts",
+            "settings.gradle", "settings.gradle.kts",
+        ),
+        "kotlin": ("build.gradle.kts", "settings.gradle.kts"),
         "git": (".git",),
     }
 
