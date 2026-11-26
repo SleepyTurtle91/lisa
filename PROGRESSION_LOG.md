@@ -1241,3 +1241,15 @@ Key per-case results:
 - Added a regression that swaps the target path to a hard link between hash verification and mode restoration and verifies the external referent's permissions remain unchanged.
 - CPI Contract CI and Architecture & Integration CI passed (run 45791243979).
 - Independent review requested on the updated head; no merge performed.
+
+
+---
+
+## 2026-11-26 — Review Follow-up
+
+### Follow-up — Rollback inode and parent traversal hardening
+- Open rollback targets through descriptor-anchored directory traversal with no-follow semantics for every parent component and the final file.
+- Fail closed when the platform cannot provide the required POSIX descriptor-relative and no-follow primitives.
+- Refuse permission restoration for multiply linked files so a hard link outside the target cannot receive a mode change.
+- Added regressions for pre-existing hard links and a parent-directory symlink swap during permission restoration.
+- Full CPI and Architecture & Integration CI rerun pending on the updated implementation.
