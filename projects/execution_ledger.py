@@ -194,7 +194,7 @@ class ProjectExecutionLedger:
             elif os.name == "nt":
                 import msvcrt
                 if info.st_size == 0:
-                    os.write(descriptor, b"\\0")
+                    os.write(descriptor, b"\0")
                     os.fsync(descriptor)
                 os.lseek(descriptor, 0, os.SEEK_SET)
                 try:
