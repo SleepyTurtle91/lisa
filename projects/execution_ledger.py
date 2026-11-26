@@ -21,9 +21,10 @@ class ProjectExecutionLedger:
     HEAD_NAME = ".ledger.head"
 
     def __init__(self, state_dir=None):
-        self._state_dir = Path(
+        self._state_dir_input = Path(
             state_dir or (Path.home() / ".lisa" / "executions")
-        ).expanduser().resolve(strict=False)
+        ).expanduser().absolute()
+        self._state_dir = self._state_dir_input.resolve(strict=False)
         self._ledger_path = self._state_dir / self.LEDGER_NAME
         self._key_path = self._state_dir / self.KEY_NAME
         self._head_path = self._state_dir / self.HEAD_NAME
@@ -37,8 +38,11 @@ class ProjectExecutionLedger:
         return hashlib.sha256(value).hexdigest()
 
     def _ensure_state_dir(self):
-        if self._state_dir.is_symlink():
-            raise ValueError("Execution state directory must not be a symlink.")
+        cursor = self._state_dir_input
+        while cursor != cursor.parent:
+            if cursor.is_symlink():
+                raise ValueError("Execution state path must not contain symlinks.")
+            cursor = cursor.parent
         self._state_dir.mkdir(parents=True, exist_ok=True)
         if not self._state_dir.is_dir():
             raise ValueError("Execution state path is not a directory.")
@@ -50,6 +54,8 @@ class ProjectExecutionLedger:
             info = self._key_path.stat()
             if not self._key_path.is_file() or info.st_size != 32:
                 raise ValueError("Ledger key is malformed.")
+            if os.name == "posix" and info.st_mode & 0o077:
+                raise ValueError("Ledger key permissions are too broad; expected owner-only access.")
             return self._key_path.read_bytes()
         if not create:
             raise ValueError("Ledger key is missing; refusing to trust the ledger.")
