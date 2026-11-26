@@ -1,6 +1,7 @@
 import json
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 from lisa.projects.execution_ledger import ProjectExecutionLedger
@@ -96,7 +97,7 @@ class TestProjectExecutionLedger(unittest.TestCase):
         def interrupt_after_event(*args, **kwargs):
             raise SystemExit("simulated process interruption")
 
-        with unittest.mock.patch.object(self.ledger, "_write_head", side_effect=interrupt_after_event):
+        with mock.patch.object(self.ledger, "_write_head", side_effect=interrupt_after_event):
             with self.assertRaises(SystemExit):
                 self.ledger.append("validation_recorded", "exec_one", {})
 
