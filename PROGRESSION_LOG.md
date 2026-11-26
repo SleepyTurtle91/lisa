@@ -1280,3 +1280,8 @@ Key per-case results:
 - Corrected Windows lock-file initialization to write an actual NUL byte.
 - CPI Contract CI and Architecture & Integration CI passed (run 45791655969).
 - Independent review requested; no merge performed.
+
+### Follow-up — Deterministic short-write recovery test
+- Full-suite CI exposed a test-fixture collision: the patched `os.write` could mistake randomly generated key bytes beginning with `{` for a JSON event.
+- Initialize the ledger key and authenticated head before patching writes, then test rollback of a partial second event and successful retry.
+- CI pending; no merge performed.
