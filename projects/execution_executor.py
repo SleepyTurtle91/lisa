@@ -229,6 +229,7 @@ class ProjectExecutionExecutor:
 
             backup_dir = execution_dir / "backups"
             backup_dir.mkdir(parents=True, exist_ok=False)
+            self._fsync_directory(self._state_dir)
             self._fsync_directory(execution_dir)
 
             backup_manifest = []
@@ -241,6 +242,7 @@ class ProjectExecutionExecutor:
                         handle.write(current)
                         handle.flush()
                         os.fsync(handle.fileno())
+                    os.chmod(backup_path, 0o600)
                     self._fsync_directory(backup_path.parent)
                     backup_rel = backup_path.relative_to(execution_dir).as_posix()
                     before_hash = self._sha256(current)
@@ -362,7 +364,7 @@ class ProjectExecutionExecutor:
                 journal["completed_at"] = datetime.now(timezone.utc).isoformat()
                 self._atomic_write(
                     journal_path,
-                    (json.dumps(journal, indent=2, sort_keys=True) + "\\n").encode("utf-8"),
+                    (json.dumps(journal, indent=2, sort_keys=True) + "\n").encode("utf-8"),
                 )
             except Exception:
                 rollback_errors = []
