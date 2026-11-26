@@ -201,7 +201,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="NE-018.1 Knowledge Checkpoint Integrity Benchmark")
-    parser.add_argument("project_path", nargs="?", default="/home/user/development/projects/retails")
+    parser.add_argument("project_path", nargs="?", default=os.getcwd())
     args = parser.parse_args()
 
     print("NE-018.1 — Knowledge Checkpoint Integrity Benchmark")
