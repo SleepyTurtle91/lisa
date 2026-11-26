@@ -111,6 +111,7 @@ Execution safeguards:
 - Only a \`ready_for_review\` plan with both registered projects still present is eligible.
 - Only explicitly listed regular files may be created or replaced; deletes and directory creation are unsupported.
 - Absolute paths, traversal, symlinks, protected paths, and writes outside the registered target root are rejected.
+- Source capability evidence and target constraint files are re-hashed immediately before approval is accepted; stale plans are rejected.
 - Existing files require an exact SHA-256 precondition to prevent stale-plan overwrites.
 - The patch is bounded to 100 files, 1 MiB per file, and 5 MiB total.
 - Backups and a JSON audit record are stored under \`~/.lisa/executions/\`, outside both project roots.
