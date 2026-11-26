@@ -95,13 +95,12 @@ class TestProjectExecutionLedger(unittest.TestCase):
 
         def short_then_fail(descriptor, data):
             nonlocal ledger_descriptor, partial_written
-            if data.startswith(b"{"):
-                if ledger_descriptor is None:
-                    ledger_descriptor = descriptor
-                    partial_written = True
-                    return real_write(descriptor, data[:12])
-                if descriptor == ledger_descriptor and partial_written:
-                    raise OSError("simulated write interruption")
+            if ledger_descriptor is not None and descriptor == ledger_descriptor and partial_written:
+                raise OSError("simulated write interruption")
+            if data.startswith(b"{") and ledger_descriptor is None:
+                ledger_descriptor = descriptor
+                partial_written = True
+                return real_write(descriptor, data[:12])
             return real_write(descriptor, data)
 
         with patch("os.write", side_effect=short_then_fail):
