@@ -37,7 +37,7 @@ class RealToolCallingProvider(BaseProvider):
         self._turn += 1
         if self._turn == 1:
             # Turn 1: Model requests a tool call to read BOOT.md in Golden Project
-            boot_path = "/home/user/development/projects/lisa/examples/golden_project/BOOT.md"
+            boot_path = "BOOT.md"
             return ChatResponse(
                 content="",
                 tool_calls=[
@@ -57,13 +57,13 @@ class RealToolCallingProvider(BaseProvider):
             return ChatResponse(content="Failed to find tool output in history.")
 
 class TestVerticalSliceIntegration(unittest.TestCase):
-    GOLDEN_PROJECT_PATH = Path("/home/user/development/projects/lisa/examples/golden_project")
+    GOLDEN_PROJECT_PATH = Path(__file__).resolve().parents[2] / "examples" / "golden_project"
 
     def test_end_to_end_vertical_slice(self):
         # 1. Project Discovery & Bootstrap Engine
         engine = BootstrapEngine.discover(str(self.GOLDEN_PROJECT_PATH))
-        self.assertTrue(engine.boot_md_present, "BOOT.md must be present in Golden Project.")
-        self.assertTrue(engine.agents_md_present, "AGENTS.md must be present in Golden Project.")
+        self.assertTrue(engine.project.boot_md_present, "BOOT.md must be present in Golden Project.")
+        self.assertTrue(engine.project.agents_md_present, "AGENTS.md must be present in Golden Project.")
 
         # 2. Kernel Initialization & Provider Handshake
         runtime = LisaRuntime()
