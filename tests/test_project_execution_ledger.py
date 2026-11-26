@@ -108,9 +108,10 @@ class TestProjectExecutionLedger(unittest.TestCase):
             with self.assertRaisesRegex(OSError, "simulated write interruption"):
                 self.ledger.append("execution_applied", "exec_partial", {})
 
-        self.assertEqual(self.ledger.verify()["status"], "not_initialized")
-        self.assertFalse((self.state / "ledger.jsonl").exists())
-        self.assertFalse((self.state / ".ledger.key").exists())
+        recovered = self.ledger.verify()
+        self.assertTrue(recovered["success"], recovered.get("error"))
+        self.assertEqual(recovered["event_count"], 0)
+        self.assertEqual((self.state / "ledger.jsonl").read_bytes(), b"")
 
         event = self.ledger.append("execution_applied", "exec_retry", {})
         self.assertEqual(event["sequence"], 1)
