@@ -384,5 +384,41 @@ class TestGovernedProjectExecution(unittest.TestCase):
         self.assertEqual(recovery.list_pending(), [])
 
 
+    def test_recovery_removes_stale_lock_only_after_owner_pid_is_gone(self):
+        existing = self.target / "app" / "Main.kt"
+        original = existing.read_bytes()
+        changes = [
+            ExecutionChange("app/Main.kt", "class Main { val changed = true }\\n", hashlib.sha256(original).hexdigest())
+        ]
+        execution_id = self._simulate_interrupted_apply(changes, existing)
+        recovery = ProjectExecutionRecovery(self.registry, state_dir=self.state_dir)
+        digest = recovery.preview_digest(execution_id)
+        lock = self.state_dir / execution_id / ".recovery.lock"
+        lock.write_text("42424242", encoding="ascii")
+        with mock.patch("os.kill", side_effect=ProcessLookupError):
+            result = recovery.recover(execution_id, f"RECOVER {digest}")
+        self.assertTrue(result["success"], result.get("error"))
+        self.assertFalse(lock.exists())
+        self.assertEqual(existing.read_bytes(), original)
+
+    def test_recovery_refuses_live_lock_owner(self):
+        existing = self.target / "app" / "Main.kt"
+        original = existing.read_bytes()
+        changes = [
+            ExecutionChange("app/Main.kt", "class Main { val changed = true }\\n", hashlib.sha256(original).hexdigest())
+        ]
+        execution_id = self._simulate_interrupted_apply(changes, existing)
+        recovery = ProjectExecutionRecovery(self.registry, state_dir=self.state_dir)
+        digest = recovery.preview_digest(execution_id)
+        lock = self.state_dir / execution_id / ".recovery.lock"
+        lock.write_text("42424242", encoding="ascii")
+        with mock.patch("os.kill", return_value=None):
+            result = recovery.recover(execution_id, f"RECOVER {digest}")
+        self.assertFalse(result["success"])
+        self.assertIn("active in process", result["error"])
+        self.assertTrue(lock.exists())
+        self.assertNotEqual(existing.read_bytes(), original)
+
+
 if __name__ == "__main__":
     unittest.main()
