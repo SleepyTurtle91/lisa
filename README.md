@@ -5,55 +5,80 @@
 L.I.S.A. INTELLIGENCE OPERATING SYSTEM
 ===================================================
 
-Version     : v2.1.0
-Status      : FROZEN — ALL NE LAYERS LOCKED 🔒
-Last Audit  : 2026-08-13
-Test Suite  : 107/107 PASS (100%)
+Version          : v2.1.0
+NE Baseline      : FROZEN — L1–L7 / NE-009.2 → NE-019
+NE Baseline Audit: 2026-08-13
+NE Baseline Tests : 107/107 PASS
 
 ===================================================
 ```
+
+> The NE baseline is the frozen foundation. Subsequent capabilities, including Cross-Project Intelligence, are developed incrementally and validated on their own branches and CI workflows.
 
 ---
 
 ## 🏛️ What is L.I.S.A.?
 
-**L.I.S.A.** is an **Intelligence Operating System** — not an AI assistant.
+**L.I.S.A.** is an **Intelligence Operating System** — not another AI assistant or a wrapper around one model.
 
 > *"L.I.S.A. is an operating environment that governs reasoning drivers and capability providers while maintaining authoritative state and evidence."*
 
-L.I.S.A. sits between the **operator** and the **LLM**, enforcing kernel laws that no reasoning provider can override.
+L.I.S.A. sits between the **operator**, connected reasoning providers, and capability tools. It supplies the persistent context, knowledge, coordination, governance, and evidence that allow different models and tools to contribute to continuous work without becoming the authority over the system.
+
+**The brain is replaceable. The intelligence infrastructure is persistent.**
+
+A model may reason, plan, or propose work. L.I.S.A. retains project identity, task continuity, authoritative state, permissions, and execution evidence.
 
 ```text
-                     👤 OPERATOR
-                          │
-                          ▼
-          ┌───────────────────────────────┐
-          │           L.I.S.A. OS         │
-          │                               │
-          │  Kernel / Governance          │
-          │  Research Subsystem           │
-          │  Planning Subsystem           │
-          │  Evidence Subsystem           │
-          │  Execution Subsystem          │
-          └───────────────┬───────────────┘
-                          │
-           ┌──────────────┴──────────────┐
-           ▼                             ▼
-    🤖 LLM DRIVERS                 🧰 KNOWLEDGE
-    reasoning/compute              capabilities
-           │                             │
-           └──────────────┬──────────────┘
-                          ▼
-                    REAL WORLD
-                          │
-                          ▼
-               📼 FLIGHT RECORDER
-                          │
-           ┌──────────────┴──────────────┐
-           ▼                             ▼
-    AUTHORITATIVE                    OPERATOR
-       EVIDENCE                        VIEW
+                         👤 OPERATOR
+                              │
+                              ▼
+              ┌───────────────────────────────┐
+              │           L.I.S.A. OS         │
+              │                               │
+              │  Kernel / Governance          │
+              │  Research & Planning          │
+              │  Context & Knowledge         │
+              │  Brain Orchestration          │
+              │  Evidence & Execution         │
+              └───────────────┬───────────────┘
+                              │
+             ┌────────────────┼────────────────┐
+             ▼                ▼                ▼
+        🤖 BRAIN A       🤖 BRAIN B       🤖 LOCAL MODEL
+        reasoning        reasoning        reasoning
+             │                │                │
+             └────────────────┼────────────────┘
+                              ▼
+                     🧰 CAPABILITIES
+                  tools / projects / services
+                              │
+                              ▼
+                        REAL WORLD
+                              │
+                              ▼
+                       📼 FLIGHT RECORDER
+                              │
+                 ┌────────────┴────────────┐
+                 ▼                         ▼
+          AUTHORITATIVE                OPERATOR
+             EVIDENCE                     VIEW
 ```
+
+The diagram describes the intended operating model. Multi-brain orchestration and the supporting resource managers are architectural direction, not a claim that every capability is already implemented.
+
+### Founding philosophy
+
+L.I.S.A. is intended to reduce dependence on any single model's context window, capabilities, quota, account, or conversation lifetime.
+
+- **Model independence:** providers are interchangeable reasoning resources.
+- **Context continuity:** project knowledge and task state persist outside individual conversations.
+- **Capability augmentation:** retrieval, tools, planning, and governance strengthen what each model can accomplish.
+- **Multi-brain coordination:** suitable models can contribute to different tasks, including bounded parallel work.
+- **Evidence-first decisions:** disagreements, unknowns, and provenance remain visible.
+- **Operator authority:** models propose; L.I.S.A. governs; the operator retains control over consequential actions.
+
+Read the full [L.I.S.A. Founding Philosophy](docs/FOUNDING_PHILOSOPHY.md) for the principles, design consequences, safety boundaries, and proposed subsystem responsibilities.
 
 ---
 
@@ -83,7 +108,7 @@ When L.I.S.A. opens an unfamiliar project, the correct internal state is:
 
 > *"I don't know yet. What do I need to know? What evidence can answer it? What conflicts have I encountered? What remains unknown? Only when I have sufficient evidence may I proceed."*
 
-### Research Loop
+### Research loop
 
 ```text
 UNKNOWN PROJECT → RESEARCH_MODE → ASK QUESTIONS → INVESTIGATE
@@ -93,7 +118,7 @@ UNKNOWN PROJECT → RESEARCH_MODE → ASK QUESTIONS → INVESTIGATE
       → IMPLEMENTATION_MODE
 ```
 
-### Question Lifecycle (Kernel-Enforced)
+### Question lifecycle (kernel-enforced)
 
 | State | Kernel Rule |
 |---|---|
@@ -106,7 +131,9 @@ UNKNOWN PROJECT → RESEARCH_MODE → ASK QUESTIONS → INVESTIGATE
 
 ---
 
-## 🧪 NE Benchmark Suite (107/107 PASS)
+## 🧪 NE Benchmark Baseline
+
+The following milestones form the frozen NE foundation (107/107 baseline tests passed at the recorded audit):
 
 | Benchmark | Capability Proven | Status |
 |---|---|---|
@@ -126,45 +153,51 @@ UNKNOWN PROJECT → RESEARCH_MODE → ASK QUESTIONS → INVESTIGATE
 | **NE-018.2** | `QuestionDrivenInvestigationEngine` — question lifecycle + difficulty provenance | 🔒 Frozen |
 | **NE-019** | `AutonomousProjectBootEngine` — unfamiliar workspace boot to `IMPLEMENTATION_MODE` | 🔒 Frozen |
 
+Newer development milestones are tracked separately in the progression log and their respective pull requests.
+
 ---
 
 ## 📁 Repository Layout
 
-```
+```text
 lisa/
 ├── benchmarks/          # NE benchmark harnesses + JSON/JSONL diagnostic artifacts
 ├── cli/                 # InputBoundaryClassifier, REPL
 ├── memory/              # EvidenceStore, AuthoritativeEvidenceQuery
 ├── runtime/             # Session, BootstrapEngine
-├── tests/               # 107-test regression suite
+├── tests/               # Regression and contract tests
 ├── tools/               # TargetInspector, Dispatcher, Filesystem capabilities
-├── ARCHITECTURE.md      # Immutable OS Engineering Laws (L1–L7) + Research Subsystem Contract
-├── PROGRESSION_LOG.md   # Chronological experimental evidence log
-├── RESEARCH.md          # Bounded empirical claims per NE milestone
-└── PROJECT_MEMORY.md    # Continuation checkpoint & OS version
+├── docs/
+│   └── FOUNDING_PHILOSOPHY.md # Model-independent intelligence and orchestration doctrine
+├── ARCHITECTURE.md       # Immutable OS Engineering Laws (L1–L7) + Research Subsystem Contract
+├── PROGRESSION_LOG.md    # Chronological experimental evidence log
+├── RESEARCH.md           # Bounded empirical claims per NE milestone
+└── PROJECT_MEMORY.md     # Continuation checkpoint & OS baseline
 ```
 
 ---
 
-## 📜 Governance Documents
+## 📜 Governance and design documents
 
 | Document | Purpose |
 |---|---|
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | Immutable kernel laws, OS diagrams, Research Subsystem Contract |
-| [`PROGRESSION_LOG.md`](PROGRESSION_LOG.md) | Chronological evidence log for all NE milestones |
+| [`docs/FOUNDING_PHILOSOPHY.md`](docs/FOUNDING_PHILOSOPHY.md) | Founding purpose, model independence, multi-brain coordination, context continuity, and design consequences |
+| [`PROGRESSION_LOG.md`](PROGRESSION_LOG.md) | Chronological experimental evidence and milestone records |
 | [`RESEARCH.md`](RESEARCH.md) | Bounded empirical claims — each claim tied to observed evidence |
-| [`PROJECT_MEMORY.md`](PROJECT_MEMORY.md) | OS version, freeze checkpoint, continuation state |
+| [`PROJECT_MEMORY.md`](PROJECT_MEMORY.md) | OS version, frozen NE baseline, and continuation checkpoint |
 
 ---
 
-## ⚡ Quick Stats
+## ⚡ Baseline reference
 
-| Metric | Value |
+| Metric | Recorded baseline |
 |---|---|
 | OS Version | v2.1.0 |
 | Kernel Laws | 7 (L1–L7) |
 | NE Milestones Frozen | 15 (NE-009.2 → NE-019) |
-| Test Suite | **107/107 PASS (100%)** |
-| Vendor Lock-In | None |
+| NE Baseline Test Suite | **107/107 PASS** |
+| Vendor Lock-In | None by architectural design |
 | Fact Conflation (NE-017 real-project validation) | `False` |
 
+> These are historical NE baseline figures, not a claim that every newer development branch has been merged or validated by the same test count. Check the relevant pull request and CI run for current implementation evidence.
