@@ -202,7 +202,7 @@ class TestGovernedProjectExecution(unittest.TestCase):
 
     def test_rollback_rejects_non_regular_object_at_created_file_path(self):
         execution = self._apply_for_lifecycle([
-            ExecutionChange("app/Created.kt", "class Created {}\\n")
+            ExecutionChange("app/Created.kt", "class Created {}\n")
         ])
         destination = self.target / "app" / "Created.kt"
         destination.unlink()
@@ -220,7 +220,7 @@ class TestGovernedProjectExecution(unittest.TestCase):
 
     def test_rollback_rechecks_target_after_preflight_before_restore(self):
         execution = self._apply_for_lifecycle([
-            ExecutionChange("app/Raced.kt", "class Raced {}\\n")
+            ExecutionChange("app/Raced.kt", "class Raced {}\n")
         ])
         destination = self.target / "app" / "Raced.kt"
         audit_path = Path(execution.audit_path)
@@ -252,7 +252,7 @@ class TestGovernedProjectExecution(unittest.TestCase):
         original_mode = destination.stat().st_mode & 0o777
         expected = hashlib.sha256(original).hexdigest()
         execution = self._apply_for_lifecycle([
-            ExecutionChange("app/Main.kt", "class Main { val changed = true }\\n", expected)
+            ExecutionChange("app/Main.kt", "class Main { val changed = true }\n", expected)
         ])
 
         destination.write_bytes(original)
