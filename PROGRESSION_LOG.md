@@ -1226,3 +1226,25 @@ Key per-case results:
 
 ### Follow-up
 - Consider a separately designed append-only, externally anchored audit format before claiming stronger tamper resistance.
+
+
+---
+
+## 2026-11-26 — CPI-06.2 History Integrity Review Remediation
+
+### Changes
+- Fixed the backup-tampering fixture so it creates and backs up an existing target file.
+- Reject malformed lifecycle and validation metadata rather than defaulting invalid containers to empty objects.
+- Verify rollback digests while rollback is in progress as well as after completion.
+- Cross-check validation target project identity and target root against the execution audit and registered root.
+- Added focused regression tests for each integrity boundary.
+
+### Historical log integrity
+- Compared the original CPI-06.1 progression entry on the PR #5 base with the PR #5 head.
+- The historical entry is byte-for-byte unchanged; the CPI-06.2 milestone is appended after it.
+- No rewrite of prior progression history was performed.
+
+### Status
+- Remediation is on a dedicated branch stacked on CPI-06.2.
+- CI passed: 66 project/CLI tests, 6 input-boundary tests, 179 architecture/unit tests, and 1 integration test. Independent review pending.
+- No merge has been performed.

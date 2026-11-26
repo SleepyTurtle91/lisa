@@ -1568,3 +1568,28 @@ CPI-06 establishes a narrow, operator-approved file application boundary. It is 
 - Regression tests are not automatically run because executing arbitrary target build/test commands would create a separate code-execution boundary.
 - Manual rollback/recovery command and post-execution validation evidence capture remain follow-up work.
 - Verification is from the repository's GitHub Actions environment (Python 3.14); local Fedora execution has not been observed in this task.
+
+
+---
+
+## 🧾 CPI-06.2 Review Remediation — History and Integrity Verification
+
+**Date**: 2026-11-26
+
+**Observed review findings**:
+- The backup-tampering test applied a new file but then attempted to modify a backup that correctly did not exist.
+- Explicitly malformed empty lifecycle/validation containers could be treated as absent metadata.
+- Rollback digest verification covered completed rollback but not the interrupted `rollback_in_progress` state.
+- Validation record target project/root identity was not cross-checked against the execution audit and registered project.
+- The progression-log review raised an append-only concern. A direct content comparison against the PR #5 base confirms that the historical CPI-06.1 entry is byte-for-byte preserved; CPI-06.2 is appended after it. No historical entry was rewritten.
+
+**Implementation changes on the remediation branch**:
+- Seed the target file in the backup-tampering fixture and bind the patch to its original SHA-256 so a real backup exists.
+- Reject non-object lifecycle and validation metadata, including explicit empty lists.
+- Verify rollback digest for both `rollback_in_progress` and `rolled_back`; require the restoration manifest only for completed rollback.
+- Cross-check validation record target project ID and canonical target root against the execution audit and, when registered, the current project root.
+- Add regression tests for malformed metadata, interrupted rollback digest tampering, and validation target identity tampering.
+
+**Evidence classification**:
+- `FILE_FACT`: fixes and regression tests are present on `fix/cpi-06-2-history-review-findings`.
+- `EXECUTION_FACT`: [CPI Contract CI run 45785133099](https://github.com/SleepyTurtle91/lisa/actions/runs/45785133099) passed 66/66 project/CLI tests and 6/6 input-boundary tests. The architecture/unit suite passed 179/179 tests and integration passed 1/1.

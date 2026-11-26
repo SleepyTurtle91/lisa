@@ -30,6 +30,8 @@ class TestProjectExecutionHistory(unittest.TestCase):
         )
         (self.target / "settings.gradle.kts").write_text('include(":app")', encoding="utf-8")
         (self.target / "app").mkdir()
+        inventory_target = self.target / "app" / "Inventory.kt"
+        inventory_target.write_text("class Inventory { val original = true }\n", encoding="utf-8")
         self.registry = ProjectRegistry()
         manager = ProjectExecutor(self.registry)
         self.source_id = manager.execute(ProjectRequest(
@@ -44,7 +46,11 @@ class TestProjectExecutionHistory(unittest.TestCase):
         )).plan
         self.state = root / "executions"
         self.executor = ProjectExecutionExecutor(self.registry, state_dir=self.state)
-        change = ExecutionChange("app/Inventory.kt", "class Inventory {}\n")
+        change = ExecutionChange(
+            "app/Inventory.kt",
+            "class Inventory {}\n",
+            hashlib.sha256(inventory_target.read_bytes()).hexdigest(),
+        )
         digest = self.executor.approval_digest(plan, [change], self.target)
         self.execution = self.executor.execute(ProjectExecutionRequest(
             plan, (change,), f"APPLY {digest}"
@@ -133,6 +139,79 @@ class TestProjectExecutionHistory(unittest.TestCase):
         verified = self.history.verify(self.execution.execution_id)
         self.assertFalse(verified["success"])
         self.assertIn("Validation record digest", verified["error"])
+
+    def test_empty_lifecycle_metadata_is_rejected(self):
+        audit_path = Path(self.execution.audit_path)
+        audit = json.loads(audit_path.read_text(encoding="utf-8"))
+        audit["lifecycle"] = []
+        audit_path.write_text(json.dumps(audit), encoding="utf-8")
+        result = self.history.verify(self.execution.execution_id)
+        self.assertFalse(result["success"])
+        self.assertIn("Lifecycle metadata is malformed", result["error"])
+
+    def test_empty_validation_metadata_is_rejected(self):
+        audit_path = Path(self.execution.audit_path)
+        audit = json.loads(audit_path.read_text(encoding="utf-8"))
+        audit["validation"] = []
+        audit_path.write_text(json.dumps(audit), encoding="utf-8")
+        result = self.history.verify(self.execution.execution_id)
+        self.assertFalse(result["success"])
+        self.assertIn("Validation metadata is malformed", result["error"])
+
+    def test_rollback_in_progress_digest_is_verified(self):
+        from unittest.mock import patch
+
+        lifecycle = ProjectExecutionLifecycle(self.registry, state_dir=self.state)
+        digest = lifecycle.preview_rollback_digest(self.execution.execution_id)
+        audit_path = Path(self.execution.audit_path)
+        original_atomic_write = lifecycle._atomic_write
+        interrupted = False
+
+        def interrupt_after_journal(path, content):
+            nonlocal interrupted
+            result = original_atomic_write(path, content)
+            if Path(path) == audit_path and not interrupted:
+                interrupted = True
+                raise OSError("simulated interruption after rollback journal")
+            return result
+
+        with patch.object(lifecycle, "_atomic_write", side_effect=interrupt_after_journal):
+            rollback = lifecycle.rollback(self.execution.execution_id, f"ROLLBACK {digest}")
+        self.assertFalse(rollback["success"])
+        audit = json.loads(audit_path.read_text(encoding="utf-8"))
+        self.assertEqual(audit["lifecycle"]["status"], "rollback_in_progress")
+        self.assertTrue(self.history.verify(self.execution.execution_id)["success"])
+
+        audit["lifecycle"]["rollback_digest"] = "0" * 64
+        audit_path.write_text(json.dumps(audit), encoding="utf-8")
+        verified = self.history.verify(self.execution.execution_id)
+        self.assertFalse(verified["success"])
+        self.assertIn("Rollback digest does not match", verified["error"])
+
+    def test_validation_record_target_identity_must_match_execution_audit(self):
+        lifecycle = ProjectExecutionLifecycle(self.registry, state_dir=self.state)
+        digest = lifecycle.preview_validation_digest(
+            self.execution.execution_id, "passed", "pytest -q", "all passed"
+        )
+        recorded = lifecycle.record_validation(
+            self.execution.execution_id, "passed", "pytest -q", "all passed", f"RECORD {digest}"
+        )
+        self.assertTrue(recorded["success"], recorded.get("error"))
+
+        record_path = self.state / self.execution.execution_id / "validation.json"
+        original = json.loads(record_path.read_text(encoding="utf-8"))
+        for field, value in (
+            ("target_project_id", self.source_id),
+            ("target_root", str(self.source)),
+        ):
+            with self.subTest(field=field):
+                tampered = dict(original)
+                tampered[field] = value
+                record_path.write_text(json.dumps(tampered), encoding="utf-8")
+                verified = self.history.verify(self.execution.execution_id)
+                self.assertFalse(verified["success"])
+                self.assertIn("Validation record target", verified["error"])
+        record_path.write_text(json.dumps(original), encoding="utf-8")
 
     def test_rollback_digest_and_restoration_manifest_are_verified(self):
         lifecycle = ProjectExecutionLifecycle(self.registry, state_dir=self.state)
