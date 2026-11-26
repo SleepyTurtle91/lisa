@@ -67,20 +67,28 @@ class ProjectExecutionHistory:
             raise ValueError("Execution record was not found or is unsafe.")
         return directory
 
-    def _verify_one(self, execution_id):
+    def _verify_one(self, execution_id, ledger_verification=None, event_index=None):
         directory = self._safe_execution_dir(execution_id)
         audit_path = directory / "audit.json"
         if audit_path.is_symlink() or not audit_path.is_file():
             raise ValueError("Execution audit record is missing or unsafe.")
         audit_bytes = audit_path.read_bytes()
         audit = json.loads(audit_bytes.decode("utf-8"))
-        ledger = ProjectExecutionLedger(self._state_dir).verify()
+        ledger = (
+            ledger_verification
+            if ledger_verification is not None
+            else ProjectExecutionLedger(self._state_dir).verify()
+        )
         if not ledger["success"]:
             raise ValueError("Execution ledger verification failed: " + ledger["error"])
-        matching_events = [
-            event for event in ledger.get("events", [])
-            if event.get("execution_id") == execution_id
-        ]
+        matching_events = (
+            event_index.get(execution_id, [])
+            if event_index is not None
+            else [
+                event for event in ledger.get("events", [])
+                if event.get("execution_id") == execution_id
+            ]
+        )
         latest_event = matching_events[-1] if matching_events else None
         ledger_status = "legacy_unanchored"
         if latest_event is not None:
@@ -276,13 +284,22 @@ class ProjectExecutionHistory:
         if self._state_dir.is_symlink() or not self._state_dir.is_dir():
             raise ValueError("Execution history directory is unsafe.")
         records = []
+        ledger_verification = ProjectExecutionLedger(self._state_dir).verify()
+        event_index = {}
+        if ledger_verification["success"]:
+            for event in ledger_verification.get("events", []):
+                event_index.setdefault(event.get("execution_id"), []).append(event)
+
         for directory in self._state_dir.iterdir():
             if directory.is_symlink() or not directory.is_dir() or not self.EXECUTION_RE.fullmatch(directory.name):
                 continue
-            result = self.verify(directory.name)
-            if result["success"]:
-                record = result["record"]
-            else:
+            try:
+                record = self._verify_one(
+                    directory.name,
+                    ledger_verification=ledger_verification,
+                    event_index=event_index,
+                )
+            except Exception as exc:
                 record = {
                     "execution_id": directory.name,
                     "created_at": None,
@@ -294,7 +311,7 @@ class ProjectExecutionHistory:
                     "lifecycle_status": "unknown",
                     "validation_status": "unknown",
                     "integrity_status": "failed",
-                    "integrity_error": result["error"],
+                    "integrity_error": str(exc),
                 }
                 audit_path = directory / "audit.json"
                 try:
