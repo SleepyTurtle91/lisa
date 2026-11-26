@@ -1234,3 +1234,9 @@ Key per-case results:
 - Added a regression verifying the lifecycle reaches `rolled_back`.
 - Follow-up CPI Contract CI and Architecture & Integration CI passed (run 45787096321).
 - Independent review re-requested on the updated head; no merge performed.
+
+### Follow-up — Hard-link-safe rollback mode restoration
+- Capture the verified target inode identity alongside the latest content hash.
+- Require the descriptor opened for permission restoration to match that verified inode before calling `fchmod`.
+- Added a regression that swaps the target path to a hard link between hash verification and mode restoration and verifies the external referent's permissions remain unchanged.
+- CI pending; no merge performed.
