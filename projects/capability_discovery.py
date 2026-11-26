@@ -34,6 +34,7 @@ class CapabilityDiscoveryExecutor:
     }
 
     TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
+    E_INVOICE_PATTERN = re.compile(r"\\be[\\s_-]*invoice\\b", re.IGNORECASE)
 
     def __init__(self, registry=None, profile_executor=None):
         self._registry = registry or ProjectRegistry()
@@ -41,8 +42,9 @@ class CapabilityDiscoveryExecutor:
 
     @classmethod
     def _tokens(cls, text: str) -> Set[str]:
+        normalized_text = cls.E_INVOICE_PATTERN.sub("einvoice", text.casefold())
         return {
-            token for token in cls.TOKEN_PATTERN.findall(text.casefold())
+            token for token in cls.TOKEN_PATTERN.findall(normalized_text)
             if len(token) > 1 and token not in cls.STOP_WORDS
         }
 
@@ -54,13 +56,16 @@ class CapabilityDiscoveryExecutor:
         return {token}
 
     @classmethod
-    def _contains_any(cls, text: str, terms: Iterable[str]) -> bool:
-        haystack = cls._tokens(text)
+    def _contains_tokens(cls, haystack: Set[str], terms: Iterable[str]) -> bool:
         for term in terms:
             normalized = cls._tokens(term)
             if normalized and normalized.issubset(haystack):
                 return True
         return False
+
+    @classmethod
+    def _contains_any(cls, text: str, terms: Iterable[str]) -> bool:
+        return cls._contains_tokens(cls._tokens(text), terms)
 
     def execute(self, request: CapabilityDiscoveryRequest) -> CapabilityDiscoveryResult:
         if not isinstance(request, CapabilityDiscoveryRequest):
@@ -107,11 +112,15 @@ class CapabilityDiscoveryExecutor:
             if not matched:
                 continue
 
+            expanded_terms = tuple(
+                self._expansions(term) for term in matched
+            )
             evidence_refs = []
             for item in profile.evidence:
+                item_tokens = self._tokens(item.excerpt)
                 if any(
-                    self._contains_any(item.excerpt, self._expansions(term))
-                    for term in matched
+                    self._contains_tokens(item_tokens, terms)
+                    for terms in expanded_terms
                 ):
                     evidence_refs.append(CapabilityEvidence(
                         relative_path=item.relative_path,
@@ -122,8 +131,8 @@ class CapabilityDiscoveryExecutor:
             source_paths = tuple(
                 path for path in profile.source_files_sample
                 if any(
-                    self._contains_any(path, self._expansions(term))
-                    for term in matched
+                    self._contains_any(path, terms)
+                    for terms in expanded_terms
                 )
             )
             matches.append(CapabilityMatch(
