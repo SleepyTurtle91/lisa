@@ -280,7 +280,7 @@ class TestGovernedProjectExecution(unittest.TestCase):
         destination.chmod(0o600)
         expected = hashlib.sha256(original).hexdigest()
         execution = self._apply_for_lifecycle([
-            ExecutionChange("app/Main.kt", "class Main { val changed = true }\\n", expected)
+            ExecutionChange("app/Main.kt", "class Main { val changed = true }\n", expected)
         ])
 
         destination.write_bytes(original)
