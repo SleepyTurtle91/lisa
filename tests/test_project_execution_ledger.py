@@ -93,6 +93,9 @@ class TestProjectExecutionLedger(unittest.TestCase):
         from unittest.mock import patch
         import os
 
+        # Initialize key/head before patching os.write so random key bytes cannot
+        # accidentally be mistaken for the beginning of a JSON ledger record.
+        self.ledger.append("execution_applied", "exec_seed", {})
         real_write = os.write
         ledger_descriptor = None
         partial_written = False
@@ -113,11 +116,11 @@ class TestProjectExecutionLedger(unittest.TestCase):
 
         recovered = self.ledger.verify()
         self.assertTrue(recovered["success"], recovered.get("error"))
-        self.assertEqual(recovered["event_count"], 0)
-        self.assertEqual((self.state / "ledger.jsonl").read_bytes(), b"")
+        self.assertEqual(recovered["event_count"], 1)
+        self.assertEqual(len((self.state / "ledger.jsonl").read_bytes().splitlines()), 1)
 
         event = self.ledger.append("execution_applied", "exec_retry", {})
-        self.assertEqual(event["sequence"], 1)
+        self.assertEqual(event["sequence"], 2)
         self.assertTrue(self.ledger.verify()["success"])
 
     def test_malformed_trailing_record_fails_closed(self):
