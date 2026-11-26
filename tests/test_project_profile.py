@@ -115,7 +115,7 @@ class TestProjectProfile(unittest.TestCase):
     def test_redacts_json_secrets_with_escaped_quotes(self):
         from lisa.projects.indexer import ProjectProfileIndexer
 
-        excerpt = r'{"api_key": "prefix\\"still-secret", "client_secret": "token\\\\\"tail"}'
+        excerpt = r'{"api_key": "prefix\"still-secret", "client_secret": "token\\\"tail"}'
         redacted, changed = ProjectProfileIndexer._redact_excerpt(excerpt)
         self.assertTrue(changed)
         self.assertNotIn("still-secret", redacted)
