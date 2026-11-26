@@ -1278,4 +1278,5 @@ Key per-case results:
 - Corrected append framing to terminate JSONL events with an actual newline byte rather than the two-character backslash-`n` sequence.
 - Added a regression asserting the ledger ends with real newline bytes and contains no literal escaped terminator.
 - Corrected Windows lock-file initialization to write an actual NUL byte.
-- CI pending; no merge performed.
+- CPI Contract CI and Architecture & Integration CI passed (run 45791655969).
+- Independent review requested; no merge performed.
