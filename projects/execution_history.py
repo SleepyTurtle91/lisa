@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 from lisa.projects.execution_executor import ProjectExecutionExecutor
+from lisa.projects.execution_ledger import ProjectExecutionLedger
 
 
 class ProjectExecutionHistory:
@@ -71,7 +72,26 @@ class ProjectExecutionHistory:
         audit_path = directory / "audit.json"
         if audit_path.is_symlink() or not audit_path.is_file():
             raise ValueError("Execution audit record is missing or unsafe.")
-        audit = json.loads(audit_path.read_text(encoding="utf-8"))
+        audit_bytes = audit_path.read_bytes()
+        audit = json.loads(audit_bytes.decode("utf-8"))
+        ledger = ProjectExecutionLedger(self._state_dir).verify()
+        if not ledger["success"]:
+            raise ValueError("Execution ledger verification failed: " + ledger["error"])
+        matching_events = [
+            event for event in ledger.get("events", [])
+            if event.get("execution_id") == execution_id
+        ]
+        latest_event = matching_events[-1] if matching_events else None
+        ledger_status = "legacy_unanchored"
+        if latest_event is not None:
+            recorded_hash = (latest_event.get("details") or {}).get("audit_sha256")
+            actual_hash = self._sha256(audit_bytes)
+            if recorded_hash != actual_hash:
+                raise ValueError("Execution audit has changed since its latest trusted-ledger event.")
+            ledger_status = (
+                "legacy_snapshot" if latest_event.get("event_type") == "legacy_import"
+                else "locally_authenticated"
+            )
         if not isinstance(audit, dict) or audit.get("schema_version") != 1:
             raise ValueError("Unsupported or malformed execution audit schema.")
         if audit.get("execution_id") != execution_id:
@@ -231,10 +251,14 @@ class ProjectExecutionHistory:
             "backup_results": backup_results,
             "target_file_integrity": target_file_integrity,
             "integrity_status": "consistent",
+            "ledger_status": ledger_status,
+            "ledger_event_count": len(matching_events),
             "integrity_notes": [
                 "Audit structure, execution identity, manifests, and available backup/evidence hashes are consistent.",
-                "This is not a cryptographic signature or tamper-proof ledger.",
-            ],
+                "Ledger HMAC and authenticated head checks detect changes while the separate local key and head checkpoint remain intact.",
+                "The local ledger and key are not an external trust anchor; an administrator able to replace both can forge history.",
+            ] + (["This execution predates the ledger and has not been imported."] if ledger_status == "legacy_unanchored" else [] )
+              + (["This execution was imported as a snapshot; its pre-migration history is not authenticated."] if ledger_status == "legacy_snapshot" else [] ),
         }
 
     def verify(self, execution_id):

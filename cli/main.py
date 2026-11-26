@@ -34,6 +34,7 @@ from lisa.projects.execution import ExecutionChange, ProjectExecutionRequest
 from lisa.projects.execution_executor import ProjectExecutionExecutor
 from lisa.projects.execution_lifecycle import ProjectExecutionLifecycle
 from lisa.projects.execution_history import ProjectExecutionHistory
+from lisa.projects.execution_ledger import ProjectExecutionLedger
 
 PROJECT_REGISTRY_PATH = Path.home() / ".lisa" / "projects.json"
 PROJECT_EXECUTION_STATE_PATH = Path.home() / ".lisa" / "executions"
@@ -61,6 +62,30 @@ def run_project_command(args):
             print(f" {active} {item.name}  [{item.project_id}]  {tech}")
             print(f"    {item.root_path}")
         return
+    if action == "ledger":
+        if len(args) != 2 or args[1] not in ("verify", "migrate"):
+            print("Usage: lisa project ledger <verify|migrate>")
+            return
+        ledger = ProjectExecutionLedger(PROJECT_EXECUTION_STATE_PATH)
+        if args[1] == "verify":
+            result = ledger.verify()
+            if not result["success"]:
+                print(f"Ledger verification FAILED: {result['error']}")
+                return
+            print(f"Ledger status: {result['status']}")
+            print(f"Authenticated events: {result['event_count']}")
+            if result.get("head_hash"):
+                print(f"Head hash: {result['head_hash']}")
+            print("The local key is not an external trust anchor.")
+            return
+        result = ledger.migrate_legacy()
+        if not result["success"]:
+            print(f"Legacy migration failed: {result['error']}")
+            return
+        print(f"Legacy execution snapshots imported: {result['imported']}")
+        print("Imported snapshots are anchored from migration time only; prior history is not authenticated.")
+        return
+
     if action == "history":
         project_id = None
         if len(args) == 3 and args[1] == "--project":
@@ -86,12 +111,12 @@ def run_project_command(args):
                 f"{record.get('execution_id')} | "
                 f"{record.get('source_project_name')} -> {record.get('target_project_name')} | "
                 f"{record.get('lifecycle_status')} | validation: {record.get('validation_status')} | "
-                f"files: {record.get('file_count')} | integrity: {record.get('integrity_status')}"
+                f"files: {record.get('file_count')} | integrity: {record.get('integrity_status')} | ledger: {record.get('ledger_status', 'unknown')}"
             )
             print(f"    Created: {record.get('created_at') or 'unknown'}")
             if record.get("integrity_error"):
                 print(f"    Integrity error: {record['integrity_error']}")
-        print("History is read-only. Integrity consistency is not a cryptographic signature.")
+        print("History is read-only. See 'lisa project ledger verify' for ledger status.")
         return
 
     if action == "verify" and len(args) == 2:
@@ -110,6 +135,7 @@ def run_project_command(args):
         print(f"Lifecycle: {record['lifecycle_status']}")
         print(f"Validation: {record['validation_status']} ({record['validation_integrity']})")
         print(f"Backups: {record['backup_integrity']} ({record['file_count']} changed files)")
+        print(f"Trusted ledger: {record.get('ledger_status', 'unknown')} ({record.get('ledger_event_count', 0)} events)")
         print(f"Current target files: {record['target_file_integrity']}")
         for note in record["integrity_notes"]:
             print(f"Note: {note}")
@@ -138,6 +164,8 @@ def run_project_command(args):
         print(f"Rollback completed: {result['execution_id']}")
         for path in result["restored_files"]:
             print(f"Restored: {path}")
+        if result.get("ledger_warning"):
+            print(f"WARNING: rollback completed but ledger append failed: {result['ledger_warning']}")
         return
 
     if action == "validate" and len(args) >= 2:
@@ -185,6 +213,8 @@ def run_project_command(args):
         print(f"Validation recorded: {result['status']}")
         print(f"Record: {result['validation_path']}")
         print("This is operator-reported evidence, not an independently verified test result.")
+        if result.get("ledger_warning"):
+            print(f"WARNING: validation recorded but ledger append failed: {result['ledger_warning']}")
         return
 
     if action == "apply" and len(args) >= 6 and "--patch" in args:

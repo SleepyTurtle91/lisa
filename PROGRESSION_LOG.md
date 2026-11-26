@@ -1226,3 +1226,32 @@ Key per-case results:
 
 ### Follow-up
 - Consider a separately designed append-only, externally anchored audit format before claiming stronger tamper resistance.
+
+---
+
+## 2026-11-26 — CPI-06.3 Authenticated Execution Ledger
+
+### Status
+- Implemented on a dedicated branch stacked on CPI-06.2 PR #5.
+- CI validation pending; no merge performed.
+
+### What was added
+- Separate JSONL event ledger with sequence numbers, previous-event hash links, event hashes, and HMAC-SHA256 authentication.
+- Separately authenticated head checkpoint binds the expected final sequence/hash and detects tail truncation.
+- Random 256-bit local ledger key stored separately with restrictive file permissions; missing keys are never silently regenerated when a ledger already exists.
+- Automatic ledger events for governed execution, completed rollback, and recorded validation.
+- Read-only ledger verification and explicit legacy snapshot migration commands.
+- History verification binds the current audit snapshot to its latest authenticated ledger event.
+- Concurrent appends fail closed using an exclusive single-writer lock.
+- Legacy executions are imported as migration-time snapshots; pre-migration chronology remains unauthenticated.
+
+### Security boundary
+- The ledger detects modifications while the separate local key remains intact.
+- The ledger and key are both local and user-controlled; an administrator able to replace both can forge a coherent chain. No external trust anchor or non-repudiation is claimed.
+- Rollback/validation completion is not reversed if ledger append fails; a warning is surfaced and later history verification detects the stale snapshot.
+- No arbitrary target commands or tests are executed.
+
+### Follow-up
+- Run focused CPI, full architecture/unit, and integration CI.
+- Review interrupted-write and stale-lock recovery behavior before considering the ledger stable.
+

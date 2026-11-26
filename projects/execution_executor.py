@@ -9,6 +9,7 @@ from pathlib import Path, PurePosixPath
 
 from lisa.projects.adaptation import AdaptationPlanStatus
 from lisa.projects.execution import ProjectExecutionResult
+from lisa.projects.execution_ledger import ProjectExecutionLedger
 
 
 class ProjectExecutionExecutor:
@@ -277,6 +278,15 @@ class ProjectExecutionExecutor:
                     audit_path,
                     (json.dumps(audit, indent=2, sort_keys=True) + "\n").encode("utf-8"),
                 )
+                audit_bytes = audit_path.read_bytes()
+                ProjectExecutionLedger(self._state_dir).append(
+                    "execution_applied", execution_id,
+                    {
+                        "approval_digest": digest,
+                        "audit_sha256": self._sha256(audit_bytes),
+                        "target_project_id": plan.target_project_id,
+                    },
+                )
             except Exception:
                 rollback_errors = []
                 for destination, current, mode in reversed(applied):
@@ -289,6 +299,9 @@ class ProjectExecutionExecutor:
                         rollback_errors.append(str(rollback_error))
                 if rollback_errors:
                     raise RuntimeError("Execution failed and rollback was incomplete: " + "; ".join(rollback_errors))
+                if execution_dir.exists():
+                    import shutil
+                    shutil.rmtree(execution_dir)
                 raise
 
             return ProjectExecutionResult(
