@@ -441,5 +441,74 @@ class TestGovernedProjectExecution(unittest.TestCase):
         self.assertIn("not rolled-back", result["error"])
 
 
+    def test_mode_restore_refuses_preexisting_multiply_linked_target(self):
+        import os
+        from unittest.mock import patch
+
+        if os.name != "posix":
+            self.skipTest("POSIX hard-link semantics are required")
+        destination = self.target / "app" / "Main.kt"
+        original = destination.read_bytes()
+        destination.chmod(0o600)
+        expected = hashlib.sha256(original).hexdigest()
+        execution = self._apply_for_lifecycle([
+            ExecutionChange("app/Main.kt", "class Main { val changed = true }\\n", expected)
+        ])
+        destination.write_bytes(original)
+        destination.chmod(0o644)
+        outside = self.source / "outside-preexisting-hardlink.txt"
+        os.link(destination, outside)
+        outside_mode = outside.stat().st_mode & 0o777
+
+        lifecycle = ProjectExecutionLifecycle(self.registry, state_dir=self.state_dir)
+        digest = lifecycle.preview_rollback_digest(execution.execution_id)
+        result = lifecycle.rollback(execution.execution_id, f"ROLLBACK {digest}")
+
+        self.assertFalse(result["success"])
+        self.assertIn("multiply linked target", result["error"])
+        self.assertEqual(outside.stat().st_mode & 0o777, outside_mode)
+
+    def test_mode_restore_uses_anchored_parent_traversal(self):
+        from unittest.mock import patch
+
+        destination = self.target / "app" / "Main.kt"
+        original = destination.read_bytes()
+        destination.chmod(0o600)
+        expected = hashlib.sha256(original).hexdigest()
+        execution = self._apply_for_lifecycle([
+            ExecutionChange("app/Main.kt", "class Main { val changed = true }\\n", expected)
+        ])
+        destination.write_bytes(original)
+        destination.chmod(0o644)
+
+        outside_dir = self.source / "outside-app"
+        outside_dir.mkdir()
+        outside_file = outside_dir / "Main.kt"
+        outside_file.write_text("outside file must not be chmodded", encoding="utf-8")
+        outside_file.chmod(0o644)
+        outside_mode = outside_file.stat().st_mode & 0o777
+
+        lifecycle = ProjectExecutionLifecycle(self.registry, state_dir=self.state_dir)
+        digest = lifecycle.preview_rollback_digest(execution.execution_id)
+        real_restore = ProjectExecutionLifecycle._restore_mode_without_following_symlink
+
+        def swap_parent_then_restore(path, relative, mode, expected_identity=None):
+            app_dir = self.target / "app"
+            app_dir.rename(self.target / "app-original")
+            app_dir.symlink_to(outside_dir, target_is_directory=True)
+            return real_restore(path, relative, mode, expected_identity=expected_identity)
+
+        with patch.object(
+            ProjectExecutionLifecycle,
+            "_restore_mode_without_following_symlink",
+            side_effect=swap_parent_then_restore,
+        ):
+            result = lifecycle.rollback(execution.execution_id, f"ROLLBACK {digest}")
+
+        self.assertFalse(result["success"])
+        self.assertTrue((self.target / "app").is_symlink())
+        self.assertEqual(outside_file.stat().st_mode & 0o777, outside_mode)
+
+
 if __name__ == "__main__":
     unittest.main()
