@@ -144,12 +144,26 @@ class ProjectExecutionLifecycle:
                 event for event in ledger.get("events", [])
                 if event.get("execution_id") == execution_id
             ]
+            audit_bytes = audit_path.read_bytes()
+            audit = json.loads(audit_bytes.decode("utf-8"))
+            if not isinstance(audit, dict) or audit.get("schema_version") != 1 or audit.get("execution_id") != execution_id:
+                raise ValueError("Recovered execution audit identity or schema is invalid.")
         if not matching_events:
             raise ValueError(
                 "Execution has no authenticated ledger snapshot; run "
                 "'lisa project ledger migrate' before rollback or validation."
             )
         latest_event = matching_events[-1]
+        pending_path = execution_dir / "lifecycle.pending.json"
+        if pending_path.exists() and latest_event.get("event_type") != "lifecycle_update_intent":
+            latest_details = latest_event.get("details")
+            if (
+                pending_path.is_symlink()
+                or not isinstance(latest_details, dict)
+                or latest_details.get("audit_sha256") != self._sha256(audit_bytes)
+            ):
+                raise ValueError("Uncommitted lifecycle pending record cannot be safely discarded.")
+            pending_path.unlink()
         details = latest_event.get("details")
         if not isinstance(details, dict) or details.get("audit_sha256") != self._sha256(audit_bytes):
             raise ValueError(
