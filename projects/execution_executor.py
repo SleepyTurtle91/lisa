@@ -2,6 +2,7 @@
 import hashlib
 import json
 import os
+import re
 import shutil
 import stat
 import tempfile
@@ -112,12 +113,88 @@ class ProjectExecutionExecutor:
 
     @staticmethod
     def _ensure_private_directory(path, exist_ok=True):
-        """Create a state directory with owner-only permissions on POSIX."""
+        """Create a private state directory without changing shared directories."""
         path = Path(path)
+        existed = path.exists() or path.is_symlink()
+        if path.is_symlink():
+            raise ValueError("Execution state directory must not be a symlink.")
         path.mkdir(parents=True, exist_ok=exist_ok, mode=0o700)
+        if path.is_symlink() or not path.is_dir():
+            raise ValueError("Execution state path must be a real directory.")
         if os.name == "posix":
-            os.chmod(path, 0o700)
+            if existed:
+                mode = stat.S_IMODE(path.stat().st_mode)
+                if mode & 0o077 or mode & 0o700 != 0o700:
+                    raise ValueError(
+                        "Existing execution state directory is not private; "
+                        "restrict its permissions to owner-only (0700) before retrying."
+                    )
+            else:
+                os.chmod(path, 0o700)
         return path
+
+    @staticmethod
+    def _mount_identity(path):
+        """Map a Linux path to its device and path within the mounted filesystem."""
+        mountinfo = Path("/proc/self/mountinfo")
+        if not mountinfo.is_file():
+            return None
+        resolved = os.path.realpath(str(path))
+        best = None
+        try:
+            lines = mountinfo.read_text(encoding="utf-8").splitlines()
+        except OSError:
+            return None
+
+        def unescape(value):
+            return re.sub(
+                r"\\([0-7]{3})",
+                lambda match: chr(int(match.group(1), 8)),
+                value,
+            )
+
+        for line in lines:
+            fields = line.split()
+            if len(fields) < 6:
+                continue
+            device = fields[2]
+            mount_root = unescape(fields[3])
+            mount_point = unescape(fields[4])
+            try:
+                if os.path.commonpath((resolved, mount_point)) != mount_point:
+                    continue
+            except ValueError:
+                continue
+            relative = os.path.relpath(resolved, mount_point)
+            filesystem_path = os.path.normpath(os.path.join(mount_root, relative))
+            candidate = (len(mount_point), device, PurePosixPath(filesystem_path))
+            if best is None or candidate[0] > best[0]:
+                best = candidate
+        if best is None:
+            return None
+        return best[1], best[2]
+
+    @classmethod
+    def _filesystem_roots_overlap(cls, source_root, target_root):
+        """Detect identical, nested, and Linux bind-mounted aliases of project roots."""
+        try:
+            if os.path.samefile(source_root, target_root):
+                return True
+        except OSError:
+            pass
+        source_identity = cls._mount_identity(source_root)
+        target_identity = cls._mount_identity(target_root)
+        if source_identity is None or target_identity is None:
+            return False
+        source_device, source_path = source_identity
+        target_device, target_path = target_identity
+        if source_device != target_device:
+            return False
+        return (
+            source_path == target_path
+            or source_path in target_path.parents
+            or target_path in source_path.parents
+        )
 
     @staticmethod
     def _write_private_file(path, content):
@@ -171,8 +248,9 @@ class ProjectExecutionExecutor:
                 source_root == target_root
                 or source_root in target_root.parents
                 or target_root in source_root.parents
+                or self._filesystem_roots_overlap(source_root, target_root)
             ):
-                raise ValueError("Source and target project roots must not overlap.")
+                raise ValueError("Source and target project roots must not overlap or alias the same filesystem tree.")
             if not target_root.is_dir() or not source_root.is_dir():
                 raise ValueError("Source and target project roots must be existing directories.")
             self._verify_plan_evidence(source_root, plan.source_evidence, "Source")
