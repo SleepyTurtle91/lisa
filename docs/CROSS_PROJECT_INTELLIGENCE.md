@@ -25,7 +25,7 @@ CPI is a general L.I.S.A. capability. It must not depend on a particular project
 | CPI-03 | Cross-project capability discovery with evidence provenance | Implemented; focused CI passing |
 | CPI-04 | Compatibility and conflict triage with architecture constraint evidence | Implemented; focused CI passing |
 | CPI-05 | Review-only adaptation planning | Implemented; focused CI passing |
-| CPI-06 | Explicit approval, governed target execution, regression validation, and audit | Planned |
+| CPI-06 | Explicit approval, bounded target file execution, backups, rollback, and audit | Implemented as a bounded first release; regression validation remains operator-run |
 
 ## Operator commands
 
@@ -83,6 +83,41 @@ The report does not claim there are no conflicts. Extracted constraints are revi
 
 A plan is either `ready_for_review` or `blocked`. It always has `authorization_required=true` and `execution_authorized=false`. Plans are not persisted and cannot execute code. The operator must review the evidence and decide whether a separate, explicitly authorized implementation request should exist.
 
-## CPI-06 remaining boundary
+## CPI-06 governed execution
 
-CPI-06 is not implemented. No command currently copies, modifies, or executes code across project roots. Governed target execution must be designed as a separate, auditable subsystem with explicit file scope, operator approval, rollback strategy, and regression validation.
+CPI-06 adds an explicit patch-application path. It does not copy source files automatically; an operator supplies a reviewed JSON patch and L.I.S.A. binds approval to the exact plan, source evidence hashes, target root, file paths, expected pre-change hashes, and proposed file-content hashes.
+
+\`\`\`text
+lisa project apply <source-id> <target-id> <terms> --patch <patch.json>
+\`\`\`
+
+Patch format:
+
+\`\`\`json
+{
+  "changes": [
+    {
+      "path": "app/Inventory.kt",
+      "content": "class Inventory {}\\n",
+      "expected_sha256": null
+    }
+  ]
+}
+\`\`\`
+
+For an existing file, \`expected_sha256\` is required and must match the current bytes. Use \`null\` only to create a new file. The CLI displays the exact proposed file contents and asks the operator to type the full \`APPLY <digest>\` confirmation. Any changed path, content, plan identity, source evidence, or target root changes the digest and invalidates the approval.
+
+Execution safeguards:
+- Only a \`ready_for_review\` plan with both registered projects still present is eligible.
+- Only explicitly listed regular files may be created or replaced; deletes and directory creation are unsupported.
+- Absolute paths, traversal, symlinks, protected paths, and writes outside the registered target root are rejected.
+- Existing files require an exact SHA-256 precondition to prevent stale-plan overwrites.
+- The patch is bounded to 100 files, 1 MiB per file, and 5 MiB total.
+- Backups and a JSON audit record are stored under \`~/.lisa/executions/\`, outside both project roots.
+- Writes use atomic replacement. If an application or audit write fails, already-written files are rolled back.
+- Approval digests are single-use; replay is rejected.
+- Source project files are never modified by the executor.
+
+CPI-06 intentionally does **not** execute shell commands, build scripts, or tests. A successful file application reports \`validation_required=true\`; the operator must run the target project's normal regression suite before accepting the adaptation. This avoids granting a cross-project adaptation implicit permission to execute arbitrary target code.
+
+The executor is a bounded file-application capability, not a semantic code porter. Human review of the patch and target-specific regression validation remain mandatory.
