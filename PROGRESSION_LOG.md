@@ -1245,4 +1245,5 @@ Key per-case results:
 - Escape line-feed control characters in untrusted paths and success summaries.
 - Preserve newline layout only for proposed file contents.
 - Added an end-to-end CLI regression using a filename containing ESC and LF.
-- Follow-up CI pending; no merge performed.
+- Follow-up CPI Contract CI and Architecture & Integration CI passed (run 45787164349).
+- Independent review re-requested on the updated head; no merge performed.
