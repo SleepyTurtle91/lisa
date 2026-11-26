@@ -12,6 +12,7 @@ from lisa.projects.adaptation_planner import ProjectAdaptationPlanner
 from lisa.projects.adaptation_request import ProjectAdaptationRequest
 from lisa.projects.execution import ExecutionChange, ProjectExecutionRequest
 from lisa.projects.execution_executor import ProjectExecutionExecutor
+from lisa.projects.execution_lifecycle import ProjectExecutionLifecycle
 
 
 class TestGovernedProjectExecution(unittest.TestCase):
@@ -173,6 +174,99 @@ class TestGovernedProjectExecution(unittest.TestCase):
         self.assertFalse(result.success)
         self.assertIn("evidence changed since planning", result.error)
         self.assertFalse((self.target / "app" / "Stale.kt").exists())
+
+
+    def _apply_for_lifecycle(self, changes):
+        result = self.executor.execute(self.request(changes))
+        self.assertTrue(result.success, result.error)
+        return result
+
+    def test_rollback_restores_existing_file_and_removes_created_file(self):
+        existing = self.target / "app" / "Main.kt"
+        original = existing.read_bytes()
+        mode = existing.stat().st_mode & 0o777
+        changes = [
+            ExecutionChange("app/Main.kt", "class Main { val changed = true }\n", hashlib.sha256(original).hexdigest()),
+            ExecutionChange("app/New.kt", "class New {}\n"),
+        ]
+        execution = self._apply_for_lifecycle(changes)
+        lifecycle = ProjectExecutionLifecycle(self.registry, state_dir=self.state_dir)
+        digest = lifecycle.preview_rollback_digest(execution.execution_id)
+        result = lifecycle.rollback(execution.execution_id, f"ROLLBACK {digest}")
+        self.assertTrue(result["success"], result.get("error"))
+        self.assertEqual(existing.read_bytes(), original)
+        self.assertEqual(existing.stat().st_mode & 0o777, mode)
+        self.assertFalse((self.target / "app" / "New.kt").exists())
+        audit = json.loads(Path(execution.audit_path).read_text(encoding="utf-8"))
+        self.assertEqual(audit["lifecycle"]["status"], "rolled_back")
+
+    def test_rollback_refuses_files_changed_after_execution(self):
+        execution = self._apply_for_lifecycle([
+            ExecutionChange("app/Changed.kt", "class Changed {}\n")
+        ])
+        destination = self.target / "app" / "Changed.kt"
+        destination.write_text("someone else's change", encoding="utf-8")
+        lifecycle = ProjectExecutionLifecycle(self.registry, state_dir=self.state_dir)
+        digest = lifecycle.preview_rollback_digest(execution.execution_id)
+        result = lifecycle.rollback(execution.execution_id, f"ROLLBACK {digest}")
+        self.assertFalse(result["success"])
+        self.assertIn("changed since execution", result["error"])
+        self.assertEqual(destination.read_text(encoding="utf-8"), "someone else's change")
+
+    def test_validation_record_is_bound_and_explicitly_operator_reported(self):
+        execution = self._apply_for_lifecycle([
+            ExecutionChange("app/Validated.kt", "class Validated {}\n")
+        ])
+        (self.target / "reports").mkdir()
+        report = self.target / "reports" / "test-results.txt"
+        report.write_text("159 tests passed", encoding="utf-8")
+        lifecycle = ProjectExecutionLifecycle(self.registry, state_dir=self.state_dir)
+        digest = lifecycle.preview_validation_digest(
+            execution.execution_id, "passed", "./gradlew test",
+            "159 tests passed", "reports/test-results.txt",
+        )
+        result = lifecycle.record_validation(
+            execution.execution_id, "passed", "./gradlew test",
+            "159 tests passed", f"RECORD {digest}", "reports/test-results.txt",
+        )
+        self.assertTrue(result["success"], result.get("error"))
+        self.assertEqual(result["status"], "operator_reported_passed")
+        record = json.loads(Path(result["validation_path"]).read_text(encoding="utf-8"))
+        self.assertEqual(record["verification_method"].split(";")[0], "operator_attestation")
+        self.assertEqual(record["evidence"]["sha256"], hashlib.sha256(report.read_bytes()).hexdigest())
+
+    def test_validation_record_refuses_modified_target(self):
+        execution = self._apply_for_lifecycle([
+            ExecutionChange("app/Validated.kt", "class Validated {}\n")
+        ])
+        (self.target / "app" / "Validated.kt").write_text("modified after execution", encoding="utf-8")
+        lifecycle = ProjectExecutionLifecycle(self.registry, state_dir=self.state_dir)
+        digest = lifecycle.preview_validation_digest(
+            execution.execution_id, "passed", "pytest", "all passed"
+        )
+        result = lifecycle.record_validation(
+            execution.execution_id, "passed", "pytest", "all passed", f"RECORD {digest}"
+        )
+        self.assertFalse(result["success"])
+        self.assertIn("changed before validation capture", result["error"])
+
+    def test_validation_cannot_be_recorded_after_rollback(self):
+        execution = self._apply_for_lifecycle([
+            ExecutionChange("app/Validated.kt", "class Validated {}\n")
+        ])
+        lifecycle = ProjectExecutionLifecycle(self.registry, state_dir=self.state_dir)
+        rollback_digest = lifecycle.preview_rollback_digest(execution.execution_id)
+        self.assertTrue(lifecycle.rollback(
+            execution.execution_id, f"ROLLBACK {rollback_digest}"
+        )["success"])
+        digest = lifecycle.preview_validation_digest(
+            execution.execution_id, "passed", "pytest", "all passed"
+        )
+        result = lifecycle.record_validation(
+            execution.execution_id, "passed", "pytest", "all passed", f"RECORD {digest}"
+        )
+        self.assertFalse(result["success"])
+        self.assertIn("not rolled-back", result["error"])
 
 
 if __name__ == "__main__":
