@@ -51,28 +51,58 @@ def add_recent_project(path: str):
     except Exception:
         pass
 
-def scan_common_projects() -> List[str]:
-    search_dirs = [
-        "/home/user/development/projects",
-        "/workspace/Projects",
-        os.getcwd()
-    ]
+def _project_search_roots() -> List[Path]:
+    """Return portable project-discovery roots.
+
+    Operators can provide roots with LISA_PROJECTS_DIRS, separated using the
+    platform's PATH separator. Conventional folders are discovery hints only;
+    no single folder is required for L.I.S.A. to run.
+    """
+    configured = os.getenv("LISA_PROJECTS_DIRS", "")
+    roots = [Path(item).expanduser() for item in configured.split(os.pathsep) if item.strip()]
+    home = Path.home()
+    roots.extend(
+        home / name
+        for name in (
+            "Projects", "projects", "Development", "development/projects",
+            "workspace", "Workspaces", "code", "src",
+        )
+    )
+    roots.append(Path.cwd())
+
+    unique_roots = []
+    seen = set()
+    for root in roots:
+        try:
+            resolved = root.resolve()
+        except OSError:
+            continue
+        if resolved not in seen and resolved.is_dir():
+            seen.add(resolved)
+            unique_roots.append(resolved)
+    return unique_roots
+
+
+def scan_common_projects(search_dirs: Optional[List[Path]] = None) -> List[str]:
+    """Discover projects from configurable, portable workspace roots."""
+    roots = search_dirs if search_dirs is not None else _project_search_roots()
+    markers = ("BOOT.md", "AGENTS.md", ".git", "README.md")
     found = set()
-    for root in search_dirs:
-        if os.path.exists(root) and os.path.isdir(root):
-            try:
-                for entry in os.listdir(root):
-                    full_path = os.path.join(root, entry)
-                    if os.path.isdir(full_path) and not entry.startswith("."):
-                        # Check if it looks like a project
-                        if (os.path.exists(os.path.join(full_path, "BOOT.md")) or 
-                            os.path.exists(os.path.join(full_path, "AGENTS.md")) or
-                            os.path.exists(os.path.join(full_path, ".git")) or
-                            os.path.exists(os.path.join(full_path, "README.md"))):
-                            found.add(os.path.abspath(full_path))
-            except Exception:
-                pass
-    return sorted(list(found))
+
+    for root in roots:
+        root_path = Path(root).expanduser()
+        if not root_path.is_dir():
+            continue
+        try:
+            for child in root_path.iterdir():
+                if not child.is_dir() or child.name.startswith("."):
+                    continue
+                if any((child / marker).exists() for marker in markers):
+                    found.add(str(child.resolve()))
+        except OSError:
+            continue
+
+    return sorted(found)
 
 def prompt_project_selection() -> Optional[str]:
     print("🤖 L.I.S.A. Engineering Operating System REPL Mode")
