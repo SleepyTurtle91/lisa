@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from lisa.projects.execution_executor import ProjectExecutionExecutor
+from lisa.projects.execution_ledger import ProjectExecutionLedger
 
 
 class ProjectExecutionLifecycle:
@@ -176,7 +177,18 @@ class ProjectExecutionLifecycle:
             audit["lifecycle"]["rolled_back_at"] = datetime.now(timezone.utc).isoformat()
             audit["lifecycle"]["restored_files"] = list(restored)
             self._atomic_write(audit_path, (json.dumps(audit, indent=2, sort_keys=True) + "\n").encode())
-            return {"success": True, "execution_id": execution_id, "restored_files": tuple(restored)}
+            ledger_warning = None
+            try:
+                ProjectExecutionLedger(self._state_dir).append(
+                    "rollback_completed", execution_id,
+                    {"audit_sha256": self._sha256(audit_path.read_bytes()), "rollback_digest": digest},
+                )
+            except Exception as ledger_error:
+                ledger_warning = str(ledger_error)
+            return {
+                "success": True, "execution_id": execution_id,
+                "restored_files": tuple(restored), "ledger_warning": ledger_warning,
+            }
         except Exception as exc:
             return {"success": False, "execution_id": execution_id, "error": str(exc)}
 
@@ -230,6 +242,18 @@ class ProjectExecutionLifecycle:
                 "evidence_digest": digest, "recorded_at": record["recorded_at"],
             }
             self._atomic_write(audit_path, (json.dumps(audit, indent=2, sort_keys=True) + "\n").encode())
-            return {"success": True, "execution_id": execution_id, "validation_path": str(validation_path), "status": record["status"]}
+            ledger_warning = None
+            try:
+                ProjectExecutionLedger(self._state_dir).append(
+                    "validation_recorded", execution_id,
+                    {"audit_sha256": self._sha256(audit_path.read_bytes()), "validation_digest": digest},
+                )
+            except Exception as ledger_error:
+                ledger_warning = str(ledger_error)
+            return {
+                "success": True, "execution_id": execution_id,
+                "validation_path": str(validation_path), "status": record["status"],
+                "ledger_warning": ledger_warning,
+            }
         except Exception as exc:
             return {"success": False, "execution_id": execution_id, "error": str(exc)}
