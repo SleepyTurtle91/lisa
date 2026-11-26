@@ -150,5 +150,30 @@ class TestGovernedProjectExecution(unittest.TestCase):
         self.assertTrue(result.validation_required)
 
 
+    def test_changed_source_evidence_invalidates_plan(self):
+        (self.source / "README.md").write_text(
+            "# Inventory\nThe original capability description has changed.",
+            encoding="utf-8",
+        )
+        result = self.executor.execute(self.request([
+            ExecutionChange("app/Stale.kt", "class Stale {}")
+        ]))
+        self.assertFalse(result.success)
+        self.assertIn("evidence changed since planning", result.error)
+        self.assertFalse((self.target / "app" / "Stale.kt").exists())
+
+    def test_changed_target_constraints_invalidate_plan(self):
+        (self.target / "README.md").write_text(
+            "# Changed architecture\nCore may depend on Feature.",
+            encoding="utf-8",
+        )
+        result = self.executor.execute(self.request([
+            ExecutionChange("app/Stale.kt", "class Stale {}")
+        ]))
+        self.assertFalse(result.success)
+        self.assertIn("evidence changed since planning", result.error)
+        self.assertFalse((self.target / "app" / "Stale.kt").exists())
+
+
 if __name__ == "__main__":
     unittest.main()
