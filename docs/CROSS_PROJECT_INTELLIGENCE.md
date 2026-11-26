@@ -25,7 +25,9 @@ CPI is a general L.I.S.A. capability. It must not depend on a particular project
 | CPI-03 | Cross-project capability discovery with evidence provenance | Implemented; focused CI passing |
 | CPI-04 | Compatibility and conflict triage with architecture constraint evidence | Implemented; focused CI passing |
 | CPI-05 | Review-only adaptation planning | Implemented; focused CI passing |
-| CPI-06 | Explicit approval, bounded target file execution, backups, rollback, and audit | Implemented; see CPI-06.1 recovery lifecycle |\n| CPI-06.3 | Authenticated, hash-chained execution ledger and legacy snapshot migration | Implemented on PR branch; CI pending |
+| CPI-06 | Explicit approval, bounded target file execution, backups, rollback, and audit | Implemented; see CPI-06.1 recovery lifecycle |
+| CPI-06.3 | Authenticated, hash-chained execution ledger and legacy snapshot migration | Implemented on PR #6; CI passed |
+| CPI-06.4 | Recoverable ledger appends, explicit interrupted-write recovery, and fault-injection coverage | Implemented on PR branch; CI pending |
 
 ## Operator commands
 
@@ -190,10 +192,31 @@ lisa project ledger migrate
 - Successful rollback and validation transitions append `rollback_completed` and `validation_recorded` events with the new audit snapshot hash.
 - Every event contains a monotonically increasing sequence, previous-event hash, SHA-256 event hash, and HMAC-SHA256 authentication tag. A separately authenticated head checkpoint binds the expected final sequence and event hash, detecting tail truncation as well as edits, insertion, and reordering.
 - Ledger verification checks record structure, sequence continuity, chain links, event hashes, and HMAC tags. Appends fail closed if the existing ledger does not verify.
-- A single-writer lock prevents concurrent appends from creating duplicate sequence numbers. A stale lock is not removed automatically; an operator must inspect it before retrying.
+- A single-writer lock prevents concurrent appends from creating duplicate sequence numbers. A stale lock is removed only when its recorded PID is confirmed absent; active, unreadable, or ambiguous locks fail closed.
 - History verification compares the current audit file hash with the latest ledger event for that execution. An audit changed after its last ledger event fails verification.
 - `ledger migrate` imports pre-existing executions as `legacy_import` snapshots. It records the audit hash observed at migration time and explicitly labels the trust boundary; it cannot authenticate the original historical chronology.
 - If rollback or validation completes but its ledger append fails, the lifecycle operation remains reported as completed with a visible `ledger_warning`; subsequent verification will expose the stale audit snapshot until the issue is reconciled.
 
 **Security boundary:** the ledger is tamper-evident while the separate local key remains intact. It detects event edits, middle/tail deletion, insertion, and reordering when an attacker cannot replace the key or authenticated head checkpoint. Removing the complete local ledger, key, and checkpoint together remains outside the protection boundary. The key and ledger are both local files under the same user-controlled state directory; an administrator with access to both can replace them and forge a new coherent chain. This is not an external trust anchor, remote witness, hardware-backed key, or proof of non-repudiation. L.I.S.A. must describe the status as ledger-authenticated/consistent, never as tamper-proof or externally authenticated.
 
+
+## CPI-06.4 recoverable ledger append transactions
+
+CPI-06.4 makes ledger appends recoverable across process interruption. Each append writes an authenticated pending transaction before modifying the JSONL ledger. The pending record binds the exact event, prior sequence/hash, prior ledger byte length, and SHA-256 of the prior ledger bytes.
+
+Commands:
+
+```text
+lisa project ledger verify
+lisa project ledger recover
+```
+
+- A normal append writes and fsyncs the pending transaction, appends and fsyncs the event, atomically replaces and fsyncs the authenticated head checkpoint, then removes the pending transaction.
+- If the process stops between those steps, verification reports that recovery is required and remains read-only.
+- Recovery validates the pending HMAC, prior ledger snapshot, event sequence/hash, and authenticated head. It accepts only the exact prior state or the exact pending event (including a matching partial event suffix); unexpected bytes or state fail closed.
+- The operator must type the exact `RECOVER <digest>` phrase shown by the CLI before recovery mutates the ledger.
+- If an ordinary write error is caught by the running process, append attempts to restore the exact pre-append ledger/head state and remove its pending marker before returning failure.
+- First-use initialization can complete an empty key/ledger/head setup after interruption, but it never regenerates a missing key when ledger history exists.
+- Directory metadata is fsynced after atomic state replacements and lock/pending cleanup on POSIX systems.
+
+Recovery does not infer or fabricate events. It completes only the exact event already authenticated in the pending transaction. The local key and checkpoint remain user-controlled files; this still does not provide an external trust anchor or non-repudiation.

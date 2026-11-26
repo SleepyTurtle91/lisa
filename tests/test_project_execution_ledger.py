@@ -1,6 +1,8 @@
 import json
+import os
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 from lisa.projects.execution_ledger import ProjectExecutionLedger
@@ -38,7 +40,7 @@ class TestProjectExecutionLedger(unittest.TestCase):
         (self.state / ".ledger.key").unlink()
         result = self.ledger.verify()
         self.assertFalse(result["success"])
-        with self.assertRaisesRegex(ValueError, "must all exist together"):
+        with self.assertRaisesRegex(ValueError, "refusing key regeneration"):
             self.ledger.append("execution_applied", "exec_two", {})
 
     def test_legacy_migration_records_snapshot_not_historical_authenticity(self):
@@ -89,6 +91,119 @@ class TestProjectExecutionLedger(unittest.TestCase):
         self.assertFalse(result["success"])
         self.assertIn("head checkpoint authentication failed", result["error"])
 
+    def test_interrupted_append_requires_explicit_recovery(self):
+        self.ledger.append("execution_applied", "exec_one", {})
+        original_write_head = self.ledger._write_head
+
+        def interrupt_after_event(*args, **kwargs):
+            raise SystemExit("simulated process interruption")
+
+        with mock.patch.object(self.ledger, "_write_head", side_effect=interrupt_after_event):
+            with self.assertRaises(SystemExit):
+                self.ledger.append("validation_recorded", "exec_one", {})
+
+        failed = self.ledger.verify()
+        self.assertFalse(failed["success"])
+        self.assertIn("requires explicit recovery", failed["error"])
+        digest = self.ledger.preview_recovery_digest()
+        recovered = self.ledger.recover(f"RECOVER {digest}")
+        self.assertTrue(recovered["success"], recovered.get("error"))
+        verified = self.ledger.verify()
+        self.assertTrue(verified["success"], verified.get("error"))
+        self.assertEqual(verified["event_count"], 2)
+        self.assertFalse((self.state / ".ledger.pending").exists())
+
+    def test_recovery_rejects_incorrect_confirmation_without_mutation(self):
+        self.ledger.append("execution_applied", "exec_one", {})
+        with mock.patch.object(
+            self.ledger, "_append_bytes", side_effect=SystemExit("simulated interruption")
+        ):
+            with self.assertRaises(SystemExit):
+                self.ledger.append("validation_recorded", "exec_one", {})
+        before = (self.state / "ledger.jsonl").read_bytes()
+        result = self.ledger.recover("RECOVER wrong")
+        self.assertFalse(result["success"])
+        self.assertIn("approval mismatch", result["error"])
+        self.assertEqual((self.state / "ledger.jsonl").read_bytes(), before)
+        self.assertTrue((self.state / ".ledger.pending").exists())
+
+    def test_append_write_failure_restores_previous_ledger_state(self):
+        self.ledger.append("execution_applied", "exec_one", {})
+        original_write_head = self.ledger._write_head
+        calls = {"count": 0}
+
+        def fail_once_then_restore(*args, **kwargs):
+            calls["count"] += 1
+            if calls["count"] == 1:
+                raise OSError("simulated checkpoint failure")
+            return original_write_head(*args, **kwargs)
+
+        with unittest.mock.patch.object(
+            self.ledger, "_write_head", side_effect=fail_once_then_restore
+        ):
+            with self.assertRaisesRegex(OSError, "simulated checkpoint failure"):
+                self.ledger.append("validation_recorded", "exec_one", {})
+        verified = self.ledger.verify()
+        self.assertTrue(verified["success"], verified.get("error"))
+        self.assertEqual(verified["event_count"], 1)
+        self.assertFalse((self.state / ".ledger.pending").exists())
+
+
+    def test_partial_event_write_is_repaired_only_after_approval(self):
+        self.ledger.append("execution_applied", "exec_one", {})
+
+        def interrupt_during_append(encoded):
+            with (self.state / "ledger.jsonl").open("ab") as handle:
+                handle.write(encoded[: max(1, len(encoded) // 2)])
+                handle.flush()
+                os.fsync(handle.fileno())
+            raise SystemExit("simulated interruption during append")
+
+        with mock.patch.object(self.ledger, "_append_bytes", side_effect=interrupt_during_append):
+            with self.assertRaises(SystemExit):
+                self.ledger.append("validation_recorded", "exec_one", {})
+
+        self.assertFalse(self.ledger.verify()["success"])
+        digest = self.ledger.preview_recovery_digest()
+        result = self.ledger.recover(f"RECOVER {digest}")
+        self.assertTrue(result["success"], result.get("error"))
+        verified = self.ledger.verify()
+        self.assertTrue(verified["success"], verified.get("error"))
+        self.assertEqual(verified["event_count"], 2)
+
+    def test_recovery_removes_lock_only_after_owner_is_confirmed_dead(self):
+        self.ledger.append("execution_applied", "exec_one", {})
+        with mock.patch.object(
+            self.ledger, "_append_bytes", side_effect=SystemExit("simulated interruption")
+        ):
+            with self.assertRaises(SystemExit):
+                self.ledger.append("validation_recorded", "exec_one", {})
+        digest = self.ledger.preview_recovery_digest()
+        lock = self.state / ".ledger.lock"
+        lock.write_text("42424242", encoding="ascii")
+
+        with mock.patch("os.kill", side_effect=ProcessLookupError):
+            result = self.ledger.recover(f"RECOVER {digest}")
+
+        self.assertTrue(result["success"], result.get("error"))
+        self.assertFalse(lock.exists())
+        self.assertTrue(self.ledger.verify()["success"])
+
+    def test_recovery_refuses_to_remove_a_live_owner_lock(self):
+        self.ledger.append("execution_applied", "exec_one", {})
+        with mock.patch.object(
+            self.ledger, "_append_bytes", side_effect=SystemExit("simulated interruption")
+        ):
+            with self.assertRaises(SystemExit):
+                self.ledger.append("validation_recorded", "exec_one", {})
+        digest = self.ledger.preview_recovery_digest()
+        lock = self.state / ".ledger.lock"
+        lock.write_text(str(os.getpid()), encoding="ascii")
+
+        result = self.ledger.recover(f"RECOVER {digest}")
+        self.assertFalse(result["success"])
+        self.assertIn("active process", result["error"])
+        self.assertTrue(lock.exists())
 
 if __name__ == "__main__":
     unittest.main()

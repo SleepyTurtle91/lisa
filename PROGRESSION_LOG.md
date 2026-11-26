@@ -1233,7 +1233,7 @@ Key per-case results:
 
 ### Status
 - Implemented on a dedicated branch stacked on CPI-06.2 PR #5.
-- CI validation pending; no merge performed.
+- CPI contract, full architecture/unit, and integration CI passed; no merge performed.
 
 ### What was added
 - Separate JSONL event ledger with sequence numbers, previous-event hash links, event hashes, and HMAC-SHA256 authentication.
@@ -1255,3 +1255,38 @@ Key per-case results:
 - Run focused CPI, full architecture/unit, and integration CI.
 - Review interrupted-write and stale-lock recovery behavior before considering the ledger stable.
 
+
+---
+
+## 2026-11-26 — CPI-06.4 Recoverable Ledger Appends
+
+### Status
+- Implemented on a dedicated branch stacked on CPI-06.3 PR #6.
+- CI validation pending; no merge performed.
+
+### What was added
+- Authenticated pending-transaction journal for every ledger append.
+- Pending transaction binds the exact event and the pre-append ledger byte length, byte hash, sequence, and chain head.
+- Explicit `lisa project ledger recover` command with exact `RECOVER <digest>` operator approval.
+- Recovery validates the pending HMAC, prior ledger snapshot, event chain, and authenticated head before completing the interrupted append.
+- Recovery can safely finish an exact partial event write; unexpected bytes fail closed.
+- Ordinary caught write failures attempt to restore the exact pre-append ledger/head state and clear the pending marker.
+- First-use empty ledger initialization can resume without regenerating a missing key over existing history.
+- POSIX directory fsync after atomic replacements and lock/pending cleanup.
+- Stale lock recovery removes a lock only when its recorded PID is confirmed absent; active, unreadable, or ambiguous locks fail closed.
+- Fault-injection tests for interruption before/after event append, approval mismatch, and checkpoint write failure.
+
+### Evidence
+- [CPI Contract CI run 45762180939](https://github.com/SleepyTurtle91/lisa/actions/runs/45762180939): 79/79 project/CLI tests and 6/6 input-classifier tests passed.
+- Full Architecture & Unit suite: 192/192 tests passed.
+- Integration suite: 1/1 test passed.
+
+### Safety boundary
+- Ledger verification remains read-only and reports pending transactions rather than repairing them silently.
+- Recovery completes only an already-authenticated pending event; it does not infer or invent events.
+- Recovery is explicit and digest-bound to the exact pending transaction.
+- A local administrator with access to the ledger, key, and checkpoint can still forge a coherent local history; no external trust anchor is claimed.
+
+### Follow-up
+- Run focused CPI, full architecture/unit, and integration CI.
+- Review failure logs and address any regressions before considering CPI-06 complete.

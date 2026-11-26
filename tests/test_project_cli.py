@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+from unittest import mock
 import io
 from contextlib import redirect_stdout
 import sys
@@ -340,6 +341,32 @@ class TestProjectCLI(unittest.TestCase):
                     lisa_main.run_project_command(["ledger", "verify"])
                 self.assertIn("Ledger status: verified", output.getvalue())
                 self.assertEqual(ProjectExecutionLedger(lisa_main.PROJECT_EXECUTION_STATE_PATH).verify()["event_count"], 1)
+            finally:
+                lisa_main.PROJECT_EXECUTION_STATE_PATH = original_state
+
+
+    def test_project_ledger_recover_command_requires_and_accepts_digest(self):
+        from lisa.projects.execution_ledger import ProjectExecutionLedger
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            state = Path(temp_dir) / "executions"
+            original_state = lisa_main.PROJECT_EXECUTION_STATE_PATH
+            lisa_main.PROJECT_EXECUTION_STATE_PATH = state
+            try:
+                ledger = ProjectExecutionLedger(state)
+                ledger.append("execution_applied", "exec_one", {})
+                with mock.patch.object(
+                    ledger, "_append_bytes", side_effect=SystemExit("simulated interruption")
+                ):
+                    with self.assertRaises(SystemExit):
+                        ledger.append("validation_recorded", "exec_one", {})
+                digest = ledger.preview_recovery_digest()
+                output = io.StringIO()
+                with mock.patch("builtins.input", return_value=f"RECOVER {digest}"), redirect_stdout(output):
+                    lisa_main.run_project_command(["ledger", "recover"])
+                self.assertIn("Ledger transaction recovered", output.getvalue())
+                self.assertTrue(ledger.verify()["success"])
+                self.assertEqual(ledger.verify()["event_count"], 2)
             finally:
                 lisa_main.PROJECT_EXECUTION_STATE_PATH = original_state
 
