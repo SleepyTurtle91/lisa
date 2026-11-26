@@ -59,7 +59,7 @@ def _project_search_roots() -> List[Path]:
     no single folder is required for L.I.S.A. to run.
     """
     configured = os.getenv("LISA_PROJECTS_DIRS", "")
-    roots = [Path(item).expanduser() for item in configured.split(os.pathsep) if item.strip()]
+    roots = [Path(item.strip()).expanduser() for item in configured.split(os.pathsep) if item.strip()]
     home = Path.home()
     roots.extend(
         home / name
