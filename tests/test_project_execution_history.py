@@ -30,6 +30,8 @@ class TestProjectExecutionHistory(unittest.TestCase):
         )
         (self.target / "settings.gradle.kts").write_text('include(":app")', encoding="utf-8")
         (self.target / "app").mkdir()
+        original_inventory = "class Inventory { val version = 1 }\\n"
+        (self.target / "app" / "Inventory.kt").write_text(original_inventory, encoding="utf-8")
         self.registry = ProjectRegistry()
         manager = ProjectExecutor(self.registry)
         self.source_id = manager.execute(ProjectRequest(
