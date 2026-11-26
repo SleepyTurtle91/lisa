@@ -135,6 +135,7 @@ def run_project_command(args):
         print(f"Lifecycle: {record['lifecycle_status']}")
         print(f"Validation: {record['validation_status']} ({record['validation_integrity']})")
         print(f"Backups: {record['backup_integrity']} ({record['file_count']} changed files)")
+        print(f"Trusted ledger: {record.get('ledger_status', 'unknown')} ({record.get('ledger_event_count', 0)} events)")
         print(f"Current target files: {record['target_file_integrity']}")
         for note in record["integrity_notes"]:
             print(f"Note: {note}")
@@ -163,6 +164,8 @@ def run_project_command(args):
         print(f"Rollback completed: {result['execution_id']}")
         for path in result["restored_files"]:
             print(f"Restored: {path}")
+        if result.get("ledger_warning"):
+            print(f"WARNING: rollback completed but ledger append failed: {result['ledger_warning']}")
         return
 
     if action == "validate" and len(args) >= 2:
@@ -210,6 +213,8 @@ def run_project_command(args):
         print(f"Validation recorded: {result['status']}")
         print(f"Record: {result['validation_path']}")
         print("This is operator-reported evidence, not an independently verified test result.")
+        if result.get("ledger_warning"):
+            print(f"WARNING: validation recorded but ledger append failed: {result['ledger_warning']}")
         return
 
     if action == "apply" and len(args) >= 6 and "--patch" in args:
