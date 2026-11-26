@@ -9,6 +9,7 @@ import hmac
 import json
 import os
 import secrets
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -17,6 +18,7 @@ class ProjectExecutionLedger:
     SCHEMA_VERSION = 1
     LEDGER_NAME = "ledger.jsonl"
     KEY_NAME = ".ledger.key"
+    HEAD_NAME = ".ledger.head"
 
     def __init__(self, state_dir=None):
         self._state_dir = Path(
@@ -24,6 +26,7 @@ class ProjectExecutionLedger:
         ).expanduser().resolve(strict=False)
         self._ledger_path = self._state_dir / self.LEDGER_NAME
         self._key_path = self._state_dir / self.KEY_NAME
+        self._head_path = self._state_dir / self.HEAD_NAME
 
     @staticmethod
     def _canonical(value):
@@ -86,11 +89,50 @@ class ProjectExecutionLedger:
     def _event_body(cls, event):
         return {key: value for key, value in event.items() if key not in ("mac", "event_hash")}
 
-    def verify(self):
-        """Verify sequence, hash chain, and HMAC without changing local state."""
+    def _write_head(self, key, sequence, event_hash):
+        if self._head_path.is_symlink():
+            raise ValueError("Ledger head path is unsafe.")
+        body = {"schema_version": self.SCHEMA_VERSION, "sequence": sequence, "event_hash": event_hash}
+        head = {**body, "mac": hmac.new(key, self._canonical(body), hashlib.sha256).hexdigest()}
+        temporary = None
         try:
-            if not self._ledger_path.exists() and not self._key_path.exists():
+            with tempfile.NamedTemporaryFile(
+                mode="wb", dir=str(self._state_dir), prefix=".ledger-head.",
+                suffix=".tmp", delete=False,
+            ) as handle:
+                temporary = Path(handle.name)
+                handle.write(self._canonical(head) + b"\\n")
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.chmod(temporary, 0o600)
+            os.replace(str(temporary), str(self._head_path))
+        finally:
+            if temporary is not None and temporary.exists():
+                temporary.unlink()
+
+    def _verify_head(self, key, events, previous):
+        if self._head_path.is_symlink() or not self._head_path.is_file():
+            raise ValueError("Authenticated ledger head checkpoint is missing or unsafe.")
+        head = json.loads(self._head_path.read_text(encoding="utf-8"))
+        if not isinstance(head, dict):
+            raise ValueError("Authenticated ledger head checkpoint is malformed.")
+        body = {key: head.get(key) for key in ("schema_version", "sequence", "event_hash")}
+        expected_mac = hmac.new(key, self._canonical(body), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(str(head.get("mac", "")), expected_mac):
+            raise ValueError("Ledger head checkpoint authentication failed.")
+        if body["schema_version"] != self.SCHEMA_VERSION:
+            raise ValueError("Unsupported ledger head checkpoint schema.")
+        if body["sequence"] != len(events) or body["event_hash"] != previous:
+            raise ValueError("Ledger contents do not match the authenticated head checkpoint.")
+
+    def verify(self):
+        """Verify sequence, hash chain, HMAC, and authenticated head checkpoint."""
+        try:
+            artifacts = (self._ledger_path.exists(), self._key_path.exists(), self._head_path.exists())
+            if not any(artifacts):
                 return {"success": True, "status": "not_initialized", "event_count": 0, "events": []}
+            if not all(artifacts):
+                raise ValueError("Ledger, key, and authenticated head checkpoint must all exist together.")
             key = self._load_key(create=False)
             events = self._read_events()
             previous = "0" * 64
@@ -111,6 +153,7 @@ class ProjectExecutionLedger:
                     raise ValueError(f"Ledger event hash mismatch at sequence {index}.")
                 previous = event_hash
                 verified.append(event)
+            self._verify_head(key, events, previous)
             return {
                 "success": True, "status": "verified", "event_count": len(events),
                 "head_hash": previous, "events": verified,
@@ -157,6 +200,7 @@ class ProjectExecutionLedger:
                 os.fsync(descriptor)
             finally:
                 os.close(descriptor)
+            self._write_head(key, event["sequence"], event["event_hash"])
             return event
         finally:
             os.close(lock_fd)
