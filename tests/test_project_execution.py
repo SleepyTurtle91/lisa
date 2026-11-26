@@ -124,6 +124,54 @@ class TestGovernedProjectExecution(unittest.TestCase):
         self.assertIn("must not overlap", result.error)
         self.assertFalse((nested_target / "app" / "Unsafe.kt").exists())
 
+    def test_bind_mount_aliases_of_source_and_target_are_rejected(self):
+        from pathlib import Path
+        from unittest.mock import patch
+
+        def mount_identity(path):
+            if Path(path) == self.source.resolve():
+                return ("8:1", Path("/workspace/project"))
+            return ("8:1", Path("/workspace/project/subproject"))
+
+        with patch.object(ProjectExecutionExecutor, "_mount_identity", side_effect=mount_identity):
+            result = self.executor.execute(self.request([
+                ExecutionChange("app/BindMountEscape.kt", "class Unsafe {}")
+            ]))
+
+        self.assertFalse(result.success)
+        self.assertIn("must not overlap or alias", result.error)
+        self.assertFalse((self.target / "app" / "BindMountEscape.kt").exists())
+
+    def test_same_filesystem_non_overlapping_roots_remain_allowed(self):
+        from pathlib import Path
+        from unittest.mock import patch
+
+        def mount_identity(path):
+            if Path(path) == self.source.resolve():
+                return ("8:1", Path("/workspace/source"))
+            return ("8:1", Path("/workspace/target"))
+
+        with patch.object(ProjectExecutionExecutor, "_mount_identity", side_effect=mount_identity):
+            self.assertFalse(ProjectExecutionExecutor._filesystem_roots_overlap(
+                self.source.resolve(), self.target.resolve()
+            ))
+
+    def test_existing_shared_state_directory_is_not_chmodded(self):
+        if os.name != "posix":
+            self.skipTest("POSIX permission bits are not portable to Windows")
+
+        shared_state = self.source.parent / "shared-state"
+        shared_state.mkdir()
+        shared_state.chmod(0o755)
+        executor = ProjectExecutionExecutor(self.registry, state_dir=shared_state)
+        result = executor.execute(self.request([
+            ExecutionChange("app/SharedState.kt", "class SharedState {}")
+        ]))
+
+        self.assertFalse(result.success)
+        self.assertIn("Existing execution state directory is not private", result.error)
+        self.assertEqual(shared_state.stat().st_mode & 0o777, 0o755)
+
     def test_backup_state_and_files_are_private_on_posix(self):
         if os.name != "posix":
             self.skipTest("POSIX permission bits are not portable to Windows")
