@@ -1483,3 +1483,35 @@ CPI-03 provides evidence-backed candidate discovery across registered project pr
 - Source code contents remain uninspected.
 - Synonym expansion is intentionally small and explicit.
 - The full Architecture & Integration suite remains red separately; the CPI-focused workflow is green.
+
+
+---
+
+## 🧭 CPI-04 / CPI-05 — Compatibility Triage and Review-Only Adaptation Plan
+
+**Date**: 2026-11-26
+
+**Observed execution evidence**:
+- Dedicated CPI Contract CI run [45745518945](https://github.com/SleepyTurtle91/lisa/actions/runs/45745518945).
+- Project registry, CLI, profiling, discovery, compatibility, and adaptation tests: **33/33 passed**.
+- Deterministic input-boundary classification tests: **6/6 passed**.
+
+**CPI-04 observed behavior**:
+- Compared two registered project profiles using technology markers.
+- Checked source capability evidence when a capability query was supplied.
+- Extracted target/source architecture and business-rule constraint lines with their source paths and hashes.
+- Returned conservative statuses: potential reuse, adaptation required, or insufficient evidence.
+
+**CPI-05 observed behavior**:
+- Generated a deterministic review-only adaptation plan.
+- Included source evidence, target constraints, data/persistence mapping tasks, target-native design guidance, and regression validation tasks.
+- Plans with missing source capability evidence or missing explicit target constraints are blocked.
+- Every plan requires operator authorization and sets execution authorization to false.
+
+**Interpretation**:
+The CPI workflow now reaches a reviewable proposal stage. It still does not prove semantic compatibility or implement feature transfer. A real adaptation requires a separate, explicit operator-approved implementation scope.
+
+**Repository-wide validation boundary**:
+- The full Architecture & Integration CI at the same head ran 142 tests and ended with 10 failures and 7 errors.
+- Failures remain outside the focused CPI test selection. The observed set includes hard-coded environment/path assumptions, Ollama provider health failures in the hosted runner, and other existing runtime/integration expectations.
+- The CPI workflow is green; the full repository suite is not green.

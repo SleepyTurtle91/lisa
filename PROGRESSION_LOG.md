@@ -1118,3 +1118,33 @@ Key per-case results:
 
 ### Follow-up
 - Implement CPI-04 compatibility and conflict analysis using explicit architecture and data-model evidence.
+
+
+---
+
+## 2026-11-26 — CPI-04 Compatibility Triage and CPI-05 Plan Preview
+
+### Status
+- Implemented; focused CPI CI passed.
+- Full repository CI remains failing separately.
+
+### What was added
+- Compatibility triage across source and target project profiles.
+- Shared/source-only/target-only technology markers.
+- Optional source capability verification.
+- Architecture and business-rule constraint extraction with file/hash provenance.
+- Conservative compatibility statuses; no claim that conflicts are absent.
+- Deterministic, review-only adaptation plan with blockers, evidence references, target constraints, and regression steps.
+- CLI/REPL commands for `project compare` and `project plan`.
+
+### Evidence
+- [CPI Contract CI run 45745518945](https://github.com/SleepyTurtle91/lisa/actions/runs/45745518945): 33/33 project/CLI/profile/discovery/compatibility/adaptation tests and 6/6 classifier tests passed.
+- Full Architecture & Integration CI at the same head: 142 tests, 10 failures, 7 errors.
+
+### Safety boundary
+- Plans always set `authorization_required=true` and `execution_authorized=false`.
+- Plans with missing capability evidence or missing target architecture constraints are blocked.
+- No cross-project code is copied, edited, or executed.
+
+### Follow-up
+- CPI-06 must introduce a separate explicit approval and audited execution contract. Do not treat a review-only plan as permission to modify a target project.
