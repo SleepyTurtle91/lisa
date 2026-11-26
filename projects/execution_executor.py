@@ -95,6 +95,17 @@ class ProjectExecutionExecutor:
             raise ValueError(f"Path escapes the registered target: {relative.as_posix()}")
         return current
 
+    @classmethod
+    def _verify_plan_evidence(cls, root, evidence_items, label):
+        for evidence in evidence_items:
+            relative = cls._validated_relative_path(evidence.relative_path)
+            path = cls._assert_no_symlink(root, relative)
+            if not path.is_file():
+                raise ValueError(f"{label} evidence file is missing: {relative.as_posix()}")
+            actual = cls._sha256(path.read_bytes())
+            if not evidence.sha256 or actual != evidence.sha256:
+                raise ValueError(f"{label} evidence changed since planning: {relative.as_posix()}")
+
     @staticmethod
     def _atomic_write(path, content, mode=None):
         temp_path = None
@@ -139,6 +150,8 @@ class ProjectExecutionExecutor:
                 raise ValueError("Source and target resolve to the same project root.")
             if not target_root.is_dir() or not source_root.is_dir():
                 raise ValueError("Source and target project roots must be existing directories.")
+            self._verify_plan_evidence(source_root, plan.source_evidence, "Source")
+            self._verify_plan_evidence(target_root, plan.target_constraints, "Target")
 
             digest = self.approval_digest(plan, request.changes, target_root)
             if request.operator_confirmation != f"APPLY {digest}":
