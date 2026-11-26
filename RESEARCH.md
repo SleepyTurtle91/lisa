@@ -1609,3 +1609,7 @@ A follow-up independent review identified a race in the permission restoration p
 **Evidence classification**:
 - `FILE_FACT`: code and regression test are present on `fix/cpi-06-1-no-follow-mode-restore`.
 - `EXECUTION_FACT`: [CPI Contract CI run 45786030592](https://github.com/SleepyTurtle91/lisa/actions/runs/45786030592) passed 56/56 project/CLI tests and 6/6 input-boundary tests. The architecture/unit suite passed 169/169 tests and integration passed 1/1.
+
+
+### Already-absent created-file rollback retry
+A follow-up review found that a file created by the execution may already be absent when a rollback retry begins. Because its original state is absence, rollback now treats that state as already restored and skips permission restoration. A regression verifies the retry reaches the `rolled_back` terminal state.
