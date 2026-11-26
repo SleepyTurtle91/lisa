@@ -16,6 +16,10 @@ class TestProjectCLI(unittest.TestCase):
         visible = lisa_main._escape_terminal_controls(raw)
         self.assertEqual(visible, "name\\x1b[2J\\x0d\\x0anext\\x09line")
         self.assertNotIn(chr(27), visible)
+        path_error = lisa_main._escape_terminal_controls(
+            "protected path\\nforged summary", preserve_newlines=False
+        )
+        self.assertEqual(path_error, "protected path\\x0aforged summary")
 
     def _with_registry(self, root):
         original = lisa_main.PROJECT_REGISTRY_PATH
