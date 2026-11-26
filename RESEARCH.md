@@ -1577,3 +1577,27 @@ These changes address the reviewed failure modes at the CPI foundation boundary.
 **Remaining validation questions**:
 1. Does independent review confirm the follow-up fixes for e-invoice precision, ambiguous C/C++ headers, and evidence tokenization?
 2. Are there any further compatibility-profile false-positive cases that require conservative treatment?
+
+
+---
+
+## CPI Foundation Precision Follow-up — Evidence Isolation and Legacy Metadata
+
+**Date**: 2026-11-26
+
+**Observed review findings**:
+- Capability matching pooled tokens across all profile excerpts and paths, allowing a compound alias such as `stock_take` to be assembled from unrelated evidence units.
+- The e-invoice canonicalizer did not recognize prefixed snake_case identifiers such as `create_e_invoice.py`.
+- Persisted registries could retain legacy `git` capabilities even after the resolver stopped assigning them to new projects.
+- Secret redaction did not consume JSON string values containing escaped quotation marks.
+
+**Implementation changes**:
+- Match each capability alias within one evidence excerpt or one individual path. Cache token sets per evidence unit so matching remains bounded and attributable.
+- Canonicalize e-invoice identifiers when the `e` is preceded by a separator such as an underscore, while preserving the distinction from generic invoice evidence.
+- Filter version-control metadata (`git`, `hg`, `svn`, `vcs`) when loading legacy persisted manifests and again at profile construction.
+- Make quoted secret-value matching escape-aware for JSON and single-quoted values.
+- Add regression tests for cross-excerpt compound alias leakage, prefixed e-invoice identifiers, legacy VCS registry migration, and escaped-quote secrets.
+
+**Evidence classification**:
+- `FILE_FACT`: implementation and regression tests are present on `fix/cpi-foundation-precision-followup`.
+- `EXECUTION_FACT`: pending CI validation on this remediation head.
