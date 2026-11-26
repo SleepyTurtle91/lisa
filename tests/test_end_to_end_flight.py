@@ -94,6 +94,9 @@ class TestEndToEndFlight(unittest.TestCase):
 
     def test_blind_objective_emits_discovery_and_decision_stages(self):
         with tempfile.TemporaryDirectory() as tmpdir:
+            (Path(tmpdir) / "AGENTS.md").write_text(
+                "L.I.S.A. runtime guidance: preserve evidence discipline.", encoding="utf-8"
+            )
             recorder = FlightRecorder(session_id="blind_objective_trace", log_dir=Path(tmpdir))
 
             runtime = LisaRuntime(flight_recorder=recorder)
