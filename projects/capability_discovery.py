@@ -56,7 +56,11 @@ class CapabilityDiscoveryExecutor:
     @classmethod
     def _contains_any(cls, text: str, terms: Iterable[str]) -> bool:
         haystack = cls._tokens(text)
-        return any(term in haystack for term in terms)
+        for term in terms:
+            normalized = cls._tokens(term)
+            if normalized and normalized.issubset(haystack):
+                return True
+        return False
 
     def execute(self, request: CapabilityDiscoveryRequest) -> CapabilityDiscoveryResult:
         if not isinstance(request, CapabilityDiscoveryRequest):
@@ -105,11 +109,9 @@ class CapabilityDiscoveryExecutor:
 
             evidence_refs = []
             for item in profile.evidence:
-                item_terms = self._tokens(item.excerpt)
                 if any(
-                    expanded_term in item_terms
+                    self._contains_any(item.excerpt, self._expansions(term))
                     for term in matched
-                    for expanded_term in self._expansions(term)
                 ):
                     evidence_refs.append(CapabilityEvidence(
                         relative_path=item.relative_path,
