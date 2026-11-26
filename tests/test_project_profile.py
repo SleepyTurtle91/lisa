@@ -102,6 +102,17 @@ class TestProjectProfile(unittest.TestCase):
         self.assertEqual(first.profile, second.profile)
         self.assertEqual(before, after)
 
+    def test_profile_marks_file_inventory_truncation(self):
+        from lisa.projects.indexer import ProjectProfileIndexer
+        original_limit = ProjectProfileIndexer.MAX_SCANNED_FILES
+        ProjectProfileIndexer.MAX_SCANNED_FILES = 2
+        try:
+            result = self.executor.execute(ProjectProfileRequest(project_id=self.project_id))
+            self.assertTrue(result.success, result.error)
+            self.assertTrue(result.profile.inventory_truncated)
+        finally:
+            ProjectProfileIndexer.MAX_SCANNED_FILES = original_limit
+
     def test_profile_contracts_are_frozen_dataclasses(self):
         from lisa.projects import ProjectEvidence, ProjectProfile, ProjectProfileResult
         from lisa.projects.profile_request import ProjectProfileRequest

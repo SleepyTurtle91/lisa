@@ -25,5 +25,6 @@ class ProjectProfile:
     technologies: Tuple[str, ...]
     top_level_directories: Tuple[str, ...]
     source_file_count: int
+    inventory_truncated: bool
     source_files_sample: Tuple[str, ...]
     evidence: Tuple[ProjectEvidence, ...]

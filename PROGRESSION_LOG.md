@@ -1091,3 +1091,30 @@ Key per-case results:
 ### Follow-up
 - Implement deterministic cross-project capability discovery.
 - Then add compatibility/conflict analysis before any adaptation workflow.
+
+
+---
+
+## 2026-11-26 — CPI-03 Cross-Project Capability Discovery
+
+### Status
+- Implemented; focused CPI CI passed.
+
+### What was added
+- Deterministic keyword-based capability discovery over registered project profiles.
+- Query scoping to selected project IDs.
+- Matched query terms and lexical coverage score.
+- Evidence references carrying document paths and content hashes.
+- Matching source paths without reading source-code contents.
+- Top-level CLI and REPL command: `project find <terms>`.
+
+### Evidence
+- [CPI Contract CI run 45744840081](https://github.com/SleepyTurtle91/lisa/actions/runs/45744840081): 22/22 project/CLI/profile/discovery tests and 6/6 classifier tests passed.
+
+### Safety boundary
+- Discovery returns candidates, not compatibility judgments.
+- No source-code content is copied or modified.
+- No target project write or execution permission is granted.
+
+### Follow-up
+- Implement CPI-04 compatibility and conflict analysis using explicit architecture and data-model evidence.

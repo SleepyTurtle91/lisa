@@ -22,7 +22,7 @@ CPI is a general L.I.S.A. capability. It must not depend on a particular project
 |---|---|---|
 | CPI-01 | Project identity, persistent registry, CLI management, isolated project contexts | Implemented; focused CI passing |
 | CPI-02 | Read-only project profiles and evidence-backed architecture inventory | Implemented; focused CI passing |
-| CPI-03 | Cross-project capability discovery with evidence provenance | Implemented in draft PR; validation pending |
+| CPI-03 | Cross-project capability discovery with evidence provenance | Implemented; focused CI passing |
 | CPI-04 | Compatibility and conflict analysis | Planned |
 | CPI-05 | Adaptation planning and operator approval | Planned |
 | CPI-06 | Governed target execution, regression validation, and audit | Planned |

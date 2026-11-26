@@ -1,6 +1,7 @@
 import hashlib
 import os
 import re
+from itertools import islice
 from pathlib import Path
 from typing import Iterable, List, Set, Tuple
 
@@ -14,6 +15,9 @@ class ProjectProfileIndexer:
     It reads documentation and build descriptors only. Source code is inventoried
     by path and extension; source contents are not ingested at this stage.
     """
+
+    MAX_SCANNED_FILES = 20000
+    MAX_WALK_DEPTH = 4
 
     IGNORED_DIRS: Set[str] = {
         ".git", ".hg", ".svn", ".idea", ".gradle", ".dart_tool",
@@ -88,8 +92,13 @@ class ProjectProfileIndexer:
         if not root.is_dir():
             raise ValueError(f"Registered project root is not a directory: {root}")
 
+        walked_files = list(islice(
+            self._walk(root, max_depth=self.MAX_WALK_DEPTH),
+            self.MAX_SCANNED_FILES + 1,
+        ))
+        inventory_truncated = len(walked_files) > self.MAX_SCANNED_FILES
         all_files = sorted(
-            self._walk(root, max_depth=4),
+            walked_files[:self.MAX_SCANNED_FILES],
             key=lambda path: path.relative_to(root).as_posix(),
         )
         evidence_candidates: List[Tuple[Path, str]] = []
@@ -167,6 +176,7 @@ class ProjectProfileIndexer:
             technologies=tuple(sorted(technologies)),
             top_level_directories=top_level,
             source_file_count=len(source_paths),
+            inventory_truncated=inventory_truncated,
             source_files_sample=tuple(source_paths[:max_source_files]),
             evidence=tuple(evidence),
         )

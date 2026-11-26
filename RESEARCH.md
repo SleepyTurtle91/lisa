@@ -1458,3 +1458,28 @@ CPI-02 provides a bounded, read-only inventory of project structure and selected
 **Limitations**:
 - The verification is scoped to the CPI workflow and fixture projects.
 - The repository-wide Architecture & Integration suite remains red with 10 failures and 7 errors at the corresponding branch head; those failures are tracked separately.
+
+
+---
+
+## 🧭 CPI-03 — Evidence-Backed Capability Discovery
+
+**Date**: 2026-11-26
+
+**Observed execution evidence**:
+- Dedicated CPI Contract CI run [45744840081](https://github.com/SleepyTurtle91/lisa/actions/runs/45744840081).
+- Project registry, CLI, profile, and capability discovery tests: **22/22 passed**.
+- Deterministic input-boundary classification tests: **6/6 passed**.
+
+**Observed behavior**:
+- Capability queries are matched deterministically against bounded project documentation excerpts, top-level directory names, and source-file paths.
+- Results carry matched terms, lexical coverage score, evidence file references with SHA-256 digests, and matching source paths.
+- Optional project ID scoping restricts the search to registered projects.
+
+**Interpretation**:
+CPI-03 provides evidence-backed candidate discovery across registered project profiles. It is lexical matching, not semantic equivalence detection. It does not establish compatibility or authorize code transfer.
+
+**Limitations**:
+- Source code contents remain uninspected.
+- Synonym expansion is intentionally small and explicit.
+- The full Architecture & Integration suite remains red separately; the CPI-focused workflow is green.
