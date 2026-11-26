@@ -1198,3 +1198,26 @@ Key per-case results:
 - Reconcile the corresponding automated review threads on PR #2 with verified fixes.
 - Obtain a fresh automated review of PR #11 and address any new findings.
 - Only after PR #11 is validated should the original CPI foundation PR be considered merge-ready.
+
+
+---
+
+## 2026-11-26 — CPI Foundation Follow-up Review
+
+### Findings
+- Follow-up Codex review identified four additional issues after the first remediation validation:
+  - `e_invoice` tokenization could collapse to generic `invoice`.
+  - `.h` headers were classified as C even though they may contain C++.
+  - Evidence excerpts were re-tokenized once per matched query term.
+  - The research checkpoint retained validation questions already answered by recorded CI.
+
+### Changes
+- Canonicalize `e-invoice`, `e_invoice`, and `einvoice` as one distinct lexical token; generic invoice text no longer satisfies an e-invoice query.
+- Treat `.h` as ambiguous and leave it out of C/C++ technology conclusions.
+- Tokenize each evidence excerpt once during attribution and reuse the token set for all matched terms.
+- Update the research checkpoint to distinguish completed CI evidence from genuinely pending review/validation.
+
+### Status
+- Follow-up regression tests added.
+- Follow-up CI and independent review pending.
+- PR #11 remains open and unmerged.
