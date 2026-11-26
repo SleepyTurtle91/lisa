@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 import sys
 import tempfile
 import unittest
@@ -99,6 +100,82 @@ class TestGovernedProjectExecution(unittest.TestCase):
         backup = Path(result.backup_directory) / "app" / "Main.kt"
         self.assertEqual(backup.read_bytes(), original)
         self.assertNotEqual(destination.read_bytes(), original)
+
+    def test_overlapping_source_and_target_roots_are_rejected(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+
+        nested_target = self.source / "nested-target"
+        nested_target.mkdir()
+
+        def registered_project(project_id):
+            if project_id == self.source_id:
+                return SimpleNamespace(root_path=str(self.source))
+            if project_id == self.target_id:
+                return SimpleNamespace(root_path=str(nested_target))
+            return None
+
+        with patch.object(self.registry, "get", side_effect=registered_project):
+            result = self.executor.execute(self.request([
+                ExecutionChange("app/Unsafe.kt", "class Unsafe {}")
+            ]))
+
+        self.assertFalse(result.success)
+        self.assertIn("must not overlap", result.error)
+        self.assertFalse((nested_target / "app" / "Unsafe.kt").exists())
+
+    def test_backup_state_and_files_are_private_on_posix(self):
+        if os.name != "posix":
+            self.skipTest("POSIX permission bits are not portable to Windows")
+
+        destination = self.target / "app" / "Main.kt"
+        original = destination.read_bytes()
+        expected = hashlib.sha256(original).hexdigest()
+        result = self.executor.execute(self.request([
+            ExecutionChange("app/Main.kt", "class Main { val private = true }\\n", expected)
+        ]))
+        self.assertTrue(result.success, result.error)
+
+        backup_dir = Path(result.backup_directory)
+        backup_file = backup_dir / "app" / "Main.kt"
+        self.assertEqual(os.stat(self.state_dir).st_mode & 0o777, 0o700)
+        self.assertEqual(os.stat(backup_dir.parent).st_mode & 0o777, 0o700)
+        self.assertEqual(os.stat(backup_dir).st_mode & 0o777, 0o700)
+        self.assertEqual(os.stat(backup_file).st_mode & 0o777, 0o600)
+
+    def test_successful_rollback_clears_replay_marker_and_allows_retry(self):
+        from unittest.mock import patch
+
+        destination = self.target / "app" / "Main.kt"
+        original = destination.read_bytes()
+        change = ExecutionChange(
+            "app/Main.kt",
+            "class Main { val retry = true }\\n",
+            hashlib.sha256(original).hexdigest(),
+        )
+        request = self.request([change])
+        digest = self.executor.approval_digest(self.plan, [change], self.target)
+        execution_dir = self.state_dir / ("exec_" + digest[:20])
+        atomic_write = ProjectExecutionExecutor._atomic_write
+        audit_failed = False
+
+        def fail_audit_once(path, content, mode=None):
+            nonlocal audit_failed
+            if Path(path).name == "audit.json" and not audit_failed:
+                audit_failed = True
+                raise OSError("simulated audit write failure")
+            return atomic_write(path, content, mode=mode)
+
+        with patch.object(ProjectExecutionExecutor, "_atomic_write", side_effect=fail_audit_once):
+            failed = self.executor.execute(request)
+
+        self.assertFalse(failed.success)
+        self.assertIn("simulated audit write failure", failed.error)
+        self.assertEqual(destination.read_bytes(), original)
+        self.assertFalse(execution_dir.exists())
+
+        retried = self.executor.execute(request)
+        self.assertTrue(retried.success, retried.error)
 
     def test_stale_hash_is_rejected(self):
         destination = self.target / "app" / "Main.kt"
