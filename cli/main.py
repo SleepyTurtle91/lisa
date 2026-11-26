@@ -111,7 +111,7 @@ def run_project_command(args):
                 f"{record.get('execution_id')} | "
                 f"{record.get('source_project_name')} -> {record.get('target_project_name')} | "
                 f"{record.get('lifecycle_status')} | validation: {record.get('validation_status')} | "
-                f"files: {record.get('file_count')} | integrity: {record.get('integrity_status')}"
+                f"files: {record.get('file_count')} | integrity: {record.get('integrity_status')} | ledger: {record.get('ledger_status', 'unknown')}"
             )
             print(f"    Created: {record.get('created_at') or 'unknown'}")
             if record.get("integrity_error"):
