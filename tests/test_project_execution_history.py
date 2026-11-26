@@ -61,6 +61,7 @@ class TestProjectExecutionHistory(unittest.TestCase):
         self.assertEqual(item["lifecycle_status"], "applied")
         self.assertEqual(item["file_count"], 1)
         self.assertEqual(item["integrity_status"], "consistent")
+        self.assertEqual(item["ledger_status"], "anchored")
 
     def test_project_filter_matches_source_or_target(self):
         self.assertEqual(len(self.history.list_history(self.source_id)), 1)
@@ -142,6 +143,31 @@ class TestProjectExecutionHistory(unittest.TestCase):
         verified = self.history.verify(self.execution.execution_id)
         self.assertTrue(verified["success"], verified.get("error"))
         self.assertEqual(verified["record"]["lifecycle_status"], "rolled_back")
+
+
+    def test_ledger_event_tampering_fails_execution_verification(self):
+        ledger_path = self.state / "ledger.jsonl"
+        event = json.loads(ledger_path.read_text(encoding="utf-8"))
+        event["execution_id"] = "exec_forged"
+        ledger_path.write_text(json.dumps(event) + "\\n", encoding="utf-8")
+        result = self.history.verify(self.execution.execution_id)
+        self.assertFalse(result["success"])
+        self.assertIn("Ledger authentication failed", result["error"])
+
+    def test_legacy_execution_is_explicitly_unanchored_until_migrated(self):
+        (self.state / "ledger.jsonl").unlink()
+        (self.state / ".ledger.key").unlink()
+        unanchored = self.history.verify(self.execution.execution_id)
+        self.assertTrue(unanchored["success"], unanchored.get("error"))
+        self.assertEqual(unanchored["record"]["ledger_status"], "legacy_unanchored")
+
+        from lisa.projects.execution_ledger import ProjectExecutionLedger
+        migrated = ProjectExecutionLedger(self.state).migrate_legacy()
+        self.assertTrue(migrated["success"], migrated.get("error"))
+        self.assertEqual(migrated["imported"], 1)
+        verified = self.history.verify(self.execution.execution_id)
+        self.assertTrue(verified["success"], verified.get("error"))
+        self.assertEqual(verified["record"]["ledger_status"], "legacy_snapshot")
 
 
 if __name__ == "__main__":
