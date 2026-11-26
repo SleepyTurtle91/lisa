@@ -1238,5 +1238,5 @@ Key per-case results:
 
 ### Status
 - Dedicated remediation branch stacked on CPI foundation review PR #11.
-- CI and independent review pending.
+- CI passed: 46 project/CLI/profile/discovery/compatibility/adaptation tests, 8 input-classifier tests, 6 REPL tests, 163 architecture/unit tests, and 1 integration test. Independent review pending.
 - No merge performed.
