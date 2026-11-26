@@ -1,4 +1,5 @@
 import json
+import os
 import tempfile
 import unittest
 from unittest import mock
@@ -147,6 +148,62 @@ class TestProjectExecutionLedger(unittest.TestCase):
         self.assertEqual(verified["event_count"], 1)
         self.assertFalse((self.state / ".ledger.pending").exists())
 
+
+    def test_partial_event_write_is_repaired_only_after_approval(self):
+        self.ledger.append("execution_applied", "exec_one", {})
+
+        def interrupt_during_append(encoded):
+            with (self.state / "ledger.jsonl").open("ab") as handle:
+                handle.write(encoded[: max(1, len(encoded) // 2)])
+                handle.flush()
+                os.fsync(handle.fileno())
+            raise SystemExit("simulated interruption during append")
+
+        with mock.patch.object(self.ledger, "_append_bytes", side_effect=interrupt_during_append):
+            with self.assertRaises(SystemExit):
+                self.ledger.append("validation_recorded", "exec_one", {})
+
+        self.assertFalse(self.ledger.verify()["success"])
+        digest = self.ledger.preview_recovery_digest()
+        result = self.ledger.recover(f"RECOVER {digest}")
+        self.assertTrue(result["success"], result.get("error"))
+        verified = self.ledger.verify()
+        self.assertTrue(verified["success"], verified.get("error"))
+        self.assertEqual(verified["event_count"], 2)
+
+    def test_recovery_removes_lock_only_after_owner_is_confirmed_dead(self):
+        self.ledger.append("execution_applied", "exec_one", {})
+        with mock.patch.object(
+            self.ledger, "_append_bytes", side_effect=SystemExit("simulated interruption")
+        ):
+            with self.assertRaises(SystemExit):
+                self.ledger.append("validation_recorded", "exec_one", {})
+        digest = self.ledger.preview_recovery_digest()
+        lock = self.state / ".ledger.lock"
+        lock.write_text("42424242", encoding="ascii")
+
+        with mock.patch("os.kill", side_effect=ProcessLookupError):
+            result = self.ledger.recover(f"RECOVER {digest}")
+
+        self.assertTrue(result["success"], result.get("error"))
+        self.assertFalse(lock.exists())
+        self.assertTrue(self.ledger.verify()["success"])
+
+    def test_recovery_refuses_to_remove_a_live_owner_lock(self):
+        self.ledger.append("execution_applied", "exec_one", {})
+        with mock.patch.object(
+            self.ledger, "_append_bytes", side_effect=SystemExit("simulated interruption")
+        ):
+            with self.assertRaises(SystemExit):
+                self.ledger.append("validation_recorded", "exec_one", {})
+        digest = self.ledger.preview_recovery_digest()
+        lock = self.state / ".ledger.lock"
+        lock.write_text(str(os.getpid()), encoding="ascii")
+
+        result = self.ledger.recover(f"RECOVER {digest}")
+        self.assertFalse(result["success"])
+        self.assertIn("active process", result["error"])
+        self.assertTrue(lock.exists())
 
 if __name__ == "__main__":
     unittest.main()
