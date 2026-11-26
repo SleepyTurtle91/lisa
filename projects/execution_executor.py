@@ -114,7 +114,7 @@ class ProjectExecutionExecutor:
 
     @staticmethod
     def _ensure_private_directory(path, exist_ok=True):
-        """Create a private state directory without changing shared directories."""
+        """Create and validate an owner-private state directory without changing shared directories."""
         path = Path(path)
         existed = path.exists() or path.is_symlink()
         if path.is_symlink():
