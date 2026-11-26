@@ -1253,3 +1253,8 @@ Key per-case results:
 - Refuse permission restoration for multiply linked files so a hard link outside the target cannot receive a mode change.
 - Added regressions for pre-existing hard links and a parent-directory symlink swap during permission restoration.
 - Full CPI and Architecture & Integration CI rerun pending on the updated implementation.
+
+
+### CI confirmation
+- Both `architecture-integration` and `cpi-contracts` jobs passed on the updated rollback traversal implementation.
+- [GitHub Actions run 45793778509](https://github.com/SleepyTurtle91/lisa/actions/runs/45793778509)
