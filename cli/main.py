@@ -38,7 +38,7 @@ PROJECT_REGISTRY_PATH = Path.home() / ".lisa" / "projects.json"
 PROJECT_EXECUTION_STATE_PATH = Path.home() / ".lisa" / "executions"
 
 
-def _escape_terminal_controls(value, preserve_newlines=False):
+def _escape_terminal_controls(value, preserve_newlines=True):
     """Render untrusted terminal controls visibly, optionally preserving content layout."""
     visible = []
     for character in str(value):
@@ -135,7 +135,7 @@ def run_project_command(args):
         print(f"Target root: {_escape_terminal_controls(target_root)}")
         print("Exact proposed changes:")
         for change in changes:
-            safe_path = _escape_terminal_controls(change.relative_path)
+            safe_path = _escape_terminal_controls(change.relative_path, preserve_newlines=False)
             expected_hash = _escape_terminal_controls(change.expected_sha256 or "NEW FILE")
             print(f"--- {safe_path} (expected sha256: {expected_hash})")
             print(_escape_terminal_controls(change.content, preserve_newlines=True))
@@ -159,7 +159,7 @@ def run_project_command(args):
             return
         print(f"Execution completed: {result.execution_id}")
         safe_changed_files = ", ".join(
-            _escape_terminal_controls(path) for path in result.changed_files
+            _escape_terminal_controls(path, preserve_newlines=False) for path in result.changed_files
         )
         print(f"Changed files: {safe_changed_files}")
         print(f"Backup directory: {result.backup_directory}")
