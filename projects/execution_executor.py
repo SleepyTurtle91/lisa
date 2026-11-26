@@ -342,8 +342,9 @@ class ProjectExecutionExecutor:
                     audit_path,
                     (json.dumps(audit, indent=2, sort_keys=True) + "\n").encode("utf-8"),
                 )
-                journal["status"] = "applied"
-                journal["completed_at"] = datetime.now(timezone.utc).isoformat()
+                journal["status"] = "finalizing"
+                journal["files"] = journal_files
+                journal["finalizing_at"] = datetime.now(timezone.utc).isoformat()
                 self._atomic_write(
                     journal_path,
                     (json.dumps(journal, indent=2, sort_keys=True) + "\n").encode("utf-8"),
@@ -356,6 +357,12 @@ class ProjectExecutionExecutor:
                         "audit_sha256": self._sha256(audit_bytes),
                         "target_project_id": plan.target_project_id,
                     },
+                )
+                journal["status"] = "completed"
+                journal["completed_at"] = datetime.now(timezone.utc).isoformat()
+                self._atomic_write(
+                    journal_path,
+                    (json.dumps(journal, indent=2, sort_keys=True) + "\\n").encode("utf-8"),
                 )
             except Exception:
                 rollback_errors = []
