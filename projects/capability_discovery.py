@@ -105,9 +105,10 @@ class CapabilityDiscoveryExecutor:
             path_text = "\n".join(profile.top_level_directories + profile.source_files_sample)
             corpus = evidence_text + "\n" + path_text
 
+            corpus_tokens = self._tokens(corpus)
             matched = tuple(sorted(
                 term for term in query_terms
-                if self._contains_any(corpus, self._expansions(term))
+                if self._contains_tokens(corpus_tokens, self._expansions(term))
             ))
             if not matched:
                 continue
