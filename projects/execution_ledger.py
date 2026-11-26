@@ -339,6 +339,8 @@ class ProjectExecutionLedger:
         self._fsync_directory()
 
     def _recover_pending_locked(self, key, pending):
+        if self._ledger_path.is_symlink():
+            raise ValueError("Ledger path is unsafe.")
         raw = self._ledger_path.read_bytes() if self._ledger_path.exists() else b""
         previous_size = pending.get("previous_size")
         if not isinstance(previous_size, int) or previous_size < 0:
@@ -397,10 +399,12 @@ class ProjectExecutionLedger:
         """Return the digest an operator must confirm to recover a pending append."""
         try:
             self._assert_state_dir_safe()
+            if self._pending_path.is_symlink():
+                raise ValueError("Pending ledger transaction path is unsafe.")
+            if not self._pending_path.exists():
+                return None
             key = self._load_key(create=False)
             pending = self._read_pending(key)
-            if pending is None:
-                return None
             return self._sha256(self._canonical(pending))
         except Exception:
             raise
@@ -408,6 +412,10 @@ class ProjectExecutionLedger:
     def recover(self, operator_confirmation):
         """Complete one authenticated interrupted append after exact operator approval."""
         self._ensure_state_dir()
+        if self._pending_path.is_symlink():
+            return {"success": False, "status": "failed", "error": "Pending ledger transaction path is unsafe."}
+        if not self._pending_path.exists():
+            return {"success": True, "status": "no_pending_transaction"}
         descriptor, lock_path = self._acquire_lock()
         try:
             key = self._load_key(create=False)
