@@ -1568,3 +1568,34 @@ CPI-06 establishes a narrow, operator-approved file application boundary. It is 
 - Regression tests are not automatically run because executing arbitrary target build/test commands would create a separate code-execution boundary.
 - Manual rollback/recovery command and post-execution validation evidence capture remain follow-up work.
 - Verification is from the repository's GitHub Actions environment (Python 3.14); local Fedora execution has not been observed in this task.
+
+
+---
+
+## 🧾 CPI-06.3 Follow-up — Ledger Reliability and Provenance
+
+**Date**: 2026-11-26
+
+**Observed review findings**:
+- A process crash could leave an exclusive-create lock file that permanently blocked future ledger appends.
+- A short append could leave a partial JSONL tail that made all future verification and appends fail.
+- Lifecycle operations could append a new ledger snapshot without first checking the current audit against the previously authenticated snapshot.
+- Legacy-import trust status could be lost after a later lifecycle event.
+- History listing verified the complete ledger once per execution, creating quadratic work as the number of records grew.
+
+**Implementation changes on the remediation branch**:
+- Replace stale-file exclusion with an OS advisory writer lock (POSIX `flock`, Windows byte-range lock). The lock file may persist; the OS releases the lock when its process exits.
+- Loop on short writes and truncate to the prior ledger length on append failure. A failed first append leaves a valid authenticated empty checkpoint so a retry can proceed.
+- Before lifecycle preview/mutation, verify that the current audit bytes match the latest authenticated event. Unanchored pre-ledger records require explicit `ledger migrate` before rollback or validation.
+- Preserve `legacy_snapshot` classification whenever a migration event exists in that execution's event history, even after subsequent lifecycle events.
+- Verify the ledger once per history listing and reuse a per-execution event index.
+- Add tests for stale lock recovery, active writer exclusion, interrupted short writes, prior-snapshot tampering, legacy trust preservation, and one-pass history verification.
+
+**Security and reliability boundary**:
+- The local HMAC key and ledger remain user-controlled; this is not an external trust anchor.
+- OS advisory lock semantics and local filesystem durability remain platform/filesystem dependent.
+- If truncation recovery itself fails, the append fails loudly and requires operator recovery; the system does not silently accept a malformed tail.
+
+**Evidence classification**:
+- `FILE_FACT`: implementation and regression tests are present on `fix/cpi-06-3-ledger-reliability`.
+- `EXECUTION_FACT`: pending CI validation on this remediation head.
