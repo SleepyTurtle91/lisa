@@ -97,7 +97,7 @@ class ProjectExecutionRecovery:
             raise ValueError("Execution journal schema is invalid.")
         if journal.get("execution_id") != execution_id:
             raise ValueError("Execution journal identity does not match its directory.")
-        if journal.get("status") not in ("applying", "recovery_required", "recovery_in_progress"):
+        if journal.get("status") not in ("applying", "recovery_required", "recovery_in_progress", "finalizing"):
             raise ValueError("Execution does not have an interrupted apply requiring recovery.")
         approval = journal.get("approval_digest")
         if not isinstance(approval, str) or len(approval) != self.SHA256_LENGTH:
