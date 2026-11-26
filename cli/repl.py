@@ -241,9 +241,9 @@ def render_computer_boot_sequence(proj_name: str):
         time.sleep(0.03)
     print()
 
-async def start_repl(target_dir: Optional[str] = None):
+async def start_repl(target_dir: Optional[str] = None, force_select: bool = False):
     project_executor = _project_executor()
-    if not target_dir:
+    if not target_dir and not force_select:
         active_context = project_executor.execute(
             ProjectRequest(operation=ProjectOperation.LIST)
         ).context
@@ -519,7 +519,7 @@ async def start_repl(target_dir: Optional[str] = None):
             elif cmd == "switch":
                 await runtime.shutdown()
                 print("\nSwitching project...")
-                await start_repl(None)
+                await start_repl(None, force_select=True)
                 return
             elif cmd == "summarize boot":
                 prompt = f"Please read {target_dir}/BOOT.md and summarize the active milestone."
