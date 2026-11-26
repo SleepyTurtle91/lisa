@@ -104,7 +104,10 @@ class ProjectProfileIndexer:
         )
         evidence_candidates: List[Tuple[Path, str]] = []
         source_paths: List[str] = []
-        technologies = {\n            capability for capability in manifest.capabilities\n            if capability.casefold() not in self.NON_TECHNICAL_CAPABILITIES\n        }
+        technologies = {
+            capability for capability in manifest.capabilities
+            if capability.casefold() not in self.NON_TECHNICAL_CAPABILITIES
+        }
 
         for path in all_files:
             relative = path.relative_to(root)
