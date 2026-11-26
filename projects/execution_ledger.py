@@ -269,6 +269,9 @@ class ProjectExecutionLedger:
                             "Ledger append failed and the incomplete tail could not be removed; "
                             f"operator recovery is required: {recovery_error}"
                         )
+                    if current.get("status") == "not_initialized":
+                        self._ledger_path.unlink(missing_ok=True)
+                        self._key_path.unlink(missing_ok=True)
                     raise
             finally:
                 os.close(descriptor)
