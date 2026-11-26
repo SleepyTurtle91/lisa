@@ -110,6 +110,7 @@ def run_project_command(args):
         print(f"Lifecycle: {record['lifecycle_status']}")
         print(f"Validation: {record['validation_status']} ({record['validation_integrity']})")
         print(f"Backups: {record['backup_integrity']} ({record['file_count']} changed files)")
+        print(f"Current target files: {record['target_file_integrity']}")
         for note in record["integrity_notes"]:
             print(f"Note: {note}")
         return
