@@ -2,7 +2,7 @@ name: L.I.S.A. CPI Contract CI
 
 on:
   pull_request:
-    branches: [ main, feat/cross-project-intelligence-foundation, feat/cpi-06-governed-execution ]
+    branches: [ main, feat/cross-project-intelligence-foundation, feat/cpi-06-governed-execution, feat/cpi-06-1-recovery-validation ]
     paths:
       - "projects/**"
       - "cli/**"
