@@ -1592,4 +1592,4 @@ CPI-06 establishes a narrow, operator-approved file application boundary. It is 
 
 **Evidence classification**:
 - `FILE_FACT`: fixes and regression tests are present on `fix/cpi-06-2-history-review-findings`.
-- `EXECUTION_FACT`: pending CI validation on this remediation head.
+- `EXECUTION_FACT`: [CPI Contract CI run 45785133099](https://github.com/SleepyTurtle91/lisa/actions/runs/45785133099) passed 66/66 project/CLI tests and 6/6 input-boundary tests. The architecture/unit suite passed 179/179 tests and integration passed 1/1.
