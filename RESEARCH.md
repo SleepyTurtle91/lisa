@@ -1568,3 +1568,25 @@ CPI-06 establishes a narrow, operator-approved file application boundary. It is 
 - Regression tests are not automatically run because executing arbitrary target build/test commands would create a separate code-execution boundary.
 - Manual rollback/recovery command and post-execution validation evidence capture remain follow-up work.
 - Verification is from the repository's GitHub Actions environment (Python 3.14); local Fedora execution has not been observed in this task.
+
+
+---
+
+## 🛡️ CPI-06.1 Review Remediation — Rollback Integrity
+
+**Date**: 2026-11-26
+
+**Observed review findings**:
+- Rollback treated an existing directory or other non-regular object at a newly-created file path as if the path were absent.
+- A target file whose bytes had already returned to the original hash could retain an independently changed permission mode.
+- The original rollback loop already rechecked the target hash immediately before restoration; a dedicated race regression is added to preserve this guard.
+
+**Implementation changes on the remediation branch**:
+- Distinguish a genuinely missing path from symlinks, directories, FIFOs, and other non-regular objects. The check uses `lstat`, non-blocking/no-follow open flags where supported, and descriptor metadata before reading.
+- Revalidate the current file hash immediately before each restore operation.
+- Restore and verify the original permission mode even when the original bytes are already present.
+- Add regression tests for non-regular replacement, a concurrent edit between preflight and restore, and mode restoration with already-restored bytes.
+
+**Evidence classification**:
+- `FILE_FACT`: implementation and regression tests are present on `fix/cpi-06-1-recovery-review-findings`.
+- `EXECUTION_FACT`: pending GitHub Actions validation on this remediation head.
