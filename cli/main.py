@@ -4,6 +4,7 @@ import os
 import time
 import asyncio
 import json
+import unicodedata
 from pathlib import Path
 from datetime import datetime
 
@@ -36,6 +37,18 @@ from lisa.projects.execution_executor import ProjectExecutionExecutor
 PROJECT_REGISTRY_PATH = Path.home() / ".lisa" / "projects.json"
 PROJECT_EXECUTION_STATE_PATH = Path.home() / ".lisa" / "executions"
 
+
+def _escape_terminal_controls(value):
+    """Render terminal control characters visibly in operator-facing previews."""
+    visible = []
+    for character in str(value):
+        if character != "\n" and unicodedata.category(character) == "Cc":
+            codepoint = ord(character)
+            escaped = f"\\x{codepoint:02x}" if codepoint <= 0xff else f"\\u{codepoint:04x}"
+            visible.append(escaped)
+        else:
+            visible.append(character)
+    return "".join(visible)
 
 def _project_executor():
     return ProjectExecutor(registry=ProjectRegistry(storage_path=PROJECT_REGISTRY_PATH))
@@ -113,13 +126,18 @@ def run_project_command(args):
 
         target_root = target_matches[0].root_path
         digest = ProjectExecutionExecutor.approval_digest(plan, changes, target_root)
-        print(f"Governed execution preview: {plan.source_project_name} -> {plan.target_project_name}")
-        print(f"Plan: {plan.plan_id}")
-        print(f"Target root: {target_root}")
+        print(
+            "Governed execution preview: "
+            f"{_escape_terminal_controls(plan.source_project_name)} -> "
+            f"{_escape_terminal_controls(plan.target_project_name)}"
+        )
+        print(f"Plan: {_escape_terminal_controls(plan.plan_id)}")
+        print(f"Target root: {_escape_terminal_controls(target_root)}")
         print("Exact proposed changes:")
         for change in changes:
-            print(f"--- {change.relative_path} (expected sha256: {change.expected_sha256 or 'NEW FILE'})")
-            print(change.content)
+            safe_path = _escape_terminal_controls(change.relative_path)
+            print(f"--- {safe_path} (expected sha256: {change.expected_sha256 or 'NEW FILE'})")
+            print(_escape_terminal_controls(change.content))
         print("No commands or tests will be run by this operation.")
         print("Backups and an audit record will be created outside both project roots.")
         try:
