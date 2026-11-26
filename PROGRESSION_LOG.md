@@ -1233,7 +1233,7 @@ Key per-case results:
 
 ### Status
 - Implemented on a dedicated branch stacked on CPI-06.2 PR #5.
-- CI validation pending; no merge performed.
+- CPI contract, full architecture/unit, and integration CI passed; no merge performed.
 
 ### What was added
 - Separate JSONL event ledger with sequence numbers, previous-event hash links, event hashes, and HMAC-SHA256 authentication.
@@ -1274,6 +1274,11 @@ Key per-case results:
 - First-use empty ledger initialization can resume without regenerating a missing key over existing history.
 - POSIX directory fsync after atomic replacements and lock/pending cleanup.
 - Fault-injection tests for interruption before/after event append, approval mismatch, and checkpoint write failure.
+
+### Evidence
+- [CPI Contract CI run 45761934224](https://github.com/SleepyTurtle91/lisa/actions/runs/45761934224): 76/76 project/CLI tests and 6/6 input-classifier tests passed.
+- Full Architecture & Unit suite: 189/189 tests passed.
+- Integration suite: 1/1 test passed.
 
 ### Safety boundary
 - Ledger verification remains read-only and reports pending transactions rather than repairing them silently.
