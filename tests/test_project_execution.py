@@ -13,6 +13,7 @@ from lisa.projects.adaptation_request import ProjectAdaptationRequest
 from lisa.projects.execution import ExecutionChange, ProjectExecutionRequest
 from lisa.projects.execution_executor import ProjectExecutionExecutor
 from lisa.projects.execution_lifecycle import ProjectExecutionLifecycle
+from lisa.projects.execution_ledger import ProjectExecutionLedger
 
 
 class TestGovernedProjectExecution(unittest.TestCase):
@@ -267,6 +268,69 @@ class TestGovernedProjectExecution(unittest.TestCase):
         )
         self.assertFalse(result["success"])
         self.assertIn("not rolled-back", result["error"])
+
+
+    def test_interrupted_rollback_ledger_commit_recovers_from_pending_audit(self):
+        from unittest.mock import patch
+
+        execution = self._apply_for_lifecycle([
+            ExecutionChange("app/RecoverRollback.kt", "class RecoverRollback {}\\n")
+        ])
+        lifecycle = ProjectExecutionLifecycle(self.registry, state_dir=self.state_dir)
+        digest = lifecycle.preview_rollback_digest(execution.execution_id)
+        original_append = ProjectExecutionLedger.append
+
+        def fail_completion(ledger, event_type, execution_id, details=None):
+            if event_type == "rollback_completed":
+                raise OSError("simulated ledger interruption")
+            return original_append(ledger, event_type, execution_id, details)
+
+        with patch.object(ProjectExecutionLedger, "append", new=fail_completion):
+            interrupted = lifecycle.rollback(execution.execution_id, f"ROLLBACK {digest}")
+        self.assertFalse(interrupted["success"])
+        self.assertTrue((self.state_dir / execution.execution_id / "lifecycle.pending.json").is_file())
+
+        lifecycle.preview_rollback_digest(execution.execution_id)
+        audit = json.loads(Path(execution.audit_path).read_text(encoding="utf-8"))
+        self.assertEqual(audit["lifecycle"]["status"], "rolled_back")
+        self.assertFalse((self.state_dir / execution.execution_id / "lifecycle.pending.json").exists())
+        verified = ProjectExecutionLedger(self.state_dir).verify()
+        self.assertTrue(verified["success"], verified.get("error"))
+        self.assertEqual(verified["events"][-1]["event_type"], "rollback_completed")
+
+    def test_interrupted_validation_ledger_commit_recovers_from_pending_audit(self):
+        from unittest.mock import patch
+
+        execution = self._apply_for_lifecycle([
+            ExecutionChange("app/RecoverValidation.kt", "class RecoverValidation {}\\n")
+        ])
+        lifecycle = ProjectExecutionLifecycle(self.registry, state_dir=self.state_dir)
+        digest = lifecycle.preview_validation_digest(
+            execution.execution_id, "passed", "pytest", "all passed"
+        )
+        original_append = ProjectExecutionLedger.append
+
+        def fail_validation(ledger, event_type, execution_id, details=None):
+            if event_type == "validation_recorded":
+                raise OSError("simulated ledger interruption")
+            return original_append(ledger, event_type, execution_id, details)
+
+        with patch.object(ProjectExecutionLedger, "append", new=fail_validation):
+            interrupted = lifecycle.record_validation(
+                execution.execution_id, "passed", "pytest", "all passed", f"RECORD {digest}"
+            )
+        self.assertFalse(interrupted["success"])
+        self.assertTrue((self.state_dir / execution.execution_id / "lifecycle.pending.json").is_file())
+
+        lifecycle.preview_validation_digest(
+            execution.execution_id, "passed", "pytest", "all passed"
+        )
+        audit = json.loads(Path(execution.audit_path).read_text(encoding="utf-8"))
+        self.assertEqual(audit["validation"]["status"], "operator_reported_passed")
+        self.assertFalse((self.state_dir / execution.execution_id / "lifecycle.pending.json").exists())
+        verified = ProjectExecutionLedger(self.state_dir).verify()
+        self.assertTrue(verified["success"], verified.get("error"))
+        self.assertEqual(verified["events"][-1]["event_type"], "validation_recorded")
 
 
 if __name__ == "__main__":
