@@ -89,7 +89,8 @@ class ProjectExecutionHistory:
             if recorded_hash != actual_hash:
                 raise ValueError("Execution audit has changed since its latest trusted-ledger event.")
             ledger_status = (
-                "legacy_snapshot" if latest_event.get("event_type") == "legacy_import"
+                "legacy_snapshot"
+                if any(event.get("event_type") == "legacy_import" for event in matching_events)
                 else "locally_authenticated"
             )
         if not isinstance(audit, dict) or audit.get("schema_version") != 1:
