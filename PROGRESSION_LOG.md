@@ -1232,4 +1232,5 @@ Key per-case results:
 ### Follow-up — Already-absent created-file rollback
 - Treat an already-absent execution-created file as successfully restored during rollback retry.
 - Added a regression verifying the lifecycle reaches `rolled_back`.
-- Follow-up CI pending; no merge performed.
+- Follow-up CPI Contract CI and Architecture & Integration CI passed (run 45787096321).
+- Independent review re-requested on the updated head; no merge performed.
