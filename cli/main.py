@@ -373,6 +373,8 @@ def run_project_command(args):
         print(f"Changed files: {', '.join(result.changed_files)}")
         print(f"Backup directory: {result.backup_directory}")
         print(f"Audit record: {result.audit_path}")
+        if result.warning:
+            print(f"WARNING: {result.warning}")
         print("VALIDATION REQUIRED: run the target project's regression suite before accepting this adaptation.")
         return
     if action == "plan" and len(args) >= 4:
