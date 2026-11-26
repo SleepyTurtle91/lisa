@@ -39,7 +39,7 @@ class TestProjectExecutionLedger(unittest.TestCase):
         (self.state / ".ledger.key").unlink()
         result = self.ledger.verify()
         self.assertFalse(result["success"])
-        with self.assertRaisesRegex(ValueError, "must all exist together"):
+        with self.assertRaisesRegex(ValueError, "refusing key regeneration"):
             self.ledger.append("execution_applied", "exec_two", {})
 
     def test_legacy_migration_records_snapshot_not_historical_authenticity(self):
