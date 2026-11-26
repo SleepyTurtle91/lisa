@@ -1,6 +1,9 @@
 import tempfile
 import unittest
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from lisa.cli import main as lisa_main
 
