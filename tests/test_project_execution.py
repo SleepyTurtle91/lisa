@@ -352,5 +352,37 @@ class TestGovernedProjectExecution(unittest.TestCase):
         self.assertEqual(verified["record"]["lifecycle_status"], "applied")
 
 
+    def test_recovery_can_resume_after_a_second_interruption(self):
+        existing = self.target / "app" / "Main.kt"
+        original = existing.read_bytes()
+        changes = [
+            ExecutionChange("app/Main.kt", "class Main { val changed = true }\\n", hashlib.sha256(original).hexdigest()),
+            ExecutionChange("app/New.kt", "class New {}\\n"),
+        ]
+        execution_id = self._simulate_interrupted_apply(changes, existing)
+        recovery = ProjectExecutionRecovery(self.registry, state_dir=self.state_dir)
+        digest = recovery.preview_digest(execution_id)
+        original_atomic_write = ProjectExecutionExecutor._atomic_write
+
+        def interrupt_after_restore(path, data, mode=None):
+            result = original_atomic_write(path, data, mode=mode)
+            if Path(path) == existing:
+                raise SystemExit("simulated interruption during recovery")
+            return result
+
+        with mock.patch.object(ProjectExecutionExecutor, "_atomic_write", side_effect=interrupt_after_restore):
+            with self.assertRaises(SystemExit):
+                recovery.recover(execution_id, f"RECOVER {digest}")
+
+        self.assertEqual(existing.read_bytes(), original)
+        self.assertIn(execution_id, [item["execution_id"] for item in recovery.list_pending()])
+        retry_digest = recovery.preview_digest(execution_id)
+        result = recovery.recover(execution_id, f"RECOVER {retry_digest}")
+        self.assertTrue(result["success"], result.get("error"))
+        self.assertEqual(existing.read_bytes(), original)
+        self.assertFalse((self.target / "app" / "New.kt").exists())
+        self.assertEqual(recovery.list_pending(), [])
+
+
 if __name__ == "__main__":
     unittest.main()
