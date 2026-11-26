@@ -1247,3 +1247,11 @@ Key per-case results:
 - Added an end-to-end CLI regression using a filename containing ESC and LF.
 - Follow-up CPI Contract CI and Architecture & Integration CI passed (run 45787164349).
 - Independent review re-requested on the updated head; no merge performed.
+
+### Follow-up — Execution state boundary hardening
+- Escape untrusted paths included in execution failure messages.
+- Fail closed on Linux when mount identity data cannot be verified.
+- Apply filesystem-identity overlap checks to the execution-state root as well as source and target projects.
+- Require pre-existing POSIX execution-state directories to be owned by the current user.
+- Added regression coverage for unavailable mount metadata, state-root bind aliases, foreign ownership, and failure-path escaping.
+- CI pending; no merge performed.
