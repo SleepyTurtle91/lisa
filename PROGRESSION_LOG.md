@@ -1166,3 +1166,34 @@ Key per-case results:
 - Plan previews include source evidence and target constraints.
 - Every plan requires authorization and is marked not authorized for execution.
 - CPI-06 remains a separate future milestone. No code is transferred or applied by this branch.
+
+
+---
+
+## 2026-11-26 — CPI Foundation Review Remediation
+
+### Status
+- Review-driven implementation changes committed on `fix/cpi-foundation-review-findings`.
+- Focused CI validation pending; no passing test claim is made yet.
+- Original PR #2 branch remains unchanged by the remediation code.
+
+### Changes
+- Recognize CMakeLists.txt and Makefile as valid project markers.
+- Keep Git/VCS markers out of technology compatibility profiles.
+- Map all inventoried source suffixes to explicit technology markers.
+- Redact quoted JSON secret properties in evidence excerpts.
+- Normalize underscore-separated capability aliases consistently during candidate matching and evidence attribution.
+- Preserve natural-language routing for prose beginning with `project`.
+- Ensure an explicit REPL switch reaches project selection instead of restoring the active project.
+- Add regression coverage for the above cases.
+
+### Governance
+- Changes are isolated in PR #11, targeting the CPI foundation branch.
+- No PR has been merged.
+- No target project has been modified or executed by this remediation.
+- The CPI workflow trigger was extended on the foundation branch so stacked remediation PRs targeting that branch can receive focused CI.
+
+### Follow-up
+- Inspect PR #11 Actions results and fix any test or integration failures.
+- Reconcile the corresponding automated review threads on PR #2 with verified fixes.
+- Only after PR #11 is validated should the original CPI foundation PR be considered merge-ready.
