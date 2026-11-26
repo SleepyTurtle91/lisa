@@ -1148,3 +1148,21 @@ Key per-case results:
 
 ### Follow-up
 - CPI-06 must introduce a separate explicit approval and audited execution contract. Do not treat a review-only plan as permission to modify a target project.
+
+
+---
+
+## 2026-11-26 — CPI-05 Final Plan Evidence Checkpoint
+
+### Status
+- Focused CPI CI passed at final implementation head.
+- Full repository CI remains failing.
+
+### Evidence
+- [CPI Contract CI run 45745715666](https://github.com/SleepyTurtle91/lisa/actions/runs/45745715666): 33/33 project/CLI/profile/discovery/compatibility/adaptation tests passed; 6/6 classifier tests passed.
+- [Full Architecture & Integration CI run 45745721295](https://github.com/SleepyTurtle91/lisa/actions/runs/45745721295): 142 tests, 10 failures, 7 errors.
+
+### Final safety boundary
+- Plan previews include source evidence and target constraints.
+- Every plan requires authorization and is marked not authorized for execution.
+- CPI-06 remains a separate future milestone. No code is transferred or applied by this branch.

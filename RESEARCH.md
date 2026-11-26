@@ -1515,3 +1515,23 @@ The CPI workflow now reaches a reviewable proposal stage. It still does not prov
 - The full Architecture & Integration CI at the same head ran 142 tests and ended with 10 failures and 7 errors.
 - Failures remain outside the focused CPI test selection. The observed set includes hard-coded environment/path assumptions, Ollama provider health failures in the hosted runner, and other existing runtime/integration expectations.
 - The CPI workflow is green; the full repository suite is not green.
+
+
+---
+
+## 🧪 CPI-05 — Adaptation Plan Evidence Completeness Check
+
+**Date**: 2026-11-26
+
+**Observed execution evidence**:
+- Final focused workflow at head `c13a2eed308809a57afea3cb60e6c0d5a6166eac`: [CPI Contract CI run 45745715666](https://github.com/SleepyTurtle91/lisa/actions/runs/45745715666).
+- Project/CLI/profile/discovery/compatibility/adaptation tests: **33/33 passed**.
+- Input boundary classifier tests: **6/6 passed**.
+- The final plan output includes source evidence references and source paths, target constraints, shared technology markers, and an explicit false execution-authorization state.
+
+**Full-suite result at the same head**:
+- [Architecture & Integration CI run 45745721295](https://github.com/SleepyTurtle91/lisa/actions/runs/45745721295): 142 tests, 10 failures, 7 errors.
+- The CPI-specific workflow passes independently; full-repository CI remains red.
+
+**Interpretation**:
+The adaptation plan preview is evidence-bearing and review-only. It cannot apply itself, and it does not authorize target changes.
