@@ -2,7 +2,7 @@ name: L.I.S.A. CPI Contract CI
 
 on:
   pull_request:
-    branches: [ main, feat/cross-project-intelligence-foundation, feat/cpi-06-governed-execution, feat/cpi-06-1-recovery-validation, feat/cpi-06-2-execution-history, feat/cpi-06-3-trusted-audit-ledger, feat/cpi-06-4-ledger-recovery, feat/cpi-06-5-crash-safe-execution ]
+    branches: [ main, feat/cross-project-intelligence-foundation, feat/cpi-06-governed-execution, feat/cpi-06-1-recovery-validation, feat/cpi-06-2-execution-history, feat/cpi-06-3-trusted-audit-ledger, feat/cpi-06-4-ledger-recovery, feat/cpi-06-5-crash-safe-execution, feat/cpi-06-6-execution-security-audit ]
     paths:
       - "projects/**"
       - "cli/**"
