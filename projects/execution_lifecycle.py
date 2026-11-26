@@ -66,7 +66,20 @@ class ProjectExecutionLifecycle:
     @staticmethod
     def _current_regular_file_hash(path, relative):
         """Return None only for a genuinely absent path; reject non-regular objects."""
-        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+        try:
+            path_info = path.lstat()
+        except FileNotFoundError:
+            return None
+        if not stat.S_ISREG(path_info.st_mode):
+            raise ValueError(
+                f"Rollback path is a symlink or non-regular object: {relative.as_posix()}"
+            )
+
+        flags = (
+            os.O_RDONLY
+            | getattr(os, "O_NOFOLLOW", 0)
+            | getattr(os, "O_NONBLOCK", 0)
+        )
         try:
             descriptor = os.open(str(path), flags)
         except FileNotFoundError:
