@@ -48,11 +48,11 @@ class BlindObjectiveHarnessProvider(BaseProvider):
 
         if self._turn == 1:
             if "provider" in objective_lower:
-                target_path = "/home/user/Projects/lisa/providers/registry.py"
+                target_path = "providers/registry.py"
             elif "kernel" in objective_lower:
-                target_path = "/home/user/Projects/lisa/core/kernel.py"
+                target_path = "core/kernel.py"
             else:
-                target_path = "/home/user/Projects/lisa/runtime/session.py"
+                target_path = "runtime/session.py"
             return ChatResponse(
                 content="",
                 tool_calls=[
@@ -94,7 +94,7 @@ async def run_blind_e2e_harness(session_id: str | None = None, output_dir: Path 
     runtime.tool_registry.register(ReadFileTool())
 
     ctx = SessionContext(
-        project_path="/home/user/Projects/lisa",
+        project_path=str(Path(__file__).resolve().parents[1]),
         workspace_name="blind_e2e_harness",
         provider_id="blind_e2e_harness_provider",
         model_name="mock-flight",
