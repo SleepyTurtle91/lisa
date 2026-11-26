@@ -1,4 +1,5 @@
 """Recovery and operator-reported validation for governed executions."""
+import errno
 import hashlib
 import json
 import os
@@ -71,7 +72,7 @@ class ProjectExecutionLifecycle:
         except FileNotFoundError:
             return None
         except OSError as exc:
-            if exc.errno in (getattr(os, "ELOOP", 40), getattr(os, "EISDIR", 21)):
+            if exc.errno in (errno.ELOOP, errno.EISDIR):
                 raise ValueError(
                     f"Rollback path is a symlink or non-regular object: {relative.as_posix()}"
                 ) from exc
