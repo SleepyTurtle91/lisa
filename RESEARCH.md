@@ -1568,3 +1568,32 @@ CPI-06 establishes a narrow, operator-approved file application boundary. It is 
 - Regression tests are not automatically run because executing arbitrary target build/test commands would create a separate code-execution boundary.
 - Manual rollback/recovery command and post-execution validation evidence capture remain follow-up work.
 - Verification is from the repository's GitHub Actions environment (Python 3.14); local Fedora execution has not been observed in this task.
+
+
+---
+
+## 🛡️ CPI-06 Review Remediation — Execution Boundary Hardening
+
+**Date**: 2026-11-26
+
+**Observed source-review findings**:
+- The executor rejected identical source/target roots but allowed one project root to be nested inside the other.
+- Execution directories and backup files inherited permissive defaults under common POSIX umasks.
+- The CLI printed patch paths and content without escaping terminal control characters.
+- A failed apply with successful rollback left the deterministic execution directory behind, blocking a retry with the same approval digest.
+
+**Implementation changes on the remediation branch**:
+- Reject equal or ancestor/descendant source and target roots before evidence verification or writes.
+- Create execution state and backup directories with owner-only POSIX permissions; create backup files with mode `0600` at creation time. Audit files are also written with owner-only permissions.
+- Escape non-newline terminal control characters in operator-facing execution previews.
+- Enclose backup creation, target writes, and audit creation in one failure boundary. After a complete rollback, remove the execution marker; retain recovery data if rollback is incomplete or marker cleanup fails.
+- Add regression coverage for overlapping roots, POSIX permissions, terminal-control rendering, and successful rollback followed by same-digest retry.
+
+**Evidence classification**:
+- `FILE_FACT`: changes and regression tests are present on `fix/cpi-06-execution-review-findings`.
+- `EXECUTION_FACT`: pending GitHub Actions validation on the remediation head. No passing test claim is made in this checkpoint.
+
+**Open validation questions**:
+1. Do all new regressions and the existing CPI-06 contract tests pass on the remediation branch?
+2. Does the full architecture and integration suite remain green?
+3. Does an independent review identify any additional path, permission, or recovery edge cases?
