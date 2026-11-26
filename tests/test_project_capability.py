@@ -83,7 +83,7 @@ class TestCapabilityDiscovery(unittest.TestCase):
 
     def test_compound_alias_cannot_be_assembled_from_unrelated_evidence_units(self):
         (self.source / "README.md").write_text(
-            "# Retail capabilities\\nStock control and stock adjustments.",
+            "# Retail capabilities\nStock control and stock adjustments.",
             encoding="utf-8",
         )
         (self.source / "src" / "inventory" / "stocktake.kt").unlink()
