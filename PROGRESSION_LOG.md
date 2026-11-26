@@ -1227,3 +1227,9 @@ Key per-case results:
 - Rechecked path identity after mode restoration to detect a swapped symlink.
 - Added a regression proving an external symlink referent's permissions remain unchanged.
 - CI passed: 56 project/CLI tests, 6 input-boundary tests, 169 architecture/unit tests, and 1 integration test. Independent review pending; no merge performed.
+
+
+### Follow-up — Already-absent created-file rollback
+- Treat an already-absent execution-created file as successfully restored during rollback retry.
+- Added a regression verifying the lifecycle reaches `rolled_back`.
+- Follow-up CI pending; no merge performed.
