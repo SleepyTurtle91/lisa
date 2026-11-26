@@ -1413,9 +1413,8 @@ Evaluated `QuestionDrivenInvestigationEngine` (`benchmarks/ne_018_2_investigatio
 CPI-01 now has an operator-facing registry workflow and persistent local project selection. This is a foundation for project isolation, not evidence that L.I.S.A. can yet understand or safely transfer features between projects.
 
 **Open validation questions**:
-1. Does the new registry test suite pass in the repository's supported Python environment?
-2. Does CLI command classification preserve natural-language routing for compound prompts?
-3. Does the CI baseline fail independently because of the existing hard-coded test paths and provider health assumptions?
+1. Does independent review identify additional path, permission, or recovery edge cases?
+2. Does the remediation remain valid after integration with the CPI foundation branch?
 
 
 
@@ -1568,3 +1567,32 @@ CPI-06 establishes a narrow, operator-approved file application boundary. It is 
 - Regression tests are not automatically run because executing arbitrary target build/test commands would create a separate code-execution boundary.
 - Manual rollback/recovery command and post-execution validation evidence capture remain follow-up work.
 - Verification is from the repository's GitHub Actions environment (Python 3.14); local Fedora execution has not been observed in this task.
+
+
+---
+
+## 🛡️ CPI-06 Review Remediation — Execution Boundary Hardening
+
+**Date**: 2026-11-26
+
+**Observed source-review findings**:
+- The executor rejected identical source/target roots but allowed one project root to be nested inside the other.
+- Execution directories and backup files inherited permissive defaults under common POSIX umasks.
+- The CLI printed patch paths and content without escaping terminal control characters.
+- A failed apply with successful rollback left the deterministic execution directory behind, blocking a retry with the same approval digest.
+
+**Implementation changes on the remediation branch**:
+- Reject equal or ancestor/descendant source and target roots before evidence verification or writes.
+- Create execution state and backup directories with owner-only POSIX permissions; create backup files with mode `0600` at creation time. Audit files are also written with owner-only permissions.
+- Escape non-newline terminal control characters in operator-facing execution previews.
+- Enclose backup creation, target writes, and audit creation in one failure boundary. After a complete rollback, remove the execution marker; retain recovery data if rollback is incomplete or marker cleanup fails.
+- Add regression coverage for overlapping roots, POSIX permissions, terminal-control rendering, and successful rollback followed by same-digest retry.
+
+**Evidence classification**:
+- `FILE_FACT`: changes and regression tests are present on `fix/cpi-06-execution-review-findings`.
+- `EXECUTION_FACT`: [CPI Contract CI run 45782684047](https://github.com/SleepyTurtle91/lisa/actions/runs/45782684047) passed 50/50 project/CLI tests and 6/6 input-boundary tests. The same run passed the full architecture/unit suite (163/163) and integration suite (1/1).
+
+**Open validation questions**:
+1. Do all new regressions and the existing CPI-06 contract tests pass on the remediation branch?
+2. Does the full architecture and integration suite remain green?
+3. Does an independent review identify any additional path, permission, or recovery edge cases?

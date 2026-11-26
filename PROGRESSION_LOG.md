@@ -1201,3 +1201,25 @@ Key per-case results:
 ### Follow-up
 - Add a separately approved rollback/recovery command and post-execution validation evidence capture before expanding execution scope.
 - Keep CPI-06's first release deliberately narrower than a general-purpose code migration engine.
+
+
+---
+
+## 2026-11-26 — CPI-06 Execution Review Remediation
+
+### Status
+- Review-driven fixes committed to `fix/cpi-06-execution-review-findings`.
+- Focused CPI and full architecture/integration CI passed on the remediation head.
+- Original PR #3 branch has not been modified; no merges have been performed.
+
+### Changes
+- Reject overlapping source and target roots.
+- Restrict execution state and backup directory permissions on POSIX; create backup files and audit records with owner-only access.
+- Render terminal control characters visibly in the approval preview.
+- Clear the replay marker only after rollback has completed successfully; retain recovery artifacts if rollback is incomplete.
+- Add regression tests for all four review findings.
+
+### Follow-up
+- Run CPI contract and architecture/integration CI.
+- Inspect test output and correct any failures before requesting independent review.
+- Keep PR #3's existing base/head dependency chain intact until CPI foundation remediation is integrated.
