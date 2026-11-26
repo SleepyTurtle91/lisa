@@ -2,7 +2,7 @@ name: L.I.S.A. Architecture & Integration CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, feat/cross-project-intelligence-foundation ]
   pull_request:
     branches: [ main ]
 
