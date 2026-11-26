@@ -30,6 +30,8 @@ class TestProjectExecutionHistory(unittest.TestCase):
         )
         (self.target / "settings.gradle.kts").write_text('include(":app")', encoding="utf-8")
         (self.target / "app").mkdir()
+        inventory_target = self.target / "app" / "Inventory.kt"
+        inventory_target.write_text("class Inventory { val original = true }\n", encoding="utf-8")
         self.registry = ProjectRegistry()
         manager = ProjectExecutor(self.registry)
         self.source_id = manager.execute(ProjectRequest(
@@ -44,7 +46,11 @@ class TestProjectExecutionHistory(unittest.TestCase):
         )).plan
         self.state = root / "executions"
         self.executor = ProjectExecutionExecutor(self.registry, state_dir=self.state)
-        change = ExecutionChange("app/Inventory.kt", "class Inventory {}\n")
+        change = ExecutionChange(
+            "app/Inventory.kt",
+            "class Inventory {}\n",
+            hashlib.sha256(inventory_target.read_bytes()).hexdigest(),
+        )
         digest = self.executor.approval_digest(plan, [change], self.target)
         self.execution = self.executor.execute(ProjectExecutionRequest(
             plan, (change,), f"APPLY {digest}"
