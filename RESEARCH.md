@@ -1618,6 +1618,7 @@ CPI-06 establishes a narrow, operator-approved file application boundary. It is 
 **Evidence classification**:
 - `FILE_FACT`: implementation and regression tests are present on `fix/cpi-06-execution-hardening-followup`.
 - `EXECUTION_FACT`: [CPI Contract CI run 45785529543](https://github.com/SleepyTurtle91/lisa/actions/runs/45785529543) passed 54/54 project/CLI tests and 6/6 input-boundary tests. The architecture/unit suite passed 167/167 tests and integration passed 1/1.
+- Newline-safe path follow-up [CPI Contract CI run 45787436642](https://github.com/SleepyTurtle91/lisa/actions/runs/45787436642) passed 54/54 project/CLI tests and 6/6 input-boundary tests. The architecture/unit suite passed 167/167 tests and integration passed 1/1.
 
 
 ### Newline-safe path rendering follow-up
