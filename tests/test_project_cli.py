@@ -294,5 +294,27 @@ class TestProjectCLI(unittest.TestCase):
                 lisa_main.PROJECT_EXECUTION_STATE_PATH = original_state
 
 
+    def test_execution_history_and_verify_commands_are_read_only(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            original_registry = self._with_registry(root)
+            original_state = lisa_main.PROJECT_EXECUTION_STATE_PATH
+            lisa_main.PROJECT_EXECUTION_STATE_PATH = root / "executions"
+            try:
+                output = io.StringIO()
+                with redirect_stdout(output):
+                    lisa_main.run_project_command(["history"])
+                self.assertIn("No matching cross-project executions", output.getvalue())
+
+                output = io.StringIO()
+                with redirect_stdout(output):
+                    lisa_main.run_project_command(["verify", "not-an-execution"])
+                self.assertIn("Integrity verification FAILED", output.getvalue())
+            finally:
+                lisa_main.PROJECT_REGISTRY_PATH = original_registry
+                lisa_main.PROJECT_EXECUTION_STATE_PATH = original_state
+
+
+
 if __name__ == "__main__":
     unittest.main()
