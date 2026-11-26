@@ -50,7 +50,7 @@ class EndToEndHarnessProvider(BaseProvider):
                     {
                         "function": {
                             "name": "read_file",
-                            "arguments": {"path": "/home/user/Projects/lisa/AGENTS.md"},
+                            "arguments": {"path": "AGENTS.md"},
                         }
                     }
                 ],
@@ -82,7 +82,7 @@ async def run_end_to_end_harness(session_id: str | None = None, output_dir: Path
     runtime.tool_registry.register(ReadFileTool())
 
     ctx = SessionContext(
-        project_path="/home/user/Projects/lisa",
+        project_path=str(Path(__file__).resolve().parents[1]),
         workspace_name="e2e_harness",
         provider_id="end_to_end_harness_provider",
         model_name="mock-flight",
