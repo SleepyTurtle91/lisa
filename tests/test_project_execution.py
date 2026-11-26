@@ -401,6 +401,76 @@ class TestGovernedProjectExecution(unittest.TestCase):
         self.assertFalse(lock.exists())
         self.assertEqual(existing.read_bytes(), original)
 
+    def test_recovery_refuses_permission_only_changes(self):
+        existing = self.target / "app" / "Main.kt"
+        original = existing.read_bytes()
+        original_mode = existing.stat().st_mode & 0o777
+        changes = [ExecutionChange(
+            "app/Main.kt", "class Main { val changed = true }\\n",
+            hashlib.sha256(original).hexdigest(),
+        )]
+        execution_id = self._simulate_interrupted_apply(changes, existing)
+        existing.chmod(0o600 if original_mode != 0o600 else 0o644)
+
+        recovery = ProjectExecutionRecovery(self.registry, state_dir=self.state_dir)
+        digest = recovery.preview_digest(execution_id)
+        result = recovery.recover(execution_id, f"RECOVER {digest}")
+        self.assertFalse(result["success"])
+        self.assertIn("permissions", result["error"].lower())
+        self.assertEqual(existing.read_bytes(), changes[0].content.encode("utf-8"))
+
+    def test_executor_rejects_symlinked_execution_state_root(self):
+        real_state = self.state_dir
+        real_state.mkdir()
+        linked_state = self.state_dir.parent / "linked-lisa-state"
+        linked_state.symlink_to(real_state, target_is_directory=True)
+        executor = ProjectExecutionExecutor(self.registry, state_dir=linked_state)
+        change = ExecutionChange("app/SymlinkState.kt", "class Safe {}\\n")
+        digest = executor.approval_digest(self.plan, [change], self.target)
+        result = executor.execute(ProjectExecutionRequest(
+            plan=self.plan,
+            changes=(change,),
+            operator_confirmation=f"APPLY {digest}",
+        ))
+        self.assertFalse(result.success)
+        self.assertIn("symlink", result.error.lower())
+        self.assertFalse((self.target / "app" / "SymlinkState.kt").exists())
+
+    def test_recovery_retry_after_ledger_event_commit_is_idempotent(self):
+        existing = self.target / "app" / "Main.kt"
+        original = existing.read_bytes()
+        changes = [ExecutionChange(
+            "app/Main.kt", "class Main { val changed = true }\\n",
+            hashlib.sha256(original).hexdigest(),
+        )]
+        execution_id = self._simulate_interrupted_apply(changes, existing)
+        recovery = ProjectExecutionRecovery(self.registry, state_dir=self.state_dir)
+        digest = recovery.preview_digest(execution_id)
+        from lisa.projects.execution_ledger import ProjectExecutionLedger
+        append = ProjectExecutionLedger.append
+
+        def append_then_interrupt(ledger, *args, **kwargs):
+            append(ledger, *args, **kwargs)
+            raise OSError("simulated interruption after durable ledger append")
+
+        with mock.patch.object(ProjectExecutionLedger, "append", new=append_then_interrupt):
+            first = recovery.recover(execution_id, f"RECOVER {digest}")
+        self.assertFalse(first["success"])
+        self.assertEqual(existing.read_bytes(), original)
+        self.assertIn(execution_id, [item["execution_id"] for item in recovery.list_pending()])
+
+        retry_digest = recovery.preview_digest(execution_id)
+        second = recovery.recover(execution_id, f"RECOVER {retry_digest}")
+        self.assertTrue(second["success"], second.get("error"))
+        verified = ProjectExecutionHistory(self.registry, state_dir=self.state_dir).verify(execution_id)
+        self.assertTrue(verified["success"], verified.get("error"))
+        recovered_events = [
+            event for event in ProjectExecutionLedger(self.state_dir).verify()["events"]
+            if event.get("execution_id") == execution_id
+            and event.get("event_type") == "execution_recovered"
+        ]
+        self.assertEqual(len(recovered_events), 1)
+
     def test_recovery_refuses_live_lock_owner(self):
         existing = self.target / "app" / "Main.kt"
         original = existing.read_bytes()
