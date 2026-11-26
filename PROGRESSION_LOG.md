@@ -1239,4 +1239,5 @@ Key per-case results:
 - Capture the verified target inode identity alongside the latest content hash.
 - Require the descriptor opened for permission restoration to match that verified inode before calling `fchmod`.
 - Added a regression that swaps the target path to a hard link between hash verification and mode restoration and verifies the external referent's permissions remain unchanged.
-- CI pending; no merge performed.
+- CPI Contract CI and Architecture & Integration CI passed (run 45791243979).
+- Independent review requested on the updated head; no merge performed.
