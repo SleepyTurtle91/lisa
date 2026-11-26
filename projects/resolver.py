@@ -13,7 +13,7 @@ class ProjectResolver:
         ".git", "AGENTS.md", "BOOT.md", "README.md", "pyproject.toml",
         "setup.py", "package.json", "pubspec.yaml", "Cargo.toml", "go.mod",
         "pom.xml", "build.gradle", "build.gradle.kts", "settings.gradle",
-        "settings.gradle.kts",
+        "settings.gradle.kts", "CMakeLists.txt", "Makefile",
     )
 
     CAPABILITY_MARKERS: Dict[str, Tuple[str, ...]] = {
@@ -28,7 +28,6 @@ class ProjectResolver:
             "settings.gradle", "settings.gradle.kts",
         ),
         "kotlin": ("build.gradle.kts", "settings.gradle.kts"),
-        "git": (".git",),
     }
 
     def resolve(self, path: str) -> ProjectManifest:
