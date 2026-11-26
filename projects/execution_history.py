@@ -283,6 +283,10 @@ class ProjectExecutionHistory:
                         record["source_project_name"] = source.name if source else record["source_project_id"] or "unknown"
                         record["target_project_name"] = target.name if target else record["target_project_id"] or "unknown"
                         record["file_count"] = len(raw.get("changed_files", [])) if isinstance(raw.get("changed_files"), list) else 0
+                        lifecycle = raw.get("lifecycle") if isinstance(raw.get("lifecycle"), dict) else {}
+                        validation = raw.get("validation") if isinstance(raw.get("validation"), dict) else {}
+                        record["lifecycle_status"] = lifecycle.get("status", "applied")
+                        record["validation_status"] = validation.get("status", "required_not_run")
                     else:
                         record["integrity_error"] = "Audit record missing or unsafe."
                 except Exception:
