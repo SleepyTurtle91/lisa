@@ -9,6 +9,17 @@ from lisa.providers.base import BaseProvider
 from lisa.providers.manifest import ProviderManifest
 from lisa.providers.base import ChatRequest, ChatResponse
 
+
+class FakeOllamaProvider(OllamaProvider):
+    async def is_healthy(self) -> bool:
+        return True
+
+    def _list_models(self):
+        return [self._default_model]
+
+    async def chat(self, request: ChatRequest) -> ChatResponse:
+        return ChatResponse(content="mock-ollama-response")
+
 class UnhealthyMockProvider(BaseProvider):
     @property
     def id(self) -> str:
@@ -62,7 +73,7 @@ class TestProviderRuntimeScenarios(unittest.TestCase):
     def test_scenario_01_only_ollama(self):
         runtime = LisaRuntime()
         asyncio.run(runtime.initialize())
-        asyncio.run(runtime.register_provider(OllamaProvider()))
+        asyncio.run(runtime.register_provider(FakeOllamaProvider()))
 
         ctx = SessionContext(
             project_path="/tmp",
@@ -79,7 +90,7 @@ class TestProviderRuntimeScenarios(unittest.TestCase):
     def test_scenario_02_capability_based_selection(self):
         runtime = LisaRuntime()
         asyncio.run(runtime.initialize())
-        asyncio.run(runtime.register_provider(OllamaProvider()))
+        asyncio.run(runtime.register_provider(FakeOllamaProvider()))
         asyncio.run(runtime.register_provider(OpenAIProvider()))
 
         ctx = SessionContext(
@@ -107,7 +118,7 @@ class TestProviderRuntimeScenarios(unittest.TestCase):
     def test_scenario_04_capability_mismatch_fails_safely(self):
         runtime = LisaRuntime()
         asyncio.run(runtime.initialize())
-        asyncio.run(runtime.register_provider(OllamaProvider()))
+        asyncio.run(runtime.register_provider(FakeOllamaProvider()))
 
         ctx = SessionContext(
             project_path="/tmp",
