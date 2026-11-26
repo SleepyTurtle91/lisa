@@ -1596,3 +1596,25 @@ CPI-06 establishes a narrow, operator-approved file application boundary. It is 
 1. Do all new regressions and the existing CPI-06 contract tests pass on the remediation branch?
 2. Does the full architecture and integration suite remain green?
 3. Does an independent review identify any additional path, permission, or recovery edge cases?
+
+
+---
+
+## 🛡️ CPI-06 Follow-up Review — State Directory and Filesystem Alias Hardening
+
+**Date**: 2026-11-26
+
+**Observed review findings**:
+- The private-directory helper changed permissions on any existing caller-supplied state directory, including shared paths.
+- The CLI escaped changed paths in the approval preview but printed them raw again in the successful execution summary.
+- Canonical path resolution does not detect distinct Linux bind-mount paths that expose the same underlying project tree.
+
+**Implementation changes on the remediation branch**:
+- Never chmod an existing state directory. Require it to already be owner-only on POSIX; reject unsafe existing directories without changing their permissions. Newly created dedicated state directories are created owner-only.
+- Escape changed-file paths in the successful CLI summary as well as the preview.
+- Compare Linux mount identities using `/proc/self/mountinfo` device and filesystem-root paths, in addition to canonical path and same-file checks. Reject identical or ancestor/descendant filesystem aliases while allowing separate projects on the same filesystem.
+- Add regressions for bind-mount identity overlap, non-overlapping directories on the same device, shared state directory permission preservation, and terminal-safe success summaries.
+
+**Evidence classification**:
+- `FILE_FACT`: implementation and regression tests are present on `fix/cpi-06-execution-hardening-followup`.
+- `EXECUTION_FACT`: pending CI validation on this remediation head.
