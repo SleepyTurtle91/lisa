@@ -60,6 +60,9 @@ class TestProjectAdaptationPlanner(unittest.TestCase):
         self.assertEqual(first.plan.plan_id, second.plan.plan_id)
         self.assertTrue(first.plan.authorization_required)
         self.assertFalse(first.plan.execution_authorized)
+        self.assertIn("kotlin", first.plan.shared_technologies)
+        self.assertEqual(first.plan.compatibility_status.value, "potential_reuse")
+        self.assertTrue(any(item.relative_path == "README.md" for item in first.plan.source_evidence))
         self.assertTrue(any("Core must not depend on Feature" in c.excerpt for c in first.plan.target_constraints))
         self.assertEqual(len(first.plan.steps), 6)
 

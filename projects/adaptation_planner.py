@@ -109,6 +109,8 @@ class ProjectAdaptationPlanner:
             target_project_name=target_manifest.name,
             capability_query=request.capability_query.strip(),
             status=status,
+            compatibility_status=report.status,
+            shared_technologies=report.shared_technologies,
             summary=summary,
             source_evidence=report.source_evidence,
             source_paths=report.source_paths,

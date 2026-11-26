@@ -385,6 +385,12 @@ async def start_repl(target_dir: Optional[str] = None):
                             print(f"\nAdaptation plan {plan.plan_id}: {plan.source_project_name} -> {plan.target_project_name}")
                             print(f"Status: {plan.status.value}")
                             print(plan.summary)
+                            print(f"Compatibility status: {plan.compatibility_status.value}")
+                            print(f"Shared technology markers: {', '.join(plan.shared_technologies) or '(none)'}")
+                            for evidence in plan.source_evidence:
+                                print(f"Source evidence: {evidence.relative_path} [sha256:{evidence.sha256[:12]}]")
+                            for source_path in plan.source_paths:
+                                print(f"Source path: {source_path}")
                             for blocker in plan.blockers:
                                 print(f"Blocker: {blocker}")
                             for constraint in plan.target_constraints:
