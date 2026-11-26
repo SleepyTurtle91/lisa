@@ -378,7 +378,7 @@ class ProjectExecutionLedger:
             "sequence": event["sequence"],
             "event_hash": event["event_hash"],
         }
-        if head is not None and {
+        if head is None or {
             "sequence": head["sequence"], "event_hash": head["event_hash"]
         } not in (old_head, new_head):
             raise ValueError("Authenticated head does not match either side of the pending transaction.")
@@ -497,9 +497,19 @@ class ProjectExecutionLedger:
             event = {**body, "mac": mac}
             event["event_hash"] = self._sha256(self._canonical(event))
             encoded = self._canonical(event) + b"\n"
-            self._write_pending(
-                key, event, previous_bytes, current["event_count"], previous
-            )
+            try:
+                self._write_pending(
+                    key, event, previous_bytes, current["event_count"], previous
+                )
+            except Exception as exc:
+                try:
+                    self._remove_pending()
+                except Exception as cleanup_error:
+                    raise RuntimeError(
+                        "Unable to clean up an interrupted pending-ledger write: "
+                        + str(cleanup_error)
+                    ) from exc
+                raise
             try:
                 self._append_bytes(encoded)
                 self._write_head(key, event["sequence"], event["event_hash"])
