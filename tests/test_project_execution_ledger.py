@@ -64,6 +64,7 @@ class TestProjectExecutionLedger(unittest.TestCase):
         self.state.mkdir(parents=True)
         lock_path = self.state / ".ledger.lock"
         lock_path.write_text("pid from a process that no longer exists", encoding="ascii")
+        lock_path.chmod(0o600)
         event = self.ledger.append("execution_applied", "exec_recovered", {})
         self.assertEqual(event["sequence"], 1)
         self.assertTrue(self.ledger.verify()["success"])
