@@ -60,6 +60,62 @@ class TestProjectExecutionLedger(unittest.TestCase):
             "snapshot_at_migration_time_only",
         )
 
+    def test_stale_lock_file_does_not_block_after_writer_process_exits(self):
+        self.state.mkdir(parents=True)
+        lock_path = self.state / ".ledger.lock"
+        lock_path.write_text("pid from a process that no longer exists", encoding="ascii")
+        event = self.ledger.append("execution_applied", "exec_recovered", {})
+        self.assertEqual(event["sequence"], 1)
+        self.assertTrue(self.ledger.verify()["success"])
+        self.assertTrue(lock_path.exists())
+
+    def test_os_lock_prevents_concurrent_writer(self):
+        import fcntl
+        import os
+
+        self.state.mkdir(parents=True)
+        lock_path = self.state / ".ledger.lock"
+        descriptor = os.open(str(lock_path), os.O_RDWR | os.O_CREAT, 0o600)
+        try:
+            fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            with self.assertRaisesRegex(ValueError, "another writer holds the OS lock"):
+                self.ledger.append("execution_applied", "exec_busy", {})
+        finally:
+            fcntl.flock(descriptor, fcntl.LOCK_UN)
+            os.close(descriptor)
+        self.assertTrue(self.ledger.append("execution_applied", "exec_after_busy", {}))
+
+    def test_short_append_rolls_back_incomplete_tail_and_allows_retry(self):
+        from unittest.mock import patch
+        import os
+
+        real_write = os.write
+        ledger_descriptor = None
+        partial_written = False
+
+        def short_then_fail(descriptor, data):
+            nonlocal ledger_descriptor, partial_written
+            if data.startswith(b"{"):
+                if ledger_descriptor is None:
+                    ledger_descriptor = descriptor
+                    partial_written = True
+                    return real_write(descriptor, data[:12])
+                if descriptor == ledger_descriptor and partial_written:
+                    raise OSError("simulated write interruption")
+            return real_write(descriptor, data)
+
+        with patch("os.write", side_effect=short_then_fail):
+            with self.assertRaisesRegex(OSError, "simulated write interruption"):
+                self.ledger.append("execution_applied", "exec_partial", {})
+
+        self.assertEqual(self.ledger.verify()["status"], "not_initialized")
+        self.assertFalse((self.state / "ledger.jsonl").exists())
+        self.assertFalse((self.state / ".ledger.key").exists())
+
+        event = self.ledger.append("execution_applied", "exec_retry", {})
+        self.assertEqual(event["sequence"], 1)
+        self.assertTrue(self.ledger.verify()["success"])
+
     def test_malformed_trailing_record_fails_closed(self):
         self.ledger.append("execution_applied", "exec_one", {})
         with (self.state / "ledger.jsonl").open("ab") as handle:
