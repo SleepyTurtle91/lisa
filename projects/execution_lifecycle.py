@@ -1,4 +1,5 @@
 """Recovery and operator-reported validation for governed executions."""
+import errno
 import hashlib
 import json
 import os
@@ -61,6 +62,41 @@ class ProjectExecutionLifecycle:
         if not root.is_dir() or root != recorded:
             raise ValueError("The registered target root no longer matches the execution audit.")
         return root
+
+    @staticmethod
+    def _current_regular_file_hash(path, relative):
+        """Return None only for a genuinely absent path; reject non-regular objects."""
+        try:
+            path_info = path.lstat()
+        except FileNotFoundError:
+            return None
+        if not stat.S_ISREG(path_info.st_mode):
+            raise ValueError(
+                f"Rollback path is a symlink or non-regular object: {relative.as_posix()}"
+            )
+
+        flags = (
+            os.O_RDONLY
+            | getattr(os, "O_NOFOLLOW", 0)
+            | getattr(os, "O_NONBLOCK", 0)
+        )
+        try:
+            descriptor = os.open(str(path), flags)
+        except FileNotFoundError:
+            return None
+        except OSError as exc:
+            if exc.errno in (errno.ELOOP, errno.EISDIR):
+                raise ValueError(
+                    f"Rollback path is a symlink or non-regular object: {relative.as_posix()}"
+                ) from exc
+            raise
+        with os.fdopen(descriptor, "rb") as handle:
+            info = os.fstat(handle.fileno())
+            if not stat.S_ISREG(info.st_mode):
+                raise ValueError(
+                    f"Rollback path is not a regular file: {relative.as_posix()}"
+                )
+            return hashlib.sha256(handle.read()).hexdigest()
 
     @staticmethod
     def _rollback_digest(execution_id, audit):
@@ -127,7 +163,7 @@ class ProjectExecutionLifecycle:
                 before_hash, after_hash = item.get("before_sha256"), item.get("after_sha256")
                 if not after_hash:
                     raise ValueError(f"Audit is missing the post-change hash: {relative.as_posix()}")
-                current_hash = self._sha256(destination.read_bytes()) if destination.is_file() else None
+                current_hash = self._current_regular_file_hash(destination, relative)
                 if current_hash not in (after_hash, before_hash):
                     raise ValueError(f"Target file changed since execution; refusing rollback: {relative.as_posix()}")
                 backup_bytes, backup_mode = None, None
@@ -159,10 +195,15 @@ class ProjectExecutionLifecycle:
             restored = []
             for relative, destination, current_hash, before_hash, after_hash, backup_bytes, backup_mode in reversed(scoped):
                 ProjectExecutionExecutor._assert_no_symlink(root, relative)
-                latest_hash = self._sha256(destination.read_bytes()) if destination.is_file() else None
+                latest_hash = self._current_regular_file_hash(destination, relative)
                 if latest_hash not in (after_hash, before_hash):
                     raise ValueError(f"Target file changed during rollback; refusing write: {relative.as_posix()}")
                 if latest_hash == before_hash:
+                    if backup_mode is None or not isinstance(backup_mode, int) or backup_mode < 0 or backup_mode > 0o7777:
+                        raise ValueError(f"Backup permission mode is invalid: {relative.as_posix()}")
+                    os.chmod(destination, backup_mode)
+                    if stat.S_IMODE(destination.stat().st_mode) != backup_mode:
+                        raise ValueError(f"Original permission mode could not be restored: {relative.as_posix()}")
                     restored.append(relative.as_posix())
                     continue
                 if before_hash is None:

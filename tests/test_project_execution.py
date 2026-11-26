@@ -200,6 +200,74 @@ class TestGovernedProjectExecution(unittest.TestCase):
         audit = json.loads(Path(execution.audit_path).read_text(encoding="utf-8"))
         self.assertEqual(audit["lifecycle"]["status"], "rolled_back")
 
+    def test_rollback_rejects_non_regular_object_at_created_file_path(self):
+        execution = self._apply_for_lifecycle([
+            ExecutionChange("app/Created.kt", "class Created {}\n")
+        ])
+        destination = self.target / "app" / "Created.kt"
+        destination.unlink()
+        destination.mkdir()
+
+        lifecycle = ProjectExecutionLifecycle(self.registry, state_dir=self.state_dir)
+        digest = lifecycle.preview_rollback_digest(execution.execution_id)
+        result = lifecycle.rollback(execution.execution_id, f"ROLLBACK {digest}")
+
+        self.assertFalse(result["success"])
+        self.assertIn("non-regular", result["error"])
+        self.assertTrue(destination.is_dir())
+        audit = json.loads(Path(execution.audit_path).read_text(encoding="utf-8"))
+        self.assertNotEqual(audit.get("lifecycle", {}).get("status", "applied"), "rolled_back")
+
+    def test_rollback_rechecks_target_after_preflight_before_restore(self):
+        execution = self._apply_for_lifecycle([
+            ExecutionChange("app/Raced.kt", "class Raced {}\n")
+        ])
+        destination = self.target / "app" / "Raced.kt"
+        audit_path = Path(execution.audit_path)
+        lifecycle = ProjectExecutionLifecycle(self.registry, state_dir=self.state_dir)
+        digest = lifecycle.preview_rollback_digest(execution.execution_id)
+        original_atomic_write = lifecycle._atomic_write
+        changed = False
+
+        def mutate_after_rollback_journal(path, content):
+            nonlocal changed
+            result = original_atomic_write(path, content)
+            if Path(path) == audit_path and not changed:
+                changed = True
+                destination.write_text("independent concurrent edit", encoding="utf-8")
+            return result
+
+        from unittest.mock import patch
+        with patch.object(lifecycle, "_atomic_write", side_effect=mutate_after_rollback_journal):
+            result = lifecycle.rollback(execution.execution_id, f"ROLLBACK {digest}")
+
+        self.assertFalse(result["success"])
+        self.assertIn("changed during rollback", result["error"])
+        self.assertEqual(destination.read_text(encoding="utf-8"), "independent concurrent edit")
+
+    def test_rollback_restores_mode_when_original_bytes_are_already_present(self):
+        destination = self.target / "app" / "Main.kt"
+        original = destination.read_bytes()
+        destination.chmod(0o600)
+        original_mode = destination.stat().st_mode & 0o777
+        expected = hashlib.sha256(original).hexdigest()
+        execution = self._apply_for_lifecycle([
+            ExecutionChange("app/Main.kt", "class Main { val changed = true }\n", expected)
+        ])
+
+        destination.write_bytes(original)
+        destination.chmod(0o644)
+        self.assertEqual(destination.read_bytes(), original)
+        self.assertNotEqual(destination.stat().st_mode & 0o777, original_mode)
+
+        lifecycle = ProjectExecutionLifecycle(self.registry, state_dir=self.state_dir)
+        digest = lifecycle.preview_rollback_digest(execution.execution_id)
+        result = lifecycle.rollback(execution.execution_id, f"ROLLBACK {digest}")
+
+        self.assertTrue(result["success"], result.get("error"))
+        self.assertEqual(destination.read_bytes(), original)
+        self.assertEqual(destination.stat().st_mode & 0o777, original_mode)
+
     def test_rollback_refuses_files_changed_after_execution(self):
         execution = self._apply_for_lifecycle([
             ExecutionChange("app/Changed.kt", "class Changed {}\n")
