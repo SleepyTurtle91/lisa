@@ -1174,8 +1174,9 @@ Key per-case results:
 
 ### Status
 - Review-driven implementation changes committed on `fix/cpi-foundation-review-findings`.
-- Focused CI validation pending; no passing test claim is made yet.
-- Original PR #2 branch remains unchanged by the remediation code.
+- Focused CPI CI passed: 38/38 project tests, 8/8 input-classifier tests, and 6/6 REPL tests.
+- Architecture & Unit CI passed: 155 tests; the integration test command also exited successfully.
+- Original PR #2 source branch remains unchanged by the remediation code. The foundation branch received only CI workflow trigger/coverage updates.
 
 ### Changes
 - Recognize CMakeLists.txt and Makefile as valid project markers.
@@ -1194,6 +1195,6 @@ Key per-case results:
 - The CPI workflow trigger was extended on the foundation branch so stacked remediation PRs targeting that branch can receive focused CI.
 
 ### Follow-up
-- Inspect PR #11 Actions results and fix any test or integration failures.
 - Reconcile the corresponding automated review threads on PR #2 with verified fixes.
+- Obtain a fresh automated review of PR #11 and address any new findings.
 - Only after PR #11 is validated should the original CPI foundation PR be considered merge-ready.
