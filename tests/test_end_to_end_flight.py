@@ -45,7 +45,7 @@ class EndToEndFlightProvider(BaseProvider):
                     {
                         "function": {
                             "name": "read_file",
-                            "arguments": {"path": "/home/user/Projects/lisa/AGENTS.md"},
+                            "arguments": {"path": "AGENTS.md"},
                         }
                     }
                 ],
@@ -60,6 +60,9 @@ class EndToEndFlightProvider(BaseProvider):
 class TestEndToEndFlight(unittest.TestCase):
     def test_session_emits_trace_stages_for_end_to_end_flight(self):
         with tempfile.TemporaryDirectory() as tmpdir:
+            (Path(tmpdir) / "AGENTS.md").write_text(
+                "L.I.S.A. runtime guidance: preserve evidence discipline.", encoding="utf-8"
+            )
             recorder = FlightRecorder(session_id="flight_trace_test", log_dir=Path(tmpdir))
 
             runtime = LisaRuntime(flight_recorder=recorder)
@@ -68,7 +71,7 @@ class TestEndToEndFlight(unittest.TestCase):
             runtime.tool_registry.register(ReadFileTool())
 
             ctx = SessionContext(
-                project_path="/home/user/Projects/lisa",
+                project_path=tmpdir,
                 workspace_name="e2e_flight",
                 provider_id="end_to_end_flight_provider",
                 model_name="mock-flight",
