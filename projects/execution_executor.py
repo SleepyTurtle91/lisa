@@ -71,7 +71,11 @@ class ProjectExecutionExecutor:
             raise ValueError("Absolute paths are not allowed.")
         if any(part in ("", ".", "..") for part in relative.parts):
             raise ValueError("Path traversal and ambiguous path components are not allowed.")
-        if any(part.casefold() in cls.PROTECTED_PARTS for part in relative.parts):
+        if any(
+            part.casefold() in cls.PROTECTED_PARTS
+            or part.casefold().startswith(".env.")
+            for part in relative.parts
+        ):
             raise ValueError(f"Protected path cannot be modified: {value}")
         return relative
 
@@ -167,9 +171,15 @@ class ProjectExecutionExecutor:
                 raise ValueError("Explicit approval mismatch. Review the exact patch and confirm with: APPLY <approval-digest>.")
 
             state_root = self._state_dir.resolve(strict=False)
-            if state_root == target_root or target_root in state_root.parents:
+            if (
+                state_root == target_root or target_root in state_root.parents
+                or state_root in target_root.parents
+            ):
                 raise ValueError("Execution backups/audit must be stored outside the target project.")
-            if state_root == source_root or source_root in state_root.parents:
+            if (
+                state_root == source_root or source_root in state_root.parents
+                or state_root in source_root.parents
+            ):
                 raise ValueError("Execution backups/audit must be stored outside the source project.")
 
             execution_id = "exec_" + digest[:20]
