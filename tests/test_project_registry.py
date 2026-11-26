@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 import sys
@@ -71,6 +72,29 @@ class TestProjectRegistry(unittest.TestCase):
         manifest = ProjectResolver().resolve(str(project))
         self.assertIn(".git", manifest.markers)
         self.assertNotIn("git", manifest.capabilities)
+
+    def test_loading_legacy_registry_filters_vcs_capabilities(self):
+        from lisa.projects.resolver import ProjectResolver
+
+        project = self.make_project("legacy_git", "README.md")
+        (project / ".git").write_text("gitdir: metadata\\n", encoding="utf-8")
+        manifest = ProjectResolver().resolve(str(project))
+        storage = self.root / "legacy-registry.json"
+        storage.write_text(json.dumps({
+            "schema_version": 1,
+            "active_project_id": None,
+            "projects": [{
+                "project_id": manifest.project_id,
+                "name": manifest.name,
+                "root_path": manifest.root_path,
+                "markers": list(manifest.markers),
+                "capabilities": ["git", "python"],
+            }],
+        }), encoding="utf-8")
+
+        loaded = ProjectRegistry(storage_path=storage)
+        capabilities = loaded.get(manifest.project_id).capabilities
+        self.assertEqual(capabilities, ("python",))
 
     def test_registration_is_idempotent_for_same_project(self):
         project = self.make_project("extropos")
