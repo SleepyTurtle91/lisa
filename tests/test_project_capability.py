@@ -60,6 +60,18 @@ class TestCapabilityDiscovery(unittest.TestCase):
         self.assertTrue(any("stocktake" in path for path in match.source_paths))
         self.assertEqual(match.score, 1.0)
 
+    def test_normalizes_underscore_aliases_for_matching_and_evidence(self):
+        readme = self.source / "README.md"
+        readme.write_text(
+            "# Retail capabilities\\nMy_Invois integration supports e-invoice submission.",
+            encoding="utf-8",
+        )
+        result = self.discovery.execute(CapabilityDiscoveryRequest(query="einvoice"))
+        self.assertTrue(result.success, result.error)
+        self.assertEqual([item.project_id for item in result.matches], [self.source_id])
+        self.assertIn("einvoice", result.matches[0].matched_terms)
+        self.assertTrue(any(item.relative_path == "README.md" for item in result.matches[0].evidence))
+
     def test_can_scope_discovery_to_selected_projects(self):
         result = self.discovery.execute(CapabilityDiscoveryRequest(
             query="customer crm", project_ids=(self.target_id,)
