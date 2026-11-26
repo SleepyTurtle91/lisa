@@ -89,6 +89,63 @@ class TestProjectExecutionLedger(unittest.TestCase):
         self.assertFalse(result["success"])
         self.assertIn("head checkpoint authentication failed", result["error"])
 
+    def test_interrupted_append_requires_explicit_recovery(self):
+        self.ledger.append("execution_applied", "exec_one", {})
+        original_write_head = self.ledger._write_head
+
+        def interrupt_after_event(*args, **kwargs):
+            raise SystemExit("simulated process interruption")
+
+        with unittest.mock.patch.object(self.ledger, "_write_head", side_effect=interrupt_after_event):
+            with self.assertRaises(SystemExit):
+                self.ledger.append("validation_recorded", "exec_one", {})
+
+        failed = self.ledger.verify()
+        self.assertFalse(failed["success"])
+        self.assertIn("requires explicit recovery", failed["error"])
+        digest = self.ledger.preview_recovery_digest()
+        recovered = self.ledger.recover(f"RECOVER {digest}")
+        self.assertTrue(recovered["success"], recovered.get("error"))
+        verified = self.ledger.verify()
+        self.assertTrue(verified["success"], verified.get("error"))
+        self.assertEqual(verified["event_count"], 2)
+        self.assertFalse((self.state / ".ledger.pending").exists())
+
+    def test_recovery_rejects_incorrect_confirmation_without_mutation(self):
+        self.ledger.append("execution_applied", "exec_one", {})
+        with unittest.mock.patch.object(
+            self.ledger, "_append_bytes", side_effect=SystemExit("simulated interruption")
+        ):
+            with self.assertRaises(SystemExit):
+                self.ledger.append("validation_recorded", "exec_one", {})
+        before = (self.state / "ledger.jsonl").read_bytes()
+        result = self.ledger.recover("RECOVER wrong")
+        self.assertFalse(result["success"])
+        self.assertIn("approval mismatch", result["error"])
+        self.assertEqual((self.state / "ledger.jsonl").read_bytes(), before)
+        self.assertTrue((self.state / ".ledger.pending").exists())
+
+    def test_append_write_failure_restores_previous_ledger_state(self):
+        self.ledger.append("execution_applied", "exec_one", {})
+        original_write_head = self.ledger._write_head
+        calls = {"count": 0}
+
+        def fail_once_then_restore(*args, **kwargs):
+            calls["count"] += 1
+            if calls["count"] == 1:
+                raise OSError("simulated checkpoint failure")
+            return original_write_head(*args, **kwargs)
+
+        with unittest.mock.patch.object(
+            self.ledger, "_write_head", side_effect=fail_once_then_restore
+        ):
+            with self.assertRaisesRegex(OSError, "simulated checkpoint failure"):
+                self.ledger.append("validation_recorded", "exec_one", {})
+        verified = self.ledger.verify()
+        self.assertTrue(verified["success"], verified.get("error"))
+        self.assertEqual(verified["event_count"], 1)
+        self.assertFalse((self.state / ".ledger.pending").exists())
+
 
 if __name__ == "__main__":
     unittest.main()
