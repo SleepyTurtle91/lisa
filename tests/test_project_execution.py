@@ -324,6 +324,46 @@ class TestGovernedProjectExecution(unittest.TestCase):
         self.assertEqual(audit["lifecycle"]["status"], "rolled_back")
         self.assertIn("app/AlreadyRemoved.kt", audit["lifecycle"]["restored_files"])
 
+
+    def test_mode_restore_refuses_hard_link_swapped_after_hash_verification(self):
+        if os.name != "posix" or not hasattr(os, "fchmod"):
+            self.skipTest("Descriptor-based POSIX mode restoration is required")
+        from unittest.mock import patch
+
+        execution = self._apply_for_lifecycle([
+            ExecutionChange("app/HardLink.kt", "class HardLink { val changed = true }\\n")
+        ])
+        destination = self.target / "app" / "HardLink.kt"
+        outside = self.source / "outside-hardlink-target.txt"
+        outside.write_bytes(destination.read_bytes())
+        outside.chmod(0o600)
+        outside_mode = outside.stat().st_mode & 0o777
+
+        lifecycle = ProjectExecutionLifecycle(self.registry, state_dir=self.state_dir)
+        digest = lifecycle.preview_rollback_digest(execution.execution_id)
+        real_open = ProjectExecutionLifecycle._open_regular_file
+        calls = 0
+
+        def swap_to_hard_link_before_mode_restore(path, relative):
+            nonlocal calls
+            calls += 1
+            if calls == 3:
+                destination.unlink()
+                os.link(outside, destination)
+            return real_open(path, relative)
+
+        with patch.object(
+            ProjectExecutionLifecycle,
+            "_open_regular_file",
+            side_effect=swap_to_hard_link_before_mode_restore,
+        ):
+            result = lifecycle.rollback(execution.execution_id, f"ROLLBACK {digest}")
+
+        self.assertFalse(result["success"])
+        self.assertIn("Target inode changed before permission restoration", result["error"])
+        self.assertEqual(outside.stat().st_mode & 0o777, outside_mode)
+        self.assertTrue(destination.samefile(outside))
+
     def test_rollback_refuses_files_changed_after_execution(self):
         execution = self._apply_for_lifecycle([
             ExecutionChange("app/Changed.kt", "class Changed {}\n")
