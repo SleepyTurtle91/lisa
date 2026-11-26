@@ -1413,9 +1413,8 @@ Evaluated `QuestionDrivenInvestigationEngine` (`benchmarks/ne_018_2_investigatio
 CPI-01 now has an operator-facing registry workflow and persistent local project selection. This is a foundation for project isolation, not evidence that L.I.S.A. can yet understand or safely transfer features between projects.
 
 **Open validation questions**:
-1. Does the new registry test suite pass in the repository's supported Python environment?
-2. Does CLI command classification preserve natural-language routing for compound prompts?
-3. Does the CI baseline fail independently because of the existing hard-coded test paths and provider health assumptions?
+1. Does independent review identify additional path, permission, or recovery edge cases?
+2. Does the remediation remain valid after integration with the CPI foundation branch?
 
 
 
@@ -1568,3 +1567,59 @@ CPI-06 establishes a narrow, operator-approved file application boundary. It is 
 - Regression tests are not automatically run because executing arbitrary target build/test commands would create a separate code-execution boundary.
 - Manual rollback/recovery command and post-execution validation evidence capture remain follow-up work.
 - Verification is from the repository's GitHub Actions environment (Python 3.14); local Fedora execution has not been observed in this task.
+
+
+---
+
+## 🛡️ CPI-06 Review Remediation — Execution Boundary Hardening
+
+**Date**: 2026-11-26
+
+**Observed source-review findings**:
+- The executor rejected identical source/target roots but allowed one project root to be nested inside the other.
+- Execution directories and backup files inherited permissive defaults under common POSIX umasks.
+- The CLI printed patch paths and content without escaping terminal control characters.
+- A failed apply with successful rollback left the deterministic execution directory behind, blocking a retry with the same approval digest.
+
+**Implementation changes on the remediation branch**:
+- Reject equal or ancestor/descendant source and target roots before evidence verification or writes.
+- Create execution state and backup directories with owner-only POSIX permissions; create backup files with mode `0600` at creation time. Audit files are also written with owner-only permissions.
+- Escape non-newline terminal control characters in operator-facing execution previews.
+- Enclose backup creation, target writes, and audit creation in one failure boundary. After a complete rollback, remove the execution marker; retain recovery data if rollback is incomplete or marker cleanup fails.
+- Add regression coverage for overlapping roots, POSIX permissions, terminal-control rendering, and successful rollback followed by same-digest retry.
+
+**Evidence classification**:
+- `FILE_FACT`: changes and regression tests are present on `fix/cpi-06-execution-review-findings`.
+- `EXECUTION_FACT`: [CPI Contract CI run 45782684047](https://github.com/SleepyTurtle91/lisa/actions/runs/45782684047) passed 50/50 project/CLI tests and 6/6 input-boundary tests. The same run passed the full architecture/unit suite (163/163) and integration suite (1/1).
+
+**Open validation questions**:
+1. Do all new regressions and the existing CPI-06 contract tests pass on the remediation branch?
+2. Does the full architecture and integration suite remain green?
+3. Does an independent review identify any additional path, permission, or recovery edge cases?
+
+
+---
+
+## 🛡️ CPI-06 Follow-up Review — State Directory and Filesystem Alias Hardening
+
+**Date**: 2026-11-26
+
+**Observed review findings**:
+- The private-directory helper changed permissions on any existing caller-supplied state directory, including shared paths.
+- The CLI escaped changed paths in the approval preview but printed them raw again in the successful execution summary.
+- Canonical path resolution does not detect distinct Linux bind-mount paths that expose the same underlying project tree.
+
+**Implementation changes on the remediation branch**:
+- Never chmod an existing state directory. Require it to already be owner-only on POSIX; reject unsafe existing directories without changing their permissions. Newly created dedicated state directories are created owner-only.
+- Escape changed-file paths in the successful CLI summary as well as the preview.
+- Compare Linux mount identities using `/proc/self/mountinfo` device and filesystem-root paths, in addition to canonical path and same-file checks. Reject identical or ancestor/descendant filesystem aliases while allowing separate projects on the same filesystem.
+- Add regressions for bind-mount identity overlap, non-overlapping directories on the same device, shared state directory permission preservation, and terminal-safe success summaries.
+
+**Evidence classification**:
+- `FILE_FACT`: implementation and regression tests are present on `fix/cpi-06-execution-hardening-followup`.
+- `EXECUTION_FACT`: [CPI Contract CI run 45785529543](https://github.com/SleepyTurtle91/lisa/actions/runs/45785529543) passed 54/54 project/CLI tests and 6/6 input-boundary tests. The architecture/unit suite passed 167/167 tests and integration passed 1/1.
+- Newline-safe path follow-up [CPI Contract CI run 45787436642](https://github.com/SleepyTurtle91/lisa/actions/runs/45787436642) passed 54/54 project/CLI tests and 6/6 input-boundary tests. The architecture/unit suite passed 167/167 tests and integration passed 1/1.
+
+
+### Newline-safe path rendering follow-up
+A subsequent review noted that line-feed characters are terminal controls too. Path and summary sanitization now escapes line feeds, while file-content previews explicitly preserve their intended multiline layout. A regression uses a filename containing both ANSI ESC and LF and checks the rendered preview/success summary.

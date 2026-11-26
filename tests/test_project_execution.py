@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 import sys
 import tempfile
 import unittest
@@ -99,6 +100,189 @@ class TestGovernedProjectExecution(unittest.TestCase):
         backup = Path(result.backup_directory) / "app" / "Main.kt"
         self.assertEqual(backup.read_bytes(), original)
         self.assertNotEqual(destination.read_bytes(), original)
+
+    def test_overlapping_source_and_target_roots_are_rejected(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+
+        nested_target = self.source / "nested-target"
+        nested_target.mkdir()
+
+        def registered_project(project_id):
+            if project_id == self.source_id:
+                return SimpleNamespace(root_path=str(self.source))
+            if project_id == self.target_id:
+                return SimpleNamespace(root_path=str(nested_target))
+            return None
+
+        with patch.object(self.registry, "get", side_effect=registered_project):
+            result = self.executor.execute(self.request([
+                ExecutionChange("app/Unsafe.kt", "class Unsafe {}")
+            ]))
+
+        self.assertFalse(result.success)
+        self.assertIn("must not overlap", result.error)
+        self.assertFalse((nested_target / "app" / "Unsafe.kt").exists())
+
+    def test_bind_mount_aliases_of_source_and_target_are_rejected(self):
+        from pathlib import Path
+        from unittest.mock import patch
+
+        def mount_identity(path):
+            if Path(path) == self.source.resolve():
+                return ("8:1", Path("/workspace/project"))
+            return ("8:1", Path("/workspace/project/subproject"))
+
+        with patch.object(ProjectExecutionExecutor, "_mount_identity", side_effect=mount_identity):
+            result = self.executor.execute(self.request([
+                ExecutionChange("app/BindMountEscape.kt", "class Unsafe {}")
+            ]))
+
+        self.assertFalse(result.success)
+        self.assertIn("must not overlap or alias", result.error)
+        self.assertFalse((self.target / "app" / "BindMountEscape.kt").exists())
+
+    def test_same_filesystem_non_overlapping_roots_remain_allowed(self):
+        from pathlib import Path
+        from unittest.mock import patch
+
+        def mount_identity(path):
+            if Path(path) == self.source.resolve():
+                return ("8:1", Path("/workspace/source"))
+            return ("8:1", Path("/workspace/target"))
+
+        with patch.object(ProjectExecutionExecutor, "_mount_identity", side_effect=mount_identity):
+            self.assertFalse(ProjectExecutionExecutor._filesystem_roots_overlap(
+                self.source.resolve(), self.target.resolve()
+            ))
+
+    def test_existing_shared_state_directory_is_not_chmodded(self):
+        if os.name != "posix":
+            self.skipTest("POSIX permission bits are not portable to Windows")
+
+        shared_state = self.source.parent / "shared-state"
+        shared_state.mkdir()
+        shared_state.chmod(0o755)
+        executor = ProjectExecutionExecutor(self.registry, state_dir=shared_state)
+        result = executor.execute(self.request([
+            ExecutionChange("app/SharedState.kt", "class SharedState {}")
+        ]))
+
+        self.assertFalse(result.success)
+        self.assertIn("Existing execution state directory is not private", result.error)
+        self.assertEqual(shared_state.stat().st_mode & 0o777, 0o755)
+
+
+    def test_existing_execution_state_directory_must_be_owned_by_current_user(self):
+        if os.name != "posix":
+            self.skipTest("POSIX ownership is not portable to Windows")
+        from types import SimpleNamespace
+        from unittest.mock import patch
+
+        shared_state = self.source.parent / "foreign-owned-state"
+        shared_state.mkdir()
+        shared_state.chmod(0o700)
+        original_stat = Path.stat
+
+        def foreign_owner(path, *args, **kwargs):
+            info = original_stat(path, *args, **kwargs)
+            if path == shared_state:
+                return SimpleNamespace(st_mode=info.st_mode, st_uid=os.geteuid() + 1)
+            return info
+
+        with patch.object(Path, "stat", new=foreign_owner):
+            with self.assertRaisesRegex(ValueError, "not owned by the current user"):
+                ProjectExecutionExecutor._ensure_private_directory(shared_state)
+
+    def test_linux_mount_identity_unavailable_fails_closed(self):
+        import sys
+        from unittest.mock import patch
+
+        if not sys.platform.startswith("linux"):
+            self.skipTest("Linux mount identity policy is Linux-specific")
+
+        with patch.object(ProjectExecutionExecutor, "_mount_identity", return_value=None):
+            result = self.executor.execute(self.request([
+                ExecutionChange("app/UnknownMount.kt", "class UnknownMount {}")
+            ]))
+
+        self.assertFalse(result.success)
+        self.assertIn("Unable to verify Linux mount identities", result.error)
+        self.assertFalse((self.target / "app" / "UnknownMount.kt").exists())
+
+    def test_execution_state_bind_mount_alias_of_project_root_is_rejected(self):
+        from pathlib import Path
+        from unittest.mock import patch
+
+        aliased_state = self.source / "private-state-alias"
+        executor = ProjectExecutionExecutor(self.registry, state_dir=aliased_state)
+
+        def overlaps(first, second):
+            if Path(first) == aliased_state.resolve():
+                return True
+            return False
+
+        with patch.object(ProjectExecutionExecutor, "_filesystem_roots_overlap", side_effect=overlaps):
+            result = executor.execute(self.request([
+                ExecutionChange("app/StateAlias.kt", "class StateAlias {}")
+            ]))
+
+        self.assertFalse(result.success)
+        self.assertIn("outside the source project", result.error)
+        self.assertFalse((self.target / "app" / "StateAlias.kt").exists())
+
+    def test_backup_state_and_files_are_private_on_posix(self):
+        if os.name != "posix":
+            self.skipTest("POSIX permission bits are not portable to Windows")
+
+        destination = self.target / "app" / "Main.kt"
+        original = destination.read_bytes()
+        expected = hashlib.sha256(original).hexdigest()
+        result = self.executor.execute(self.request([
+            ExecutionChange("app/Main.kt", "class Main { val private = true }\n", expected)
+        ]))
+        self.assertTrue(result.success, result.error)
+
+        backup_dir = Path(result.backup_directory)
+        backup_file = backup_dir / "app" / "Main.kt"
+        self.assertEqual(os.stat(self.state_dir).st_mode & 0o777, 0o700)
+        self.assertEqual(os.stat(backup_dir.parent).st_mode & 0o777, 0o700)
+        self.assertEqual(os.stat(backup_dir).st_mode & 0o777, 0o700)
+        self.assertEqual(os.stat(backup_file).st_mode & 0o777, 0o600)
+
+    def test_successful_rollback_clears_replay_marker_and_allows_retry(self):
+        from unittest.mock import patch
+
+        destination = self.target / "app" / "Main.kt"
+        original = destination.read_bytes()
+        change = ExecutionChange(
+            "app/Main.kt",
+            "class Main { val retry = true }\n",
+            hashlib.sha256(original).hexdigest(),
+        )
+        request = self.request([change])
+        digest = self.executor.approval_digest(self.plan, [change], self.target)
+        execution_dir = self.state_dir / ("exec_" + digest[:20])
+        atomic_write = ProjectExecutionExecutor._atomic_write
+        audit_failed = False
+
+        def fail_audit_once(path, content, mode=None):
+            nonlocal audit_failed
+            if Path(path).name == "audit.json" and not audit_failed:
+                audit_failed = True
+                raise OSError("simulated audit write failure")
+            return atomic_write(path, content, mode=mode)
+
+        with patch.object(ProjectExecutionExecutor, "_atomic_write", side_effect=fail_audit_once):
+            failed = self.executor.execute(request)
+
+        self.assertFalse(failed.success)
+        self.assertIn("simulated audit write failure", failed.error)
+        self.assertEqual(destination.read_bytes(), original)
+        self.assertFalse(execution_dir.exists())
+
+        retried = self.executor.execute(request)
+        self.assertTrue(retried.success, retried.error)
 
     def test_stale_hash_is_rejected(self):
         destination = self.target / "app" / "Main.kt"

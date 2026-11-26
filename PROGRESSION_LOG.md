@@ -1201,3 +1201,58 @@ Key per-case results:
 ### Follow-up
 - Add a separately approved rollback/recovery command and post-execution validation evidence capture before expanding execution scope.
 - Keep CPI-06's first release deliberately narrower than a general-purpose code migration engine.
+
+
+---
+
+## 2026-11-26 — CPI-06 Execution Review Remediation
+
+### Status
+- Review-driven fixes committed to `fix/cpi-06-execution-review-findings`.
+- Focused CPI and full architecture/integration CI passed on the remediation head.
+- Original PR #3 branch has not been modified; no merges have been performed.
+
+### Changes
+- Reject overlapping source and target roots.
+- Restrict execution state and backup directory permissions on POSIX; create backup files and audit records with owner-only access.
+- Render terminal control characters visibly in the approval preview.
+- Clear the replay marker only after rollback has completed successfully; retain recovery artifacts if rollback is incomplete.
+- Add regression tests for all four review findings.
+
+### Follow-up
+- Run CPI contract and architecture/integration CI.
+- Inspect test output and correct any failures before requesting independent review.
+- Keep PR #3's existing base/head dependency chain intact until CPI foundation remediation is integrated.
+
+
+---
+
+## 2026-11-26 — CPI-06 Follow-up Execution Hardening
+
+### Changes
+- Existing execution state directories are no longer chmodded. Unsafe shared directories are rejected without permission changes.
+- Linux bind-mount aliases are checked using mountinfo filesystem identities in addition to resolved path comparisons.
+- Successful execution summaries escape untrusted changed-file paths.
+- Added regression tests for alias detection, shared-directory permissions, and terminal-safe summaries.
+
+### Status
+- Remediation is on a dedicated branch stacked on CPI-06.
+- CI passed: 54 project/CLI tests, 6 input-boundary tests, 167 architecture/unit tests, and 1 integration test. Independent review pending.
+- No merge has been performed.
+
+
+### Follow-up — Newline-safe path rendering
+- Escape line-feed control characters in untrusted paths and success summaries.
+- Preserve newline layout only for proposed file contents.
+- Added an end-to-end CLI regression using a filename containing ESC and LF.
+- Follow-up CPI Contract CI and Architecture & Integration CI passed (run 45787164349).
+- Independent review re-requested on the updated head; no merge performed.
+
+### Follow-up — Execution state boundary hardening
+- Escape untrusted paths included in execution failure messages.
+- Fail closed on Linux when mount identity data cannot be verified.
+- Apply filesystem-identity overlap checks to the execution-state root as well as source and target projects.
+- Require pre-existing POSIX execution-state directories to be owned by the current user.
+- Added regression coverage for unavailable mount metadata, state-root bind aliases, foreign ownership, and failure-path escaping.
+- CPI Contract CI and Architecture & Integration CI passed on the corrected regression input (run 45791809739).
+- Independent review requested on the updated head; no merge performed.
