@@ -107,6 +107,35 @@ class TestCapabilityDiscovery(unittest.TestCase):
         self.assertIn("einvoice", match.matched_terms)
         self.assertIn("src/billing/create_e_invoice.py", match.source_paths)
 
+
+    def test_top_level_directory_match_is_not_reported_as_source_file(self):
+        project = self.root / "empty_inventory_project"
+        project.mkdir()
+        (project / "README.md").write_text(
+            "# Sample project\\nA general-purpose application.", encoding="utf-8"
+        )
+        (project / "inventory").mkdir()
+        project_id = self.register.execute(ProjectRequest(
+            operation=ProjectOperation.REGISTER, path=str(project)
+        )).manifest.project_id
+
+        result = self.discovery.execute(CapabilityDiscoveryRequest(query="inventory"))
+        self.assertTrue(result.success, result.error)
+        match = next(item for item in result.matches if item.project_id == project_id)
+        self.assertEqual(match.source_paths, ())
+
+    def test_einvoice_matches_snake_case_suffix_after_invoice(self):
+        billing = self.source / "src" / "billing"
+        billing.mkdir()
+        source_file = billing / "create_e_invoice_service.py"
+        source_file.write_text("def submit(): pass", encoding="utf-8")
+
+        result = self.discovery.execute(CapabilityDiscoveryRequest(query="einvoice"))
+        self.assertTrue(result.success, result.error)
+        match = next(item for item in result.matches if item.project_id == self.source_id)
+        self.assertIn("einvoice", match.matched_terms)
+        self.assertIn("src/billing/create_e_invoice_service.py", match.source_paths)
+
     def test_each_evidence_excerpt_is_tokenized_once_for_multi_term_query(self):
         class CountingDiscovery(CapabilityDiscoveryExecutor):
             excerpt_tokenizations = 0
