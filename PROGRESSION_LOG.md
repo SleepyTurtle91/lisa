@@ -1219,5 +1219,7 @@ Key per-case results:
 
 ### Status
 - Follow-up regression tests added.
-- Follow-up CI and independent review pending.
+- CPI Contract CI passed: 41 project/CLI tests, 8 input-classifier tests, and 6 REPL tests.
+- Architecture & Integration CI passed: 158 architecture/unit tests and 1 integration test.
+- Independent review of the updated head is pending.
 - PR #11 remains open and unmerged.
