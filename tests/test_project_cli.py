@@ -217,5 +217,82 @@ class TestProjectCLI(unittest.TestCase):
                 lisa_main.PROJECT_EXECUTION_STATE_PATH = original_state_path
 
 
+    def test_rollback_and_validate_cli_commands_record_lifecycle(self):
+        import hashlib
+        from unittest.mock import patch
+        from lisa.projects import ProjectRegistry
+        from lisa.projects.adaptation_planner import ProjectAdaptationPlanner
+        from lisa.projects.adaptation_request import ProjectAdaptationRequest
+        from lisa.projects.execution import ExecutionChange, ProjectExecutionRequest
+        from lisa.projects.execution_executor import ProjectExecutionExecutor
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            source = root / "Source"
+            target = root / "Target"
+            source.mkdir()
+            target.mkdir()
+            (source / "README.md").write_text(
+                "# Inventory\nInventory supports stocktake.", encoding="utf-8"
+            )
+            (source / "settings.gradle.kts").write_text('include(":app")', encoding="utf-8")
+            (target / "README.md").write_text(
+                "# Target\nCore must not depend on Feature. Money must use BigDecimal.",
+                encoding="utf-8",
+            )
+            (target / "settings.gradle.kts").write_text('include(":app")', encoding="utf-8")
+            (target / "app").mkdir()
+
+            original_registry = self._with_registry(root)
+            original_state = lisa_main.PROJECT_EXECUTION_STATE_PATH
+            lisa_main.PROJECT_EXECUTION_STATE_PATH = root / "executions"
+            try:
+                lisa_main.run_project_command(["add", str(source)])
+                lisa_main.run_project_command(["add", str(target)])
+                registry = ProjectRegistry(storage_path=lisa_main.PROJECT_REGISTRY_PATH)
+                listing = registry.list_manifests()
+                source_id = next(item.project_id for item in listing if item.name == "Source")
+                target_id = next(item.project_id for item in listing if item.name == "Target")
+                plan = ProjectAdaptationPlanner(registry).execute(ProjectAdaptationRequest(
+                    source_project_id=source_id, target_project_id=target_id,
+                    capability_query="inventory stocktake",
+                )).plan
+                executor = ProjectExecutionExecutor(registry, state_dir=lisa_main.PROJECT_EXECUTION_STATE_PATH)
+
+                rollback_change = ExecutionChange("app/Rollback.kt", "class Rollback {}\n")
+                rollback_digest = executor.approval_digest(plan, [rollback_change], target)
+                applied = executor.execute(ProjectExecutionRequest(
+                    plan, (rollback_change,), f"APPLY {rollback_digest}"
+                ))
+                self.assertTrue(applied.success, applied.error)
+
+                def approve(prompt):
+                    return prompt.split("'", 2)[1]
+                output = io.StringIO()
+                with patch("builtins.input", side_effect=approve), redirect_stdout(output):
+                    lisa_main.run_project_command(["rollback", applied.execution_id])
+                self.assertIn("Rollback completed", output.getvalue())
+                self.assertFalse((target / "app" / "Rollback.kt").exists())
+
+                validation_change = ExecutionChange("app/Validated.kt", "class Validated {}\n")
+                validation_digest = executor.approval_digest(plan, [validation_change], target)
+                validated = executor.execute(ProjectExecutionRequest(
+                    plan, (validation_change,), f"APPLY {validation_digest}"
+                ))
+                self.assertTrue(validated.success, validated.error)
+
+                output = io.StringIO()
+                with patch("builtins.input", side_effect=approve), redirect_stdout(output):
+                    lisa_main.run_project_command([
+                        "validate", validated.execution_id, "--status", "passed",
+                        "--command", "pytest -q", "--summary", "All tests passed",
+                    ])
+                self.assertIn("operator_reported_passed", output.getvalue())
+                self.assertIn("operator-reported evidence", output.getvalue())
+            finally:
+                lisa_main.PROJECT_REGISTRY_PATH = original_registry
+                lisa_main.PROJECT_EXECUTION_STATE_PATH = original_state
+
+
 if __name__ == "__main__":
     unittest.main()
