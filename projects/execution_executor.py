@@ -5,6 +5,7 @@ import os
 import re
 import shutil
 import stat
+import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
@@ -123,7 +124,12 @@ class ProjectExecutionExecutor:
             raise ValueError("Execution state path must be a real directory.")
         if os.name == "posix":
             if existed:
-                mode = stat.S_IMODE(path.stat().st_mode)
+                info = path.stat()
+                mode = stat.S_IMODE(info.st_mode)
+                if info.st_uid != os.geteuid():
+                    raise ValueError(
+                        "Existing execution state directory is not owned by the current user."
+                    )
                 if mode & 0o077 or mode & 0o700 != 0o700:
                     raise ValueError(
                         "Existing execution state directory is not private; "
@@ -185,6 +191,10 @@ class ProjectExecutionExecutor:
         source_identity = cls._mount_identity(source_root)
         target_identity = cls._mount_identity(target_root)
         if source_identity is None or target_identity is None:
+            if sys.platform.startswith("linux"):
+                raise ValueError(
+                    "Unable to verify Linux mount identities; refusing filesystem alias checks."
+                )
             return False
         source_device, source_path = source_identity
         target_device, target_path = target_identity
@@ -311,8 +321,11 @@ class ProjectExecutionExecutor:
             if (
                 state_root == source_root or source_root in state_root.parents
                 or state_root in source_root.parents
+                or self._filesystem_roots_overlap(state_root, source_root)
             ):
                 raise ValueError("Execution backups/audit must be stored outside the source project.")
+            if self._filesystem_roots_overlap(state_root, target_root):
+                raise ValueError("Execution backups/audit must not alias the target project.")
 
             self._ensure_private_directory(self._state_dir)
             self._ensure_private_directory(execution_dir, exist_ok=False)
