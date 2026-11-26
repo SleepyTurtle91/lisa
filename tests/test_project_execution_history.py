@@ -81,7 +81,7 @@ class TestProjectExecutionHistory(unittest.TestCase):
         audit_path.write_text(json.dumps(audit), encoding="utf-8")
         result = self.history.verify(self.execution.execution_id)
         self.assertFalse(result["success"])
-        self.assertIn("Target file no longer matches the applied version", result["error"])
+        self.assertIn("changed since its latest trusted-ledger event", result["error"])
 
     def test_backup_tampering_fails_verification(self):
         backup = Path(self.execution.backup_directory) / "app" / "Inventory.kt"
