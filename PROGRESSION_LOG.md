@@ -1273,11 +1273,12 @@ Key per-case results:
 - Ordinary caught write failures attempt to restore the exact pre-append ledger/head state and clear the pending marker.
 - First-use empty ledger initialization can resume without regenerating a missing key over existing history.
 - POSIX directory fsync after atomic replacements and lock/pending cleanup.
+- Stale lock recovery removes a lock only when its recorded PID is confirmed absent; active, unreadable, or ambiguous locks fail closed.
 - Fault-injection tests for interruption before/after event append, approval mismatch, and checkpoint write failure.
 
 ### Evidence
-- [CPI Contract CI run 45761934224](https://github.com/SleepyTurtle91/lisa/actions/runs/45761934224): 76/76 project/CLI tests and 6/6 input-classifier tests passed.
-- Full Architecture & Unit suite: 189/189 tests passed.
+- [CPI Contract CI run 45762180939](https://github.com/SleepyTurtle91/lisa/actions/runs/45762180939): 79/79 project/CLI tests and 6/6 input-classifier tests passed.
+- Full Architecture & Unit suite: 192/192 tests passed.
 - Integration suite: 1/1 test passed.
 
 ### Safety boundary
