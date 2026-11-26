@@ -157,6 +157,7 @@ class TestProjectExecutionHistory(unittest.TestCase):
     def test_legacy_execution_is_explicitly_unanchored_until_migrated(self):
         (self.state / "ledger.jsonl").unlink()
         (self.state / ".ledger.key").unlink()
+        (self.state / ".ledger.head").unlink()
         unanchored = self.history.verify(self.execution.execution_id)
         self.assertTrue(unanchored["success"], unanchored.get("error"))
         self.assertEqual(unanchored["record"]["ledger_status"], "legacy_unanchored")
