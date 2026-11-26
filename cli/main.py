@@ -63,10 +63,33 @@ def run_project_command(args):
             print(f"    {item.root_path}")
         return
     if action == "ledger":
-        if len(args) != 2 or args[1] not in ("verify", "migrate"):
-            print("Usage: lisa project ledger <verify|migrate>")
+        if len(args) != 2 or args[1] not in ("verify", "migrate", "recover"):
+            print("Usage: lisa project ledger <verify|migrate|recover>")
             return
         ledger = ProjectExecutionLedger(PROJECT_EXECUTION_STATE_PATH)
+        if args[1] == "recover":
+            try:
+                digest = ledger.preview_recovery_digest()
+            except Exception as exc:
+                print(f"Ledger recovery preview failed: {exc}")
+                return
+            if digest is None:
+                print("No pending ledger transaction requires recovery.")
+                return
+            print("A previously interrupted ledger append is awaiting recovery.")
+            print("Recovery will complete only that authenticated, pending event.")
+            try:
+                confirmation = input(f"Type exactly 'RECOVER {digest}' to authorize recovery: ").strip()
+            except (EOFError, KeyboardInterrupt):
+                print("\\nLedger recovery cancelled.")
+                return
+            result = ledger.recover(confirmation)
+            if not result["success"]:
+                print(f"Ledger recovery failed: {result['error']}")
+                return
+            print(f"Ledger transaction recovered: sequence {result['sequence']} ({result['execution_id']})")
+            print("Run 'lisa project ledger verify' to confirm the recovered ledger.")
+            return
         if args[1] == "verify":
             result = ledger.verify()
             if not result["success"]:
