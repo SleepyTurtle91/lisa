@@ -11,6 +11,7 @@ from lisa.projects.adaptation_result import ProjectAdaptationResult
 from lisa.projects.execution import ExecutionChange, ProjectExecutionRequest, ProjectExecutionResult
 from lisa.projects.execution_executor import ProjectExecutionExecutor
 from lisa.projects.execution_lifecycle import ProjectExecutionLifecycle
+from lisa.projects.execution_history import ProjectExecutionHistory
 from lisa.projects.compatibility import CompatibilityStatus, ProjectCompatibilityReport, ProjectConstraint
 from lisa.projects.compatibility_executor import ProjectCompatibilityExecutor
 from lisa.projects.compatibility_request import ProjectCompatibilityRequest
@@ -31,7 +32,7 @@ from lisa.projects.state import ProjectState
 __all__ = [
     "AdaptationPlanStatus", "AdaptationStep", "ProjectAdaptationPlan",
     "ProjectAdaptationPlanner", "ProjectAdaptationRequest", "ProjectAdaptationResult",
-    "ExecutionChange", "ProjectExecutionExecutor", "ProjectExecutionLifecycle", "ProjectExecutionRequest", "ProjectExecutionResult",
+    "ExecutionChange", "ProjectExecutionExecutor", "ProjectExecutionLifecycle", "ProjectExecutionHistory", "ProjectExecutionRequest", "ProjectExecutionResult",
     "CapabilityDiscoveryExecutor", "CapabilityDiscoveryRequest",
     "CapabilityDiscoveryResult", "CapabilityEvidence", "CapabilityMatch",
     "CompatibilityStatus", "ProjectCompatibilityExecutor",
