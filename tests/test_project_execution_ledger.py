@@ -38,7 +38,7 @@ class TestProjectExecutionLedger(unittest.TestCase):
         (self.state / ".ledger.key").unlink()
         result = self.ledger.verify()
         self.assertFalse(result["success"])
-        with self.assertRaisesRegex(ValueError, "key is missing"):
+        with self.assertRaisesRegex(ValueError, "must all exist together"):
             self.ledger.append("execution_applied", "exec_two", {})
 
     def test_legacy_migration_records_snapshot_not_historical_authenticity(self):
@@ -67,6 +67,27 @@ class TestProjectExecutionLedger(unittest.TestCase):
         result = self.ledger.verify()
         self.assertFalse(result["success"])
         self.assertIn("incomplete trailing record", result["error"])
+
+
+    def test_tail_truncation_is_detected_by_authenticated_head(self):
+        self.ledger.append("execution_applied", "exec_one", {})
+        self.ledger.append("validation_recorded", "exec_one", {})
+        path = self.state / "ledger.jsonl"
+        first_line = path.read_bytes().splitlines(keepends=True)[0]
+        path.write_bytes(first_line)
+        result = self.ledger.verify()
+        self.assertFalse(result["success"])
+        self.assertIn("do not match the authenticated head", result["error"])
+
+    def test_head_checkpoint_tampering_is_detected(self):
+        self.ledger.append("execution_applied", "exec_one", {})
+        path = self.state / ".ledger.head"
+        head = json.loads(path.read_text(encoding="utf-8"))
+        head["sequence"] = 99
+        path.write_text(json.dumps(head) + "\\n", encoding="utf-8")
+        result = self.ledger.verify()
+        self.assertFalse(result["success"])
+        self.assertIn("head checkpoint authentication failed", result["error"])
 
 
 if __name__ == "__main__":
