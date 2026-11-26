@@ -27,3 +27,5 @@ jobs:
         run: PYTHONPATH=. python -m unittest discover -s tests -p "test_project_*.py"
       - name: Run deterministic project command classification tests
         run: PYTHONPATH=. python -m unittest discover -s tests -p "test_ne_014_1_input_classifier.py"
+      - name: Run REPL project selection tests
+        run: PYTHONPATH=. python -m unittest discover -s tests -p "test_repl.py"
