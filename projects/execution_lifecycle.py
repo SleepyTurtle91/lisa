@@ -65,38 +65,63 @@ class ProjectExecutionLifecycle:
 
     @staticmethod
     def _open_regular_file(path, relative):
-        """Open a regular target file without following a final-component symlink."""
-        try:
-            path_info = path.lstat()
-        except FileNotFoundError:
-            return None
-        if not stat.S_ISREG(path_info.st_mode):
-            raise ValueError(
-                f"Rollback path is a symlink or non-regular object: {relative.as_posix()}"
-            )
+        """Open a regular target through descriptor-anchored, no-symlink traversal."""
+        if (
+            os.name != "posix"
+            or os.open not in getattr(os, "supports_dir_fd", set())
+            or os.stat not in getattr(os, "supports_dir_fd", set())
+            or not hasattr(os, "O_DIRECTORY")
+        ):
+            raise ValueError("Safe descriptor-anchored rollback traversal is unavailable.")
 
-        flags = (
-            os.O_RDONLY
-            | getattr(os, "O_NOFOLLOW", 0)
-            | getattr(os, "O_NONBLOCK", 0)
-        )
+        directory_flags = os.O_RDONLY | os.O_DIRECTORY | getattr(os, "O_NOFOLLOW", 0)
+        parent_descriptor = os.open(path.anchor or "/", directory_flags)
         try:
-            descriptor = os.open(str(path), flags)
-        except FileNotFoundError:
-            return None
-        except OSError as exc:
-            if exc.errno in (errno.ELOOP, errno.EISDIR):
+            for component in path.parent.parts[1:]:
+                next_descriptor = os.open(
+                    component, directory_flags, dir_fd=parent_descriptor
+                )
+                os.close(parent_descriptor)
+                parent_descriptor = next_descriptor
+
+            try:
+                path_info = os.stat(
+                    path.name, dir_fd=parent_descriptor, follow_symlinks=False
+                )
+            except FileNotFoundError:
+                return None
+            if not stat.S_ISREG(path_info.st_mode):
                 raise ValueError(
                     f"Rollback path is a symlink or non-regular object: {relative.as_posix()}"
-                ) from exc
-            raise
-        info = os.fstat(descriptor)
-        if not stat.S_ISREG(info.st_mode):
-            os.close(descriptor)
-            raise ValueError(
-                f"Rollback path is not a regular file: {relative.as_posix()}"
+                )
+
+            flags = (
+                os.O_RDONLY
+                | getattr(os, "O_NOFOLLOW", 0)
+                | getattr(os, "O_NONBLOCK", 0)
             )
-        return descriptor
+            try:
+                descriptor = os.open(path.name, flags, dir_fd=parent_descriptor)
+            except FileNotFoundError:
+                return None
+            except OSError as exc:
+                if exc.errno in (errno.ELOOP, errno.EISDIR):
+                    raise ValueError(
+                        f"Rollback path is a symlink or non-regular object: {relative.as_posix()}"
+                    ) from exc
+                raise
+            info = os.fstat(descriptor)
+            if (
+                not stat.S_ISREG(info.st_mode)
+                or (info.st_dev, info.st_ino) != (path_info.st_dev, path_info.st_ino)
+            ):
+                os.close(descriptor)
+                raise ValueError(
+                    f"Rollback target changed while opening: {relative.as_posix()}"
+                )
+            return descriptor
+        finally:
+            os.close(parent_descriptor)
 
     @classmethod
     def _current_regular_file_hash_and_identity(cls, path, relative):
@@ -128,6 +153,10 @@ class ProjectExecutionLifecycle:
             ) != expected_identity:
                 raise ValueError(
                     f"Target inode changed before permission restoration: {relative.as_posix()}"
+                )
+            if current_info.st_nlink != 1:
+                raise ValueError(
+                    f"Refusing permission restoration on a multiply linked target: {relative.as_posix()}"
                 )
             if not hasattr(os, "fchmod"):
                 raise ValueError("Safe descriptor-based permission restoration is unavailable.")
