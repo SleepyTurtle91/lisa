@@ -199,7 +199,7 @@ class TestProjectCLI(unittest.TestCase):
             )
             (target / "settings.gradle.kts").write_text('include(":app")', encoding="utf-8")
             (target / "app").mkdir()
-            unsafe_path = "app/terminal" + chr(27) + "[2J.kt"
+            unsafe_path = "app/terminal" + chr(27) + "[2J" + chr(10) + "hidden.kt"
             patch_file = root / "adaptation.json"
             patch_file.write_text(json.dumps({
                 "changes": [{"path": unsafe_path, "content": "class Terminal {}\n"}]
@@ -225,7 +225,8 @@ class TestProjectCLI(unittest.TestCase):
                 rendered = output.getvalue()
                 self.assertTrue((target / unsafe_path).exists())
                 self.assertNotIn(chr(27), rendered)
-                self.assertIn(r"\x1b[2J", rendered)
+                self.assertIn(r"\x1b[2J\x0ahidden.kt", rendered)
+                self.assertIn("Changed files: app/terminal\\x1b[2J\\x0ahidden.kt", rendered)
                 self.assertIn("Execution completed", rendered)
             finally:
                 lisa_main.PROJECT_REGISTRY_PATH = original_path
