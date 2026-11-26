@@ -1,4 +1,5 @@
 """Recovery and operator-reported validation for governed executions."""
+import base64
 import hashlib
 import json
 import os
@@ -39,6 +40,78 @@ class ProjectExecutionLifecycle:
             if temp_path is not None and temp_path.exists():
                 temp_path.unlink()
 
+    @staticmethod
+    def _serialize_audit(audit):
+        return (json.dumps(audit, indent=2, sort_keys=True) + "\n").encode()
+
+    def _commit_audit_update(self, execution_id, execution_dir, audit_path, audit, event_type, details):
+        old_bytes = audit_path.read_bytes()
+        new_bytes = self._serialize_audit(audit)
+        pending_path = execution_dir / "lifecycle.pending.json"
+        if pending_path.is_symlink() or pending_path.exists():
+            raise ValueError("A pending lifecycle update already exists; recovery is required.")
+        pending = {
+            "schema_version": 1,
+            "execution_id": execution_id,
+            "previous_audit_sha256": self._sha256(old_bytes),
+            "new_audit_sha256": self._sha256(new_bytes),
+            "event_type": event_type,
+            "details": details,
+            "audit_bytes_b64": base64.b64encode(new_bytes).decode("ascii"),
+        }
+        pending_bytes = (json.dumps(pending, sort_keys=True, separators=(",", ":")) + "\n").encode()
+        self._atomic_write(pending_path, pending_bytes)
+        intent_details = {
+            "pending_sha256": self._sha256(pending_bytes),
+            "previous_audit_sha256": pending["previous_audit_sha256"],
+            "new_audit_sha256": pending["new_audit_sha256"],
+            "final_event_type": event_type,
+        }
+        ProjectExecutionLedger(self._state_dir).append(
+            "lifecycle_update_intent", execution_id, intent_details
+        )
+        self._atomic_write(audit_path, new_bytes)
+        final_details = dict(details)
+        final_details["audit_sha256"] = self._sha256(new_bytes)
+        ProjectExecutionLedger(self._state_dir).append(event_type, execution_id, final_details)
+        pending_path.unlink()
+
+    def _recover_pending_audit_update(self, execution_id, execution_dir, audit_path, ledger_events):
+        matching = [event for event in ledger_events if event.get("execution_id") == execution_id]
+        if not matching or matching[-1].get("event_type") != "lifecycle_update_intent":
+            return False
+        intent = matching[-1].get("details")
+        pending_path = execution_dir / "lifecycle.pending.json"
+        if pending_path.is_symlink() or not pending_path.is_file():
+            raise ValueError("Authenticated lifecycle update intent has no safe pending record.")
+        pending_bytes = pending_path.read_bytes()
+        if self._sha256(pending_bytes) != intent.get("pending_sha256"):
+            raise ValueError("Pending lifecycle update does not match its authenticated intent.")
+        pending = json.loads(pending_bytes.decode("utf-8"))
+        if (
+            pending.get("schema_version") != 1
+            or pending.get("execution_id") != execution_id
+            or pending.get("previous_audit_sha256") != intent.get("previous_audit_sha256")
+            or pending.get("new_audit_sha256") != intent.get("new_audit_sha256")
+            or pending.get("event_type") != intent.get("final_event_type")
+        ):
+            raise ValueError("Pending lifecycle update identity or metadata is invalid.")
+        new_bytes = base64.b64decode(pending.get("audit_bytes_b64", ""), validate=True)
+        if self._sha256(new_bytes) != intent.get("new_audit_sha256"):
+            raise ValueError("Pending lifecycle audit snapshot hash is invalid.")
+        current_hash = self._sha256(audit_path.read_bytes())
+        if current_hash == intent.get("previous_audit_sha256"):
+            self._atomic_write(audit_path, new_bytes)
+        elif current_hash != intent.get("new_audit_sha256"):
+            raise ValueError("Current audit matches neither side of the authenticated pending update.")
+        final_details = dict(pending.get("details") or {})
+        final_details["audit_sha256"] = self._sha256(new_bytes)
+        ProjectExecutionLedger(self._state_dir).append(
+            pending["event_type"], execution_id, final_details
+        )
+        pending_path.unlink()
+        return True
+
     def _load_execution(self, execution_id):
         if not isinstance(execution_id, str) or not execution_id.startswith("exec_") or any(ch not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-" for ch in execution_id):
             raise ValueError("A valid execution ID is required.")
@@ -48,9 +121,55 @@ class ProjectExecutionLifecycle:
         audit_path = execution_dir / "audit.json"
         if audit_path.is_symlink() or not audit_path.is_file():
             raise ValueError("Execution audit record is missing or unsafe.")
-        audit = json.loads(audit_path.read_text(encoding="utf-8"))
-        if audit.get("schema_version") != 1 or audit.get("execution_id") != execution_id:
+        audit_bytes = audit_path.read_bytes()
+        audit = json.loads(audit_bytes.decode("utf-8"))
+        if not isinstance(audit, dict) or audit.get("schema_version") != 1 or audit.get("execution_id") != execution_id:
             raise ValueError("Execution audit identity or schema is invalid.")
+
+        ledger = ProjectExecutionLedger(self._state_dir).verify()
+        if not ledger["success"]:
+            raise ValueError("Execution ledger verification failed: " + ledger["error"])
+        matching_events = [
+            event for event in ledger.get("events", [])
+            if event.get("execution_id") == execution_id
+        ]
+        if matching_events and matching_events[-1].get("event_type") == "lifecycle_update_intent":
+            self._recover_pending_audit_update(
+                execution_id, execution_dir, audit_path, ledger.get("events", [])
+            )
+            ledger = ProjectExecutionLedger(self._state_dir).verify()
+            if not ledger["success"]:
+                raise ValueError("Execution ledger verification failed after lifecycle recovery: " + ledger["error"])
+            matching_events = [
+                event for event in ledger.get("events", [])
+                if event.get("execution_id") == execution_id
+            ]
+            audit_bytes = audit_path.read_bytes()
+            audit = json.loads(audit_bytes.decode("utf-8"))
+            if not isinstance(audit, dict) or audit.get("schema_version") != 1 or audit.get("execution_id") != execution_id:
+                raise ValueError("Recovered execution audit identity or schema is invalid.")
+        if not matching_events:
+            raise ValueError(
+                "Execution has no authenticated ledger snapshot; run "
+                "'lisa project ledger migrate' before rollback or validation."
+            )
+        latest_event = matching_events[-1]
+        pending_path = execution_dir / "lifecycle.pending.json"
+        if pending_path.exists() and latest_event.get("event_type") != "lifecycle_update_intent":
+            latest_details = latest_event.get("details")
+            if (
+                pending_path.is_symlink()
+                or not isinstance(latest_details, dict)
+                or latest_details.get("audit_sha256") != self._sha256(audit_bytes)
+            ):
+                raise ValueError("Uncommitted lifecycle pending record cannot be safely discarded.")
+            pending_path.unlink()
+        details = latest_event.get("details")
+        if not isinstance(details, dict) or details.get("audit_sha256") != self._sha256(audit_bytes):
+            raise ValueError(
+                "Execution audit changed since its latest authenticated ledger snapshot; "
+                "lifecycle mutation is refused."
+            )
         return execution_dir, audit_path, audit
 
     def _registered_target_root(self, audit):
@@ -155,7 +274,10 @@ class ProjectExecutionLifecycle:
             audit.setdefault("lifecycle", {})["status"] = "rollback_in_progress"
             audit["lifecycle"]["rollback_started_at"] = datetime.now(timezone.utc).isoformat()
             audit["lifecycle"]["rollback_digest"] = digest
-            self._atomic_write(audit_path, (json.dumps(audit, indent=2, sort_keys=True) + "\n").encode())
+            self._commit_audit_update(
+                execution_id, execution_dir, audit_path, audit, "rollback_started",
+                {"rollback_digest": digest},
+            )
 
             restored = []
             for relative, destination, current_hash, before_hash, after_hash, backup_bytes, backup_mode in reversed(scoped):
@@ -176,15 +298,11 @@ class ProjectExecutionLifecycle:
             audit["lifecycle"]["status"] = "rolled_back"
             audit["lifecycle"]["rolled_back_at"] = datetime.now(timezone.utc).isoformat()
             audit["lifecycle"]["restored_files"] = list(restored)
-            self._atomic_write(audit_path, (json.dumps(audit, indent=2, sort_keys=True) + "\n").encode())
+            self._commit_audit_update(
+                execution_id, execution_dir, audit_path, audit, "rollback_completed",
+                {"rollback_digest": digest},
+            )
             ledger_warning = None
-            try:
-                ProjectExecutionLedger(self._state_dir).append(
-                    "rollback_completed", execution_id,
-                    {"audit_sha256": self._sha256(audit_path.read_bytes()), "rollback_digest": digest},
-                )
-            except Exception as ledger_error:
-                ledger_warning = str(ledger_error)
             return {
                 "success": True, "execution_id": execution_id,
                 "restored_files": tuple(restored), "ledger_warning": ledger_warning,
@@ -241,15 +359,11 @@ class ProjectExecutionLifecycle:
                 "status": record["status"], "record_path": "validation.json",
                 "evidence_digest": digest, "recorded_at": record["recorded_at"],
             }
-            self._atomic_write(audit_path, (json.dumps(audit, indent=2, sort_keys=True) + "\n").encode())
+            self._commit_audit_update(
+                execution_id, execution_dir, audit_path, audit, "validation_recorded",
+                {"validation_digest": digest},
+            )
             ledger_warning = None
-            try:
-                ProjectExecutionLedger(self._state_dir).append(
-                    "validation_recorded", execution_id,
-                    {"audit_sha256": self._sha256(audit_path.read_bytes()), "validation_digest": digest},
-                )
-            except Exception as ledger_error:
-                ledger_warning = str(ledger_error)
             return {
                 "success": True, "execution_id": execution_id,
                 "validation_path": str(validation_path), "status": record["status"],

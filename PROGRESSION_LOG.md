@@ -1255,3 +1255,50 @@ Key per-case results:
 - Run focused CPI, full architecture/unit, and integration CI.
 - Review interrupted-write and stale-lock recovery behavior before considering the ledger stable.
 
+
+
+---
+
+## 2026-11-26 — CPI-06.3 Ledger Reliability Review Remediation
+
+### Changes
+- Replace permanent stale lock-file blocking with process-released OS advisory locking.
+- Recover incomplete JSONL writes by restoring the prior file length; initialize a valid empty authenticated checkpoint after a failed first append.
+- Require lifecycle operations to verify the current audit against its latest authenticated ledger snapshot before mutation.
+- Preserve legacy snapshot trust status after later rollback/validation events.
+- Verify the ledger once per history listing and reuse an execution-event index.
+- Added focused regressions for stale locks, concurrent writers, short writes, prior-snapshot tampering, legacy trust, and history verification complexity.
+
+### Status
+- Dedicated remediation branch stacked on CPI-06.3.
+- CI and independent review pending.
+- No merge performed.
+
+### Follow-up — Authenticated ledger record delimiter
+- Corrected append framing to terminate JSONL events with an actual newline byte rather than the two-character backslash-`n` sequence.
+- Added a regression asserting the ledger ends with real newline bytes and contains no literal escaped terminator.
+- Corrected Windows lock-file initialization to write an actual NUL byte.
+- CPI Contract CI and Architecture & Integration CI passed (run 45791655969).
+- Independent review requested; no merge performed.
+
+### Follow-up — Deterministic short-write recovery test
+- Full-suite CI exposed a test-fixture collision: the patched `os.write` could mistake randomly generated key bytes beginning with `{` for a JSON event.
+- Initialize the ledger key and authenticated head before patching writes, then test rollback of a partial second event and successful retry.
+- CPI Contract CI and Architecture & Integration CI passed on the deterministic fixture (run 45792017905).
+- Independent review requested on the corrected head; no merge performed.
+
+
+---
+
+## 2026-11-26 — Review Follow-up
+
+### Follow-up — Crash-recoverable lifecycle audit commits
+- Added an authenticated intent event that binds the prior audit hash, pending snapshot hash, and intended next audit hash before replacing lifecycle audit state.
+- Recovery validates the pending snapshot against the authenticated ledger intent, completes interrupted rollback/validation commits, and removes stale pending records only when the ledger already authenticates the current audit.
+- Added regression coverage for interruptions during rollback-completion and validation-record ledger appends.
+- Full CPI and Architecture & Integration CI rerun pending on the updated implementation.
+
+
+### CI confirmation
+- Both `architecture-integration` and `cpi-contracts` jobs passed on the updated lifecycle recovery implementation.
+- [GitHub Actions run 45793771174](https://github.com/SleepyTurtle91/lisa/actions/runs/45793771174)
