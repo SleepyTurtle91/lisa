@@ -268,6 +268,45 @@ class TestGovernedProjectExecution(unittest.TestCase):
         self.assertEqual(destination.read_bytes(), original)
         self.assertEqual(destination.stat().st_mode & 0o777, original_mode)
 
+    def test_mode_restore_does_not_follow_a_swapped_symlink(self):
+        import os
+        from unittest.mock import patch
+
+        if os.name != "posix" or not hasattr(os, "fchmod"):
+            self.skipTest("Descriptor-based POSIX mode restoration is required")
+
+        destination = self.target / "app" / "Main.kt"
+        original = destination.read_bytes()
+        destination.chmod(0o600)
+        expected = hashlib.sha256(original).hexdigest()
+        execution = self._apply_for_lifecycle([
+            ExecutionChange("app/Main.kt", "class Main { val changed = true }\\n", expected)
+        ])
+
+        destination.write_bytes(original)
+        destination.chmod(0o644)
+        outside = self.source / "outside-secret.txt"
+        outside.write_text("do not chmod through a swapped symlink", encoding="utf-8")
+        outside.chmod(0o600)
+        outside_mode = outside.stat().st_mode & 0o777
+
+        lifecycle = ProjectExecutionLifecycle(self.registry, state_dir=self.state_dir)
+        digest = lifecycle.preview_rollback_digest(execution.execution_id)
+        real_fchmod = os.fchmod
+
+        def swap_path_then_chmod(descriptor, mode):
+            destination.unlink()
+            destination.symlink_to(outside)
+            real_fchmod(descriptor, mode)
+
+        with patch("os.fchmod", side_effect=swap_path_then_chmod):
+            result = lifecycle.rollback(execution.execution_id, f"ROLLBACK {digest}")
+
+        self.assertFalse(result["success"])
+        self.assertIn("Target path changed during permission restoration", result["error"])
+        self.assertTrue(destination.is_symlink())
+        self.assertEqual(outside.stat().st_mode & 0o777, outside_mode)
+
     def test_rollback_refuses_files_changed_after_execution(self):
         execution = self._apply_for_lifecycle([
             ExecutionChange("app/Changed.kt", "class Changed {}\n")
