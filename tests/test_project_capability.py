@@ -74,7 +74,7 @@ class TestCapabilityDiscovery(unittest.TestCase):
 
     def test_generic_invoice_evidence_does_not_match_einvoice_query(self):
         (self.target / "README.md").write_text(
-            "# Billing\\nInvoice history and invoice reports.",
+            "# Billing\nInvoice history and invoice reports.",
             encoding="utf-8",
         )
         result = self.discovery.execute(CapabilityDiscoveryRequest(query="einvoice"))
