@@ -1166,3 +1166,38 @@ Key per-case results:
 - Plan previews include source evidence and target constraints.
 - Every plan requires authorization and is marked not authorized for execution.
 - CPI-06 remains a separate future milestone. No code is transferred or applied by this branch.
+
+
+---
+
+## 2026-11-26 — CPI-06 Governed Cross-Project Execution
+
+### Status
+- First bounded execution release implemented.
+- Dedicated CPI and full Architecture & Integration CI passed.
+- PR #3 remains stacked on CPI foundation PR #2; no changes were merged to main.
+
+### What was added
+- Explicit `lisa project apply <source-id> <target-id> <terms> --patch <patch.json>` workflow.
+- Exact operator confirmation bound to plan identity, source evidence, target constraints, canonical target root, file paths, pre-change hashes, and proposed content hashes.
+- Source and target evidence freshness checks before applying changes.
+- Strict path scope, symlink, protected path, duplicate path, stale-file, replay, and payload-size safeguards.
+- Backups and a JSON audit record outside both project roots.
+- Atomic file replacement and automatic rollback if an application or audit write fails.
+- Source project remains read-only. Deletes, directory creation, and arbitrary command execution are unsupported.
+- Regression validation is explicitly required and remains operator-run.
+
+### Evidence
+- [CPI Contract CI run 45749846834](https://github.com/SleepyTurtle91/lisa/actions/runs/45749846834): 46/46 project/CLI tests and 6/6 input-classifier tests passed.
+- Full Architecture & Unit suite: 159/159 tests passed in the same workflow run.
+- Integration suite: 1/1 test passed in the same workflow run.
+
+### Safety boundary
+- A plan remains unauthorized until the operator types the exact approval phrase for the exact patch.
+- No shell commands, build scripts, or target tests are run by the executor.
+- The executor applies only listed regular files under the registered target root; source files are never modified.
+- A successful apply is not an accepted adaptation until the target project's regression suite has passed.
+
+### Follow-up
+- Add a separately approved rollback/recovery command and post-execution validation evidence capture before expanding execution scope.
+- Keep CPI-06's first release deliberately narrower than a general-purpose code migration engine.
