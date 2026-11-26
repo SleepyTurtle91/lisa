@@ -1355,4 +1355,7 @@ Key per-case results:
 - A pre-journal preparation directory may remain after interruption before the durable journal; no target writes have occurred at that point. It requires operator inspection and is not automatically cleaned up.
 - Recovery relies on local filesystem durability semantics and L.I.S.A.'s own locks. It cannot guarantee behavior from storage that violates fsync guarantees or from external processes that ignore the locks.
 - No shell commands, builds, or target tests are executed by L.I.S.A.
-- No PR merge performed. Validation results are pending CI.
+- CI passed on run [45767380089](https://github.com/SleepyTurtle91/lisa/actions/runs/45767380089).
+- Project/CLI suite: 89/89 passed; input-classifier suite: 6/6 passed.
+- Full architecture/unit suite: 202/202 passed; integration suite: 1/1 passed.
+- No PR merge performed.
