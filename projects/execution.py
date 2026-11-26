@@ -32,3 +32,4 @@ class ProjectExecutionResult:
     audit_path: Optional[str] = None
     validation_required: bool = True
     error: Optional[str] = None
+    warning: Optional[str] = None
