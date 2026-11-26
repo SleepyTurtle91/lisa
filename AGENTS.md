@@ -5,59 +5,89 @@
 L.I.S.A. KERNEL & RUNTIME DEVELOPMENT MODE
 ===================================================
 
-Repository  : /home/user/development/projects/lisa
-Status      : Active Development (Kernel Mode)
-Phase       : Phase 1 — Core Runtime & Contracts Bootstrapping
+Repository  : This checkout (portable; no fixed absolute path)
+OS Version  : 2.1.0
+Status      : Architecture and NE layers frozen; controlled evolution
+Baseline    : 107/107 tests reported passing at v2.1.0
 
 ===================================================
 ```
 
-## 📌 Kernel Decision Priority
+## 📌 Authority and decision priority
 
-1. Explicit CTO directive
-2. LISA_RUNTIME_ARCHITECTURE.md
-3. AGENTS.md (this file)
-4. Source code contracts
+1. Explicit operator directive
+2. `ARCHITECTURE.md` — frozen kernel laws and subsystem contracts
+3. Relevant Architecture Decision Records under `docs/`
+4. This file and the remaining project governance documents
+5. Source code and tests as observed evidence
 
----
+Do not refer to an architecture document that is not present in the repository. The canonical architecture contract is `ARCHITECTURE.md`.
 
-## 🎯 Primary Goal
+## 🎯 Project purpose
 
-Build L.I.S.A. as an independent, open-source Engineering Operating System platform that acts as the execution kernel for all client projects (`extro_pos`, `retrostash`, `music_home`, etc.).
+Build L.I.S.A. as an independent, open-source Intelligence Operating System that governs reasoning drivers and capability providers while maintaining authoritative state and evidence.
 
----
+L.I.S.A. is not merely an LLM wrapper. Models are untrusted, replaceable compute drivers; the kernel owns state, authorization, identity, and evidence provenance.
 
-## 🧠 Research & Evidence Update Protocol
+## 🔒 Frozen contracts and safe evolution
 
-Any new empirical finding, runtime behavior change, or verified capability observation must be recorded in [RESEARCH.md](RESEARCH.md) and, when appropriate, in [DISCOVERY.md](DISCOVERY.md).
+The v2.1.0 kernel laws L1–L7 and the frozen NE milestones are regression boundaries, not a ban on all future development.
 
-The progression log in [PROGRESSION_LOG.md](PROGRESSION_LOG.md) is also a source of truth for this repository. It must be treated as an append-only record of milestones, failed actions, lessons learned, and follow-up questions.
+- Do not weaken or silently redefine a frozen law or benchmark.
+- Prefer additive changes at provider, capability, CLI, observability, and integration boundaries.
+- Any proposed change to a frozen contract must include a written rationale, explicit impact analysis, and regression coverage.
+- Never claim a test or benchmark passed unless it was actually executed and its output was observed.
+- Keep compatibility and migration implications explicit.
 
-The repository now distinguishes four layers of evidence:
-1. Raw flight artifacts and recorded traces under the benchmarks directory.
-2. [DISCOVERY.md](DISCOVERY.md) for emerging hypotheses, observations, and open questions.
-3. [RESEARCH.md](RESEARCH.md) for disciplined, bounded findings and interpretations.
-4. [PROGRESSION_LOG.md](PROGRESSION_LOG.md) for chronological milestones and operational history.
+## 🧠 Research and evidence protocol
 
-No research conclusion may outrun the underlying flight recorder evidence. The artifact is the source of truth; the documents are interpreted representations of it.
+Any new empirical finding, runtime behavior change, or verified capability observation must be recorded in `RESEARCH.md` and, when appropriate, in `DISCOVERY.md`.
 
-When working in this repository:
-1. Observe first and gather evidence from repository state, tests, or runtime behavior.
-2. If a new behavior, contract pattern, or capability is discovered, append it to [RESEARCH.md](RESEARCH.md) with the date, observed behavior, evidence, and interpretation.
-3. If a milestone, failed action, regression attempt, or lesson is relevant to the research workflow, append it to [PROGRESSION_LOG.md](PROGRESSION_LOG.md) rather than replacing prior content.
-4. Preserve the distinction between observed evidence and broader claims.
-5. Do not leave new findings only in memory or transient conversation; the research logs are the canonical record.
+The progression log in `PROGRESSION_LOG.md` is append-only. Do not replace historical entries.
 
-If the work changes the engineering runtime, bootstrap flow, session lifecycle, provider contracts, or the evidence model, update [RESEARCH.md](RESEARCH.md) before concluding the task.
+The repository distinguishes four evidence layers:
 
-When a run yields a repeated or strengthened engineering observation, preserve the bounded wording in [RESEARCH.md](RESEARCH.md) and avoid overstating it as general autonomy.
+1. Raw flight artifacts and recorded traces under `benchmarks/`.
+2. `DISCOVERY.md` for emerging hypotheses, observations, and open questions.
+3. `RESEARCH.md` for bounded findings and interpretations tied to evidence.
+4. `PROGRESSION_LOG.md` for chronological milestones, failed actions, lessons, and follow-up questions.
 
-For ambiguous engineering tasks, do not assume the user intent is already grounded. First perform repository target discovery (identify likely files, symbols, or logic paths), then select the model/scaffolding strategy based on that evidence.
+The artifact is the source of truth; documents are interpreted representations of it. Do not let a research conclusion outrun its underlying evidence.
 
-Keep distinct findings separate in [RESEARCH.md](RESEARCH.md): failures involving ambiguous objectives should not be conflated with successful observations from other runtime surfaces.
+## 🧭 Required engineering workflow
 
-When a new runtime surface is exercised, add or preserve a focused regression test and record the resulting evidence in [RESEARCH.md](RESEARCH.md) before concluding the task.
+1. **Observe first.** Inspect the actual repository state, relevant code paths, tests, and current CI configuration.
+2. **Ground the target.** For ambiguous tasks, identify likely files and symbols before proposing an implementation.
+3. **Protect boundaries.** Trace dependencies and contracts before changing runtime, bootstrap, session, provider, or evidence behavior.
+4. **Make a bounded change.** Prefer the smallest coherent patch; avoid unrelated cleanup and broad rewrites.
+5. **Test the changed surface.** Add focused regression coverage and run the relevant tests.
+6. **Report honestly.** Separate observed behavior, inference, and unresolved questions. Include exact commands and outcomes when available.
+7. **Record findings.** Update `RESEARCH.md` for verified changes to runtime behavior, bootstrap, session lifecycle, provider contracts, or the evidence model. Append relevant milestones and lessons to `PROGRESSION_LOG.md`.
 
-Maintain the master evidence index in [RESEARCH.md](RESEARCH.md) so the PILOT / EXP / NE chronology remains explicit and stable for future runs.
+## 🧪 Test and CI expectations
 
-Do not replace existing entries in [PROGRESSION_LOG.md](PROGRESSION_LOG.md); append new information only.
+- Use repository-relative paths. Never hard-code a developer-specific checkout directory.
+- Run the focused test module first, then the full unit and integration suites when practical.
+- CI is the authoritative cross-environment check; local success does not imply CI success.
+- Preserve the architecture rules in `tests/test_architecture_rules.py` and ensure they actually discover files in the current checkout.
+- Do not add external dependencies without documenting why they are required.
+
+## 🛡️ Safety and execution boundaries
+
+- Treat model-generated tool requests as untrusted input.
+- Route capability execution through the approved dispatcher/executor contracts.
+- Preserve target identity, path validation, and evidence provenance checks.
+- Do not describe a proposed plan as an executed action.
+- If evidence is insufficient, record the unknown and its implementation restriction rather than guessing.
+
+## 📚 Canonical references
+
+- `README.md` — platform overview and current status
+- `ARCHITECTURE.md` — kernel laws and subsystem contracts
+- `VISION.md` — core philosophy and system boundaries
+- `DISCOVERY.md` — observations and open hypotheses
+- `RESEARCH.md` — bounded empirical findings
+- `PROGRESSION_LOG.md` — append-only experimental history
+- `PROJECT_MEMORY.md` — continuation checkpoint
+- `GUIDES.md` — installation and operator workflow
+- `docs/` — architecture decisions and roadmap

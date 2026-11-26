@@ -17,9 +17,33 @@ from lisa.core.context import SessionContext, Capability
 from lisa.telemetry.flight_recorder import FlightRecorder
 from lisa.telemetry.activity_renderer import FlightConsole
 from lisa.cli.input_classifier import InputBoundaryClassifier, InputClass
+from lisa.projects import ProjectExecutor, ProjectOperation, ProjectRequest
+from lisa.projects.registry import ProjectRegistry
+from lisa.projects.profile_executor import ProjectProfileExecutor
+from lisa.projects.profile_request import ProjectProfileRequest
+from lisa.projects.capability_discovery import CapabilityDiscoveryExecutor
+from lisa.projects.capability_request import CapabilityDiscoveryRequest
+from lisa.projects.compatibility_executor import ProjectCompatibilityExecutor
+from lisa.projects.compatibility_request import ProjectCompatibilityRequest
+from lisa.projects.adaptation_planner import ProjectAdaptationPlanner
+from lisa.projects.adaptation_request import ProjectAdaptationRequest
 
 CONFIG_DIR = Path.home() / ".lisa"
 RECENT_FILE = CONFIG_DIR / "recent.json"
+PROJECT_REGISTRY_FILE = CONFIG_DIR / "projects.json"
+
+
+def _project_executor():
+    return ProjectExecutor(registry=ProjectRegistry(storage_path=PROJECT_REGISTRY_FILE))
+
+
+def _project_identifier(executor, value):
+    result = executor.execute(ProjectRequest(operation=ProjectOperation.LIST))
+    matches = [
+        item for item in result.manifests
+        if item.project_id == value or item.name.casefold() == value.casefold()
+    ]
+    return matches[0] if len(matches) == 1 else None
 
 
 def _activity_mode_from_env() -> str:
@@ -51,29 +75,58 @@ def add_recent_project(path: str):
     except Exception:
         pass
 
-def scan_common_projects() -> List[str]:
-    search_dirs = [
-        "/home/user/development/projects",
-        "/workspace/Projects",
-        os.getcwd()
-    ]
-    found = set()
-    for root in search_dirs:
-        if os.path.exists(root) and os.path.isdir(root):
-            try:
-                for entry in os.listdir(root):
-                    full_path = os.path.join(root, entry)
-                    if os.path.isdir(full_path) and not entry.startswith("."):
-                        # Check if it looks like a project
-                        if (os.path.exists(os.path.join(full_path, "BOOT.md")) or 
-                            os.path.exists(os.path.join(full_path, "AGENTS.md")) or
-                            os.path.exists(os.path.join(full_path, ".git")) or
-                            os.path.exists(os.path.join(full_path, "README.md"))):
-                            found.add(os.path.abspath(full_path))
-            except Exception:
-                pass
-    return sorted(list(found))
+def _project_search_roots() -> List[Path]:
+    """Return portable project-discovery roots.
 
+    Operators can provide roots with LISA_PROJECTS_DIRS, separated using the
+    platform's PATH separator. Conventional folders are discovery hints only;
+    no single folder is required for L.I.S.A. to run.
+    """
+    configured = os.getenv("LISA_PROJECTS_DIRS", "")
+    roots = [Path(item.strip()).expanduser() for item in configured.split(os.pathsep) if item.strip()]
+    home = Path.home()
+    roots.extend(
+        home / name
+        for name in (
+            "Projects", "projects", "Development", "development/projects",
+            "workspace", "Workspaces", "code", "src",
+        )
+    )
+    roots.append(Path.cwd())
+
+    unique_roots = []
+    seen = set()
+    for root in roots:
+        try:
+            resolved = root.resolve()
+        except OSError:
+            continue
+        if resolved not in seen and resolved.is_dir():
+            seen.add(resolved)
+            unique_roots.append(resolved)
+    return unique_roots
+
+
+def scan_common_projects(search_dirs: Optional[List[Path]] = None) -> List[str]:
+    """Discover projects from configurable, portable workspace roots."""
+    roots = search_dirs if search_dirs is not None else _project_search_roots()
+    markers = ("BOOT.md", "AGENTS.md", ".git", "README.md")
+    found = set()
+
+    for root in roots:
+        root_path = Path(root).expanduser()
+        if not root_path.is_dir():
+            continue
+        try:
+            for child in root_path.iterdir():
+                if not child.is_dir() or child.name.startswith("."):
+                    continue
+                if any((child / marker).exists() for marker in markers):
+                    found.add(str(child.resolve()))
+        except OSError:
+            continue
+
+    return sorted(found)
 def prompt_project_selection() -> Optional[str]:
     print("🤖 L.I.S.A. Engineering Operating System REPL Mode")
     print("===================================================")
@@ -189,6 +242,13 @@ def render_computer_boot_sequence(proj_name: str):
     print()
 
 async def start_repl(target_dir: Optional[str] = None):
+    project_executor = _project_executor()
+    if not target_dir:
+        active_context = project_executor.execute(
+            ProjectRequest(operation=ProjectOperation.LIST)
+        ).context
+        if active_context is not None:
+            target_dir = active_context.root_path
     if not target_dir:
         target_dir = prompt_project_selection()
         if not target_dir:
@@ -205,7 +265,21 @@ async def start_repl(target_dir: Optional[str] = None):
         return
         
     add_recent_project(target_dir)
-    
+
+    registration = project_executor.execute(ProjectRequest(
+        operation=ProjectOperation.REGISTER, path=target_dir
+    ))
+    if not registration.success:
+        print(f"Project registration failed; refusing to start an unregistered context: {registration.error}")
+        return
+    activated = project_executor.execute(ProjectRequest(
+        operation=ProjectOperation.ACTIVATE,
+        project_id=registration.manifest.project_id,
+    ))
+    if not activated.success:
+        print(f"Project activation failed; refusing to start session: {activated.error}")
+        return
+
     boot_cfg = BootstrapEngine.discover(target_dir)
     proj_name = boot_cfg.project.project_name
     
@@ -275,6 +349,14 @@ async def start_repl(target_dir: Optional[str] = None):
             print("  summarize boot Summarize BOOT.md / AGENTS.md active milestone")
             print("  read <file>    Read target file content")
             print("  switch         Switch active project")
+            print("  projects       List registered projects")
+            print("  project add <path>   Register another project")
+            print("  project use <id|name> Switch to a registered project")
+            print("  project remove <id>  Unregister a project")
+            print("  project inspect <id|name>  Build a read-only project profile")
+            print("  project find <terms>  Search registered projects for capability evidence")
+            print("  project compare <source-id> <target-id> [terms]  Triage reuse compatibility")
+            print("  project plan <source-id> <target-id> <terms>  Create a review-only adaptation plan")
             print("  exit / quit    Exit REPL session\n")
         classified = InputBoundaryClassifier.classify(user_input, project_path=target_dir)
 
@@ -286,6 +368,154 @@ async def start_repl(target_dir: Optional[str] = None):
             elif cmd == "compare":
                 from lisa.cli.main import run_benchmark_compare
                 await run_benchmark_compare(target_dir)
+            elif cmd == "projects":
+                result = project_executor.execute(ProjectRequest(operation=ProjectOperation.LIST))
+                if not result.manifests:
+                    print("No registered projects.")
+                else:
+                    for item in result.manifests:
+                        active = "*" if result.context and result.context.project_id == item.project_id else " "
+                        print(f" {active} {item.name} [{item.project_id}]")
+                        print(f"    {item.root_path}")
+            elif cmd == "project":
+                parts = (classified.target or "").split()
+                action = parts[0].lower() if parts else "help"
+                value = " ".join(parts[1:]).strip()
+                if action == "add" and value:
+                    added = project_executor.execute(ProjectRequest(
+                        operation=ProjectOperation.REGISTER, path=value
+                    ))
+                    if added.success:
+                        print(f"Registered {added.manifest.name} [{added.manifest.project_id}]")
+                    else:
+                        print(f"Registration failed: {added.error}")
+                elif action in ("list", "ls"):
+                    result = project_executor.execute(ProjectRequest(operation=ProjectOperation.LIST))
+                    for item in result.manifests:
+                        active = "*" if result.context and result.context.project_id == item.project_id else " "
+                        print(f" {active} {item.name} [{item.project_id}] - {item.root_path}")
+                elif action == "plan" and len(parts) >= 4:
+                    source = _project_identifier(project_executor, parts[1])
+                    target = _project_identifier(project_executor, parts[2])
+                    if source is None or target is None:
+                        print("Source or target not found/ambiguous. Use 'projects' to list IDs.")
+                    else:
+                        planned = ProjectAdaptationPlanner(
+                            registry=ProjectRegistry(storage_path=PROJECT_REGISTRY_FILE)
+                        ).execute(ProjectAdaptationRequest(
+                            source_project_id=source.project_id,
+                            target_project_id=target.project_id,
+                            capability_query=" ".join(parts[3:]),
+                        ))
+                        if not planned.success:
+                            print(f"Adaptation planning failed: {planned.error}")
+                        else:
+                            plan = planned.plan
+                            print(f"\nAdaptation plan {plan.plan_id}: {plan.source_project_name} -> {plan.target_project_name}")
+                            print(f"Status: {plan.status.value}")
+                            print(plan.summary)
+                            print(f"Compatibility status: {plan.compatibility_status.value}")
+                            print(f"Shared technology markers: {', '.join(plan.shared_technologies) or '(none)'}")
+                            for evidence in plan.source_evidence:
+                                print(f"Source evidence: {evidence.relative_path} [sha256:{evidence.sha256[:12]}]")
+                            for source_path in plan.source_paths:
+                                print(f"Source path: {source_path}")
+                            for blocker in plan.blockers:
+                                print(f"Blocker: {blocker}")
+                            for constraint in plan.target_constraints:
+                                print(f"Preserve [{constraint.relative_path}]: {constraint.excerpt}")
+                            for step in plan.steps:
+                                print(f"{step.order}. {step.title} — {step.description}")
+                            print(f"Authorization required: {plan.authorization_required}")
+                            print(f"Execution authorized: {plan.execution_authorized}")
+                            print("This is a review-only plan. No code was copied, modified, or executed.\n")
+                elif action in ("compare", "compatibility") and len(parts) >= 3:
+                    source = _project_identifier(project_executor, parts[1])
+                    target = _project_identifier(project_executor, parts[2])
+                    if source is None or target is None:
+                        print("Source or target not found/ambiguous. Use 'projects' to list IDs.")
+                    else:
+                        query = " ".join(parts[3:]).strip() or None
+                        compared = ProjectCompatibilityExecutor(
+                            registry=ProjectRegistry(storage_path=PROJECT_REGISTRY_FILE)
+                        ).execute(ProjectCompatibilityRequest(
+                            source_project_id=source.project_id,
+                            target_project_id=target.project_id,
+                            capability_query=query,
+                        ))
+                        if not compared.success:
+                            print(f"Compatibility analysis failed: {compared.error}")
+                        else:
+                            report = compared.report
+                            print(f"\nCompatibility triage: {report.source_project_name} -> {report.target_project_name}")
+                            print(f"Status: {report.status.value}")
+                            print(f"Shared technologies: {', '.join(report.shared_technologies) or '(none)'}")
+                            if report.capability_query:
+                                print(f"Capability query: {report.capability_query} (found: {report.source_capability_found})")
+                                print(f"Matched terms: {', '.join(report.matched_terms) or '(none)'}")
+                            for flag in report.risk_flags:
+                                print(f"Risk: {flag}")
+                            for constraint in report.constraints:
+                                print(f"Constraint [{constraint.project_role}] {constraint.relative_path}: {constraint.excerpt}")
+                            print("No code was transferred or modified. Review the evidence before planning an adaptation.\n")
+                elif action in ("find", "search") and value:
+                    discovery = CapabilityDiscoveryExecutor(
+                        registry=ProjectRegistry(storage_path=PROJECT_REGISTRY_FILE)
+                    ).execute(CapabilityDiscoveryRequest(query=value))
+                    if not discovery.success:
+                        print(f"Capability search failed: {discovery.error}")
+                    elif not discovery.matches:
+                        print(f"No project evidence matched: {value}")
+                    else:
+                        print(f"\nCapability candidates for: {value}")
+                        for match in discovery.matches:
+                            print(f"  {match.project_name} [{match.project_id}] — {match.score:.0%} match")
+                            print(f"    Terms: {', '.join(match.matched_terms)}")
+                            for evidence in match.evidence:
+                                print(f"    Evidence: {evidence.relative_path} [{evidence.evidence_kind}; sha256:{evidence.sha256[:12]}]")
+                            for source_path in match.source_paths:
+                                print(f"    Source path: {source_path}")
+                        print()
+                elif action in ("inspect", "profile") and value:
+                    selected = _project_identifier(project_executor, value)
+                    if selected is None:
+                        print("Project not found or ambiguous. Use 'projects' to list IDs.")
+                    else:
+                        profiled = ProjectProfileExecutor(
+                            registry=ProjectRegistry(storage_path=PROJECT_REGISTRY_FILE)
+                        ).execute(ProjectProfileRequest(project_id=selected.project_id))
+                        if not profiled.success:
+                            print(f"Project inspection failed: {profiled.error}")
+                        else:
+                            profile = profiled.profile
+                            print(f"\nProject profile: {profile.name} [{profile.project_id}]")
+                            print(f"Technologies: {', '.join(profile.technologies) or 'unknown'}")
+                            print(f"Top-level directories: {', '.join(profile.top_level_directories) or '(none)'}")
+                            print(f"Source files inventoried: {profile.source_file_count}")
+                            print("Evidence:")
+                            for item in profile.evidence:
+                                print(f"  - {item.relative_path} [{item.evidence_kind}; sha256:{item.sha256[:12]}]")
+                            print()
+                elif action in ("use", "activate") and value:
+                    selected = _project_identifier(project_executor, value)
+                    if selected is None:
+                        print("Project not found or ambiguous. Use 'projects' to list IDs.")
+                    else:
+                        await runtime.shutdown()
+                        print(f"Switching to {selected.name}...")
+                        await start_repl(selected.root_path)
+                        return
+                elif action in ("remove", "unregister") and value:
+                    current = project_executor.execute(ProjectRequest(operation=ProjectOperation.LIST)).context
+                    if current and current.project_id == value:
+                        print("Cannot unregister the active project from its own session. Switch first.")
+                    else:
+                        removed = project_executor.execute(ProjectRequest(
+                            operation=ProjectOperation.UNREGISTER, project_id=value
+                        ))
+                        print("Project unregistered." if removed.success else f"Unregister failed: {removed.error}")
+                else:
+                    print("Usage: project add <path> | project list | project inspect <id|name> | project find <terms> | project compare <source-id> <target-id> [terms] | project plan <source-id> <target-id> <terms> | project use <id|name> | project remove <id>")
             elif cmd == "switch":
                 await runtime.shutdown()
                 print("\nSwitching project...")

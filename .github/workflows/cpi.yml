@@ -1,0 +1,31 @@
+name: L.I.S.A. CPI Contract CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - feat/cross-project-intelligence-foundation
+    paths:
+      - "projects/**"
+      - "cli/**"
+      - "tests/test_project_*.py"
+      - "tests/test_ne_014_1_input_classifier.py"
+      - ".github/workflows/cpi.yml"
+  push:
+    branches: [ feat/cross-project-intelligence-foundation ]
+
+jobs:
+  cpi-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: Run project registry and CLI tests
+        run: PYTHONPATH=. python -m unittest discover -s tests -p "test_project_*.py"
+      - name: Run deterministic project command classification tests
+        run: PYTHONPATH=. python -m unittest discover -s tests -p "test_ne_014_1_input_classifier.py"
+      - name: Run REPL project selection tests
+        run: PYTHONPATH=. python -m unittest discover -s tests -p "test_repl.py"

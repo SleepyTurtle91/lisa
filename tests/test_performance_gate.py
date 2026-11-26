@@ -6,6 +6,14 @@ from lisa.tools.filesystem.read_file import ReadFileTool
 from lisa.tools.filesystem.standard import WriteFileTool, ListDirectoryTool
 from lisa.providers.ollama.provider import OllamaProvider
 
+
+class FakeOllamaProvider(OllamaProvider):
+    async def is_healthy(self) -> bool:
+        return True
+
+    def _list_models(self):
+        return [self._default_model]
+
 class TestPerformanceGate(unittest.TestCase):
     def test_boot_overhead_performance_gate(self):
         """Ensures L.I.S.A. framework boot overhead remains under strict 15.0 ms limit."""
@@ -13,7 +21,7 @@ class TestPerformanceGate(unittest.TestCase):
         
         runtime = LisaRuntime()
         asyncio.run(runtime.initialize())
-        asyncio.run(runtime.register_provider(OllamaProvider()))
+        asyncio.run(runtime.register_provider(FakeOllamaProvider()))
         
         runtime.tool_registry.register(ReadFileTool())
         runtime.tool_registry.register(WriteFileTool())

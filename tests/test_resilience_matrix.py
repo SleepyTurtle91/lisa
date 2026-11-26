@@ -1,5 +1,7 @@
 import unittest
 import asyncio
+import tempfile
+from pathlib import Path
 from lisa.core.kernel import LisaRuntime
 from lisa.core.context import SessionContext, Capability
 from lisa.core.states import RuntimeState, SessionState
@@ -110,9 +112,12 @@ class TestResilienceMatrix(unittest.TestCase):
         registry = ToolRegistry()
         registry.register(ReadFileTool())
         executor = ToolExecutor(registry)
-        req = ToolRequest(tool_name="read_file", arguments={"path": "/home/user/development/projects/lisa/AGENTS.md"})
-        res = asyncio.run(executor.execute_request(req))
-        self.assertTrue(res.success)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            (Path(temp_dir) / "AGENTS.md").write_text("Resilience fixture", encoding="utf-8")
+            req = ToolRequest(tool_name="read_file", arguments={"path": "AGENTS.md"})
+            res = asyncio.run(executor.execute_request(req, project_path=temp_dir))
+            self.assertTrue(res.success)
+            self.assertIn("Resilience fixture", res.output)
 
     # Test 5: Tool Throws Exception -> Runtime Survives & Isolates Error
     def test_05_tool_throws_exception(self):

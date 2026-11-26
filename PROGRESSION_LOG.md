@@ -1008,3 +1008,161 @@ Key per-case results:
 
 
 
+
+
+---
+
+## 2026-11-26 — CPI-01 Project Registry and CLI Management
+
+### Status
+- Implemented in draft PR; CI validation pending.
+
+### What was added
+- A persistent, versioned local project registry with atomic JSON file replacement.
+- Deterministic project identity and explicit register/list/activate/deactivate/unregister operations.
+- Top-level CLI commands for project management.
+- REPL commands for adding, listing, and switching projects.
+- Default startup uses the registered active project when no explicit path is supplied.
+- Focused tests for persistence, active context restoration, corrupt registry handling, persistence rollback, and missing project directories.
+
+### Safety boundaries
+- A running session is not silently retargeted; switching restarts the REPL.
+- Project registration does not copy, modify, or execute project files.
+- Project-specific instructions and evidence are not shared across contexts.
+- CPI feature discovery, compatibility analysis, and adaptation remain future stages.
+
+### Evidence and limitations
+- Source changes are present in the CPI feature branch.
+- No test execution or CI success is claimed yet.
+- PR #2 remains draft pending validation and review.
+
+### Follow-up
+- Verify CI and fix any regressions.
+- Add project profile and architecture indexing with explicit source provenance.
+- Add cross-project capability discovery and compatibility analysis only after project isolation is validated.
+
+
+
+---
+
+## 2026-11-26 — CPI-01 Focused CI Verification
+
+### Status
+- Focused CPI CI passed; full repository CI remains failing.
+
+### Evidence
+- [CPI Contract CI run 45744145922](https://github.com/SleepyTurtle91/lisa/actions/runs/45744145922): registry/CLI tests 11/11 passed; command classification tests 6/6 passed.
+- The full Architecture & Integration CI run at the same head executed 120 tests and ended with 10 failures and 7 errors.
+- Full-suite failures include existing fixed-path assumptions and provider health failures in the CI environment. They are not counted as CPI test failures.
+
+### Interpretation
+- The dedicated CPI contract boundary is currently green.
+- The full repository is not green. The focused workflow is supplemental evidence, not a replacement for the existing suite.
+
+### Follow-up
+- Continue CPI-02 with evidence-backed project profiling.
+- Keep legacy CI failures visible and track them separately from CPI work.
+
+
+---
+
+## 2026-11-26 — CPI-02 Read-Only Project Profile
+
+### Status
+- Implemented; focused CPI CI passed.
+
+### What was added
+- Bounded read-only project profiling over documentation and build descriptors.
+- Deterministic technology markers, top-level directory inventory, and source-file path inventory.
+- Evidence records with relative path, evidence kind, SHA-256 digest, byte count, and truncation state.
+- Secret-like assignment and PEM private-key redaction in returned excerpts.
+- Top-level CLI and REPL `project inspect` commands.
+
+### Evidence
+- [CPI Contract CI run 45744620787](https://github.com/SleepyTurtle91/lisa/actions/runs/45744620787): 17/17 project/CLI/profile tests and 6/6 classifier tests passed.
+- Fixture tests confirm the profile is deterministic and read-only.
+
+### Safety boundary
+- Source code contents are not indexed.
+- .env files, build outputs, dependency directories, and VCS internals are excluded.
+- Evidence excerpts are bounded and secret-like values are redacted.
+- No cross-project code changes or transfers are possible at this stage.
+
+### Follow-up
+- Implement deterministic cross-project capability discovery.
+- Then add compatibility/conflict analysis before any adaptation workflow.
+
+
+---
+
+## 2026-11-26 — CPI-03 Cross-Project Capability Discovery
+
+### Status
+- Implemented; focused CPI CI passed.
+
+### What was added
+- Deterministic keyword-based capability discovery over registered project profiles.
+- Query scoping to selected project IDs.
+- Matched query terms and lexical coverage score.
+- Evidence references carrying document paths and content hashes.
+- Matching source paths without reading source-code contents.
+- Top-level CLI and REPL command: `project find <terms>`.
+
+### Evidence
+- [CPI Contract CI run 45744840081](https://github.com/SleepyTurtle91/lisa/actions/runs/45744840081): 22/22 project/CLI/profile/discovery tests and 6/6 classifier tests passed.
+
+### Safety boundary
+- Discovery returns candidates, not compatibility judgments.
+- No source-code content is copied or modified.
+- No target project write or execution permission is granted.
+
+### Follow-up
+- Implement CPI-04 compatibility and conflict analysis using explicit architecture and data-model evidence.
+
+
+---
+
+## 2026-11-26 — CPI-04 Compatibility Triage and CPI-05 Plan Preview
+
+### Status
+- Implemented; focused CPI CI passed.
+- Full repository CI remains failing separately.
+
+### What was added
+- Compatibility triage across source and target project profiles.
+- Shared/source-only/target-only technology markers.
+- Optional source capability verification.
+- Architecture and business-rule constraint extraction with file/hash provenance.
+- Conservative compatibility statuses; no claim that conflicts are absent.
+- Deterministic, review-only adaptation plan with blockers, evidence references, target constraints, and regression steps.
+- CLI/REPL commands for `project compare` and `project plan`.
+
+### Evidence
+- [CPI Contract CI run 45745518945](https://github.com/SleepyTurtle91/lisa/actions/runs/45745518945): 33/33 project/CLI/profile/discovery/compatibility/adaptation tests and 6/6 classifier tests passed.
+- Full Architecture & Integration CI at the same head: 142 tests, 10 failures, 7 errors.
+
+### Safety boundary
+- Plans always set `authorization_required=true` and `execution_authorized=false`.
+- Plans with missing capability evidence or missing target architecture constraints are blocked.
+- No cross-project code is copied, edited, or executed.
+
+### Follow-up
+- CPI-06 must introduce a separate explicit approval and audited execution contract. Do not treat a review-only plan as permission to modify a target project.
+
+
+---
+
+## 2026-11-26 — CPI-05 Final Plan Evidence Checkpoint
+
+### Status
+- Focused CPI CI passed at final implementation head.
+- Full repository CI remains failing.
+
+### Evidence
+- [CPI Contract CI run 45745715666](https://github.com/SleepyTurtle91/lisa/actions/runs/45745715666): 33/33 project/CLI/profile/discovery/compatibility/adaptation tests passed; 6/6 classifier tests passed.
+- [Full Architecture & Integration CI run 45745721295](https://github.com/SleepyTurtle91/lisa/actions/runs/45745721295): 142 tests, 10 failures, 7 errors.
+
+### Final safety boundary
+- Plan previews include source evidence and target constraints.
+- Every plan requires authorization and is marked not authorized for execution.
+- CPI-06 remains a separate future milestone. No code is transferred or applied by this branch.

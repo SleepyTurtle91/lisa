@@ -1,5 +1,7 @@
 import unittest
 import asyncio
+import tempfile
+from pathlib import Path
 from lisa.bootstrap.engine import BootstrapEngine
 from lisa.providers.base import BaseProvider
 from lisa.providers.manifest import ProviderManifest
@@ -38,8 +40,11 @@ class MockProvider(BaseProvider):
 
 class TestPhase4BootstrapAndSession(unittest.TestCase):
     def test_bootstrap_discover(self):
-        engine = BootstrapEngine.discover("/home/user/development/projects/lisa")
-        self.assertTrue(engine.project.agents_md_present)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            (Path(temp_dir) / "AGENTS.md").write_text("# Project instructions", encoding="utf-8")
+            engine = BootstrapEngine.discover(temp_dir)
+            self.assertTrue(engine.project.agents_md_present)
+            self.assertEqual(engine.project.project_path, temp_dir)
 
     def test_session_execution(self):
         provider = MockProvider()

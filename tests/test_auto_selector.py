@@ -13,6 +13,14 @@ from lisa.providers.registry import ProviderRegistry
 from lisa.providers.selector import ProviderSelector
 from lisa.providers.ollama.provider import OllamaProvider
 
+
+class FakeOllamaProvider(OllamaProvider):
+    async def is_healthy(self) -> bool:
+        return True
+
+    def _list_models(self):
+        return [self._default_model]
+
 class TestAutoSelector(unittest.TestCase):
     def test_task_analyzer_code_edit(self):
         prompt = "Fix the inventory sync bug in products repository"
@@ -29,7 +37,7 @@ class TestAutoSelector(unittest.TestCase):
     def test_auto_selector_execution(self):
         async def _run():
             registry = ProviderRegistry()
-            ollama = OllamaProvider()
+            ollama = FakeOllamaProvider()
             await registry.register(ollama)
             selector = ProviderSelector(registry)
             auto_sel = AutoSelector(selector)

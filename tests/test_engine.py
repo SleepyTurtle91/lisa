@@ -12,6 +12,17 @@ from lisa.providers.manifest import ProviderManifest
 from lisa.core.context import Capability
 from lisa.telemetry.flight_recorder import FlightRecorder
 
+
+class FakeOllamaProvider(OllamaProvider):
+    async def is_healthy(self) -> bool:
+        return True
+
+    def _list_models(self):
+        return [self._default_model]
+
+    async def chat(self, request: ChatRequest) -> ChatResponse:
+        return ChatResponse(content="mock-ollama-response", usage={"prompt_tokens": 2, "completion_tokens": 3, "total_tokens": 5})
+
 class MockProviderForInferenceTests(BaseProvider):
     @property
     def id(self) -> str:
@@ -40,7 +51,7 @@ class MockProviderForInferenceTests(BaseProvider):
 class TestInferenceEngine(unittest.TestCase):
     def test_inference_engine_execution(self):
         registry = ProviderRegistry()
-        asyncio.run(registry.register(OllamaProvider()))
+        asyncio.run(registry.register(FakeOllamaProvider()))
         selector = ProviderSelector(registry)
         engine = InferenceEngine(selector)
 

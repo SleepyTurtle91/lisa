@@ -1389,3 +1389,149 @@ Evaluated `QuestionDrivenInvestigationEngine` (`benchmarks/ne_018_2_investigatio
 
 
 
+
+
+---
+
+## 🧭 CPI-01 — Persistent Project Identity and CLI Context Selection
+
+**Date**: 2026-11-26
+
+**Observed implementation state (source inspection)**:
+- Added typed project manifest, immutable context, request/result contracts, lifecycle states, resolver, registry, and executor under `projects/`.
+- Added optional JSON persistence for the registry at the CLI boundary. Persistence uses a versioned schema and same-directory temporary-file replacement.
+- Added deterministic CLI operations for registering, listing, activating, and unregistering projects, both as top-level commands and REPL commands.
+- Active project selection is restored when L.I.S.A. starts without an explicit target path.
+- Project switching restarts the REPL rather than mutating the project root of an existing session.
+
+**Evidence classification**:
+- `FILE_FACT`: source files and tests are present in the CPI feature branch.
+- `EXECUTION_FACT`: not yet established. No successful test or CI run is claimed in this entry.
+- No source-code indexing or cross-project feature reuse is implemented at this stage.
+
+**Interpretation**:
+CPI-01 now has an operator-facing registry workflow and persistent local project selection. This is a foundation for project isolation, not evidence that L.I.S.A. can yet understand or safely transfer features between projects.
+
+**Open validation questions**:
+1. Does the new registry test suite pass in the repository's supported Python environment?
+2. Does CLI command classification preserve natural-language routing for compound prompts?
+3. Does the CI baseline fail independently because of the existing hard-coded test paths and provider health assumptions?
+
+
+
+---
+
+## 🧪 CPI-01 — Focused CI Verification
+
+**Date**: 2026-11-26
+
+**Observed execution evidence**:
+- Dedicated GitHub Actions workflow: `L.I.S.A. CPI Contract CI`.
+- Run: [45744145922](https://github.com/SleepyTurtle91/lisa/actions/runs/45744145922).
+- Project registry and CLI tests: **11/11 passed** at that run.
+- Deterministic project command classification tests: **6/6 passed** at that run.
+
+**Separate full-suite result**:
+- The repository-wide Architecture & Integration CI remained failing at the same branch head: 120 tests, 10 failures, 7 errors.
+- The observed failures are outside the dedicated CPI test selection. They include legacy fixed-path assumptions, provider handshake failures when Ollama is unavailable in the runner, and other pre-existing runtime/integration test expectations.
+- The CPI-focused workflow passed independently; this does not imply the entire repository test suite is green.
+
+**Interpretation**:
+CPI-01 has a verified focused test boundary for project registration, persistence, lifecycle, CLI operations, and command classification. Full-repository stabilization remains separate work and must not be hidden by the focused workflow.
+
+
+---
+
+## 🧪 CPI-02 — Read-Only Project Profile Verification
+
+**Date**: 2026-11-26
+
+**Observed execution evidence**:
+- Dedicated CPI Contract CI run [45744620787](https://github.com/SleepyTurtle91/lisa/actions/runs/45744620787).
+- Project registry, CLI, and profile test selection: **17/17 passed**.
+- Deterministic input-boundary classification tests: **6/6 passed**.
+- Profile tests verify deterministic repeated output, no project-file mutation, bounded document reads, evidence hashes, build-directory exclusion, and secret-like value redaction in excerpts.
+
+**Interpretation**:
+CPI-02 provides a bounded, read-only inventory of project structure and selected documentation/build descriptors. Source files are inventoried by path only; their contents are not ingested. The profile is generated on demand and is not yet a persistent semantic knowledge base.
+
+**Limitations**:
+- The verification is scoped to the CPI workflow and fixture projects.
+- The repository-wide Architecture & Integration suite remains red with 10 failures and 7 errors at the corresponding branch head; those failures are tracked separately.
+
+
+---
+
+## 🧭 CPI-03 — Evidence-Backed Capability Discovery
+
+**Date**: 2026-11-26
+
+**Observed execution evidence**:
+- Dedicated CPI Contract CI run [45744840081](https://github.com/SleepyTurtle91/lisa/actions/runs/45744840081).
+- Project registry, CLI, profile, and capability discovery tests: **22/22 passed**.
+- Deterministic input-boundary classification tests: **6/6 passed**.
+
+**Observed behavior**:
+- Capability queries are matched deterministically against bounded project documentation excerpts, top-level directory names, and source-file paths.
+- Results carry matched terms, lexical coverage score, evidence file references with SHA-256 digests, and matching source paths.
+- Optional project ID scoping restricts the search to registered projects.
+
+**Interpretation**:
+CPI-03 provides evidence-backed candidate discovery across registered project profiles. It is lexical matching, not semantic equivalence detection. It does not establish compatibility or authorize code transfer.
+
+**Limitations**:
+- Source code contents remain uninspected.
+- Synonym expansion is intentionally small and explicit.
+- The full Architecture & Integration suite remains red separately; the CPI-focused workflow is green.
+
+
+---
+
+## 🧭 CPI-04 / CPI-05 — Compatibility Triage and Review-Only Adaptation Plan
+
+**Date**: 2026-11-26
+
+**Observed execution evidence**:
+- Dedicated CPI Contract CI run [45745518945](https://github.com/SleepyTurtle91/lisa/actions/runs/45745518945).
+- Project registry, CLI, profiling, discovery, compatibility, and adaptation tests: **33/33 passed**.
+- Deterministic input-boundary classification tests: **6/6 passed**.
+
+**CPI-04 observed behavior**:
+- Compared two registered project profiles using technology markers.
+- Checked source capability evidence when a capability query was supplied.
+- Extracted target/source architecture and business-rule constraint lines with their source paths and hashes.
+- Returned conservative statuses: potential reuse, adaptation required, or insufficient evidence.
+
+**CPI-05 observed behavior**:
+- Generated a deterministic review-only adaptation plan.
+- Included source evidence, target constraints, data/persistence mapping tasks, target-native design guidance, and regression validation tasks.
+- Plans with missing source capability evidence or missing explicit target constraints are blocked.
+- Every plan requires operator authorization and sets execution authorization to false.
+
+**Interpretation**:
+The CPI workflow now reaches a reviewable proposal stage. It still does not prove semantic compatibility or implement feature transfer. A real adaptation requires a separate, explicit operator-approved implementation scope.
+
+**Repository-wide validation boundary**:
+- The full Architecture & Integration CI at the same head ran 142 tests and ended with 10 failures and 7 errors.
+- Failures remain outside the focused CPI test selection. The observed set includes hard-coded environment/path assumptions, Ollama provider health failures in the hosted runner, and other existing runtime/integration expectations.
+- The CPI workflow is green; the full repository suite is not green.
+
+
+---
+
+## 🧪 CPI-05 — Adaptation Plan Evidence Completeness Check
+
+**Date**: 2026-11-26
+
+**Observed execution evidence**:
+- Final focused workflow at head `c13a2eed308809a57afea3cb60e6c0d5a6166eac`: [CPI Contract CI run 45745715666](https://github.com/SleepyTurtle91/lisa/actions/runs/45745715666).
+- Project/CLI/profile/discovery/compatibility/adaptation tests: **33/33 passed**.
+- Input boundary classifier tests: **6/6 passed**.
+- The final plan output includes source evidence references and source paths, target constraints, shared technology markers, and an explicit false execution-authorization state.
+
+**Full-suite result at the same head**:
+- [Architecture & Integration CI run 45745721295](https://github.com/SleepyTurtle91/lisa/actions/runs/45745721295): 142 tests, 10 failures, 7 errors.
+- The CPI-specific workflow passes independently; full-repository CI remains red.
+
+**Interpretation**:
+The adaptation plan preview is evidence-bearing and review-only. It cannot apply itself, and it does not authorize target changes.

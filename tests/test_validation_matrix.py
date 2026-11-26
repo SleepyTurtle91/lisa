@@ -1,5 +1,7 @@
 import unittest
 import asyncio
+import tempfile
+from pathlib import Path
 from lisa.core.kernel import LisaRuntime
 from lisa.core.context import SessionContext
 from lisa.bootstrap.engine import BootstrapEngine
@@ -75,10 +77,13 @@ class TestRuntimeValidationMatrix(unittest.TestCase):
         registry.register(ReadFileTool())
         executor = ToolExecutor(registry)
 
-        req = ToolRequest(tool_name="read_file", arguments={"path": "/home/user/development/projects/lisa/AGENTS.md"})
-        res = asyncio.run(executor.execute_request(req))
-        self.assertTrue(res.success)
-        self.assertIn("L.I.S.A.", res.output)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            expected = "L.I.S.A. validation fixture"
+            (Path(temp_dir) / "AGENTS.md").write_text(expected, encoding="utf-8")
+            req = ToolRequest(tool_name="read_file", arguments={"path": "AGENTS.md"})
+            res = asyncio.run(executor.execute_request(req, project_path=temp_dir))
+            self.assertTrue(res.success)
+            self.assertIn(expected, res.output)
 
     # Test 4: Provider + Tool execution pipeline
     def test_04_provider_plus_tool(self):
@@ -94,8 +99,11 @@ class TestRuntimeValidationMatrix(unittest.TestCase):
 
     # Test 5: Bootstrap Engine Discovery
     def test_05_bootstrap_discovery(self):
-        boot = BootstrapEngine.discover("/home/user/development/projects/lisa")
-        self.assertTrue(boot.project.agents_md_present)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            (Path(temp_dir) / "AGENTS.md").write_text("# Fixture", encoding="utf-8")
+            boot = BootstrapEngine.discover(temp_dir)
+            self.assertTrue(boot.project.agents_md_present)
+            self.assertEqual(boot.project.project_path, temp_dir)
 
 if __name__ == "__main__":
     unittest.main()
