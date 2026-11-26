@@ -25,3 +25,17 @@ jobs:
         run: PYTHONPATH=. python -m unittest discover -s tests -p "test_project_*.py"
       - name: Run deterministic project command classification tests
         run: PYTHONPATH=. python -m unittest discover -s tests -p "test_ne_014_1_input_classifier.py"
+
+  architecture-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: Run full architecture and unit suite
+        run: PYTHONPATH=. python -m unittest discover -s tests
+      - name: Run integration suite
+        run: PYTHONPATH=. python -m unittest discover -s tests/integration
+
