@@ -17,6 +17,7 @@ class ProjectRegistry:
     """
 
     STORAGE_VERSION = 1
+    NON_TECHNICAL_CAPABILITIES = {"git", "hg", "svn", "vcs"}
 
     def __init__(self, storage_path=None):
         self._projects: Dict[str, ProjectManifest] = {}
@@ -58,7 +59,10 @@ class ProjectRegistry:
                     name=str(item["name"]),
                     root_path=str(Path(root).resolve()),
                     markers=tuple(str(v) for v in item["markers"]),
-                    capabilities=tuple(str(v) for v in item["capabilities"]),
+                    capabilities=tuple(
+                        str(value) for value in item["capabilities"]
+                        if str(value).casefold() not in self.NON_TECHNICAL_CAPABILITIES
+                    ),
                 )
                 if project_id in self._projects:
                     raise ValueError(f"Duplicate project identity: {project_id}")
