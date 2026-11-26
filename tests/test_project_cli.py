@@ -126,5 +126,96 @@ class TestProjectCLI(unittest.TestCase):
                 lisa_main.PROJECT_REGISTRY_PATH = original_path
 
 
+    def test_project_apply_requires_exact_operator_approval_and_creates_audit(self):
+        import json
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            source = root / "Source"
+            target = root / "Target"
+            source.mkdir()
+            target.mkdir()
+            (source / "README.md").write_text(
+                "# Inventory\nInventory supports stocktake.", encoding="utf-8"
+            )
+            (source / "settings.gradle.kts").write_text('include(":app")', encoding="utf-8")
+            (target / "README.md").write_text(
+                "# Target\nCore must not depend on Feature. Money must use BigDecimal.",
+                encoding="utf-8",
+            )
+            (target / "settings.gradle.kts").write_text('include(":app")', encoding="utf-8")
+            (target / "app").mkdir()
+            patch_file = root / "adaptation.json"
+            patch_file.write_text(json.dumps({
+                "changes": [{"path": "app/Inventory.kt", "content": "class Inventory {}\n"}]
+            }), encoding="utf-8")
+
+            original_path = self._with_registry(root)
+            original_state_path = lisa_main.PROJECT_EXECUTION_STATE_PATH
+            lisa_main.PROJECT_EXECUTION_STATE_PATH = root / "lisa-executions"
+            try:
+                lisa_main.run_project_command(["add", str(source)])
+                lisa_main.run_project_command(["add", str(target)])
+                def approve(prompt):
+                    digest = prompt.split("APPLY ", 1)[1].split("'", 1)[0]
+                    return f"APPLY {digest}"
+                output = io.StringIO()
+                with patch("builtins.input", side_effect=approve), redirect_stdout(output):
+                    lisa_main.run_project_command([
+                        "apply", source.name, target.name, "inventory", "stocktake",
+                        "--patch", str(patch_file),
+                    ])
+                self.assertTrue((target / "app" / "Inventory.kt").exists())
+                self.assertIn("Execution completed", output.getvalue())
+                self.assertIn("VALIDATION REQUIRED", output.getvalue())
+            finally:
+                lisa_main.PROJECT_REGISTRY_PATH = original_path
+                lisa_main.PROJECT_EXECUTION_STATE_PATH = original_state_path
+
+    def test_project_apply_rejects_unconfirmed_patch(self):
+        import json
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            source = root / "Source"
+            target = root / "Target"
+            source.mkdir()
+            target.mkdir()
+            (source / "README.md").write_text(
+                "# Inventory\nInventory supports stocktake.", encoding="utf-8"
+            )
+            (source / "settings.gradle.kts").write_text('include(":app")', encoding="utf-8")
+            (target / "README.md").write_text(
+                "# Target\nCore must not depend on Feature. Money must use BigDecimal.",
+                encoding="utf-8",
+            )
+            (target / "settings.gradle.kts").write_text('include(":app")', encoding="utf-8")
+            (target / "app").mkdir()
+            patch_file = root / "adaptation.json"
+            patch_file.write_text(json.dumps({
+                "changes": [{"path": "app/Inventory.kt", "content": "class Inventory {}\n"}]
+            }), encoding="utf-8")
+
+            original_path = self._with_registry(root)
+            original_state_path = lisa_main.PROJECT_EXECUTION_STATE_PATH
+            lisa_main.PROJECT_EXECUTION_STATE_PATH = root / "lisa-executions"
+            try:
+                lisa_main.run_project_command(["add", str(source)])
+                lisa_main.run_project_command(["add", str(target)])
+                output = io.StringIO()
+                with patch("builtins.input", return_value="no"), redirect_stdout(output):
+                    lisa_main.run_project_command([
+                        "apply", source.name, target.name, "inventory", "stocktake",
+                        "--patch", str(patch_file),
+                    ])
+                self.assertFalse((target / "app" / "Inventory.kt").exists())
+                self.assertIn("Execution refused or failed", output.getvalue())
+            finally:
+                lisa_main.PROJECT_REGISTRY_PATH = original_path
+                lisa_main.PROJECT_EXECUTION_STATE_PATH = original_state_path
+
+
 if __name__ == "__main__":
     unittest.main()
