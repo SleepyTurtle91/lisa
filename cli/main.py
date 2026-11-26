@@ -34,6 +34,7 @@ from lisa.projects.execution import ExecutionChange, ProjectExecutionRequest
 from lisa.projects.execution_executor import ProjectExecutionExecutor
 from lisa.projects.execution_lifecycle import ProjectExecutionLifecycle
 from lisa.projects.execution_history import ProjectExecutionHistory
+from lisa.projects.execution_ledger import ProjectExecutionLedger
 
 PROJECT_REGISTRY_PATH = Path.home() / ".lisa" / "projects.json"
 PROJECT_EXECUTION_STATE_PATH = Path.home() / ".lisa" / "executions"
@@ -61,6 +62,30 @@ def run_project_command(args):
             print(f" {active} {item.name}  [{item.project_id}]  {tech}")
             print(f"    {item.root_path}")
         return
+    if action == "ledger":
+        if len(args) != 2 or args[1] not in ("verify", "migrate"):
+            print("Usage: lisa project ledger <verify|migrate>")
+            return
+        ledger = ProjectExecutionLedger(PROJECT_EXECUTION_STATE_PATH)
+        if args[1] == "verify":
+            result = ledger.verify()
+            if not result["success"]:
+                print(f"Ledger verification FAILED: {result['error']}")
+                return
+            print(f"Ledger status: {result['status']}")
+            print(f"Authenticated events: {result['event_count']}")
+            if result.get("head_hash"):
+                print(f"Head hash: {result['head_hash']}")
+            print("The local key is not an external trust anchor.")
+            return
+        result = ledger.migrate_legacy()
+        if not result["success"]:
+            print(f"Legacy migration failed: {result['error']}")
+            return
+        print(f"Legacy execution snapshots imported: {result['imported']}")
+        print("Imported snapshots are anchored from migration time only; prior history is not authenticated.")
+        return
+
     if action == "history":
         project_id = None
         if len(args) == 3 and args[1] == "--project":
@@ -91,7 +116,7 @@ def run_project_command(args):
             print(f"    Created: {record.get('created_at') or 'unknown'}")
             if record.get("integrity_error"):
                 print(f"    Integrity error: {record['integrity_error']}")
-        print("History is read-only. Integrity consistency is not a cryptographic signature.")
+        print("History is read-only. See 'lisa project ledger verify' for ledger status.")
         return
 
     if action == "verify" and len(args) == 2:
