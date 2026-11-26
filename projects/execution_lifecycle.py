@@ -99,16 +99,22 @@ class ProjectExecutionLifecycle:
         return descriptor
 
     @classmethod
-    def _current_regular_file_hash(cls, path, relative):
-        """Return None only for an absent path; reject non-regular objects."""
+    def _current_regular_file_hash_and_identity(cls, path, relative):
+        """Return the content hash and verified inode identity for a regular file."""
         descriptor = cls._open_regular_file(path, relative)
         if descriptor is None:
-            return None
+            return None, None
         with os.fdopen(descriptor, "rb") as handle:
-            return hashlib.sha256(handle.read()).hexdigest()
+            info = os.fstat(handle.fileno())
+            return hashlib.sha256(handle.read()).hexdigest(), (info.st_dev, info.st_ino)
+
+    @classmethod
+    def _current_regular_file_hash(cls, path, relative):
+        """Return None only for an absent path; reject non-regular objects."""
+        return cls._current_regular_file_hash_and_identity(path, relative)[0]
 
     @staticmethod
-    def _restore_mode_without_following_symlink(path, relative, mode):
+    def _restore_mode_without_following_symlink(path, relative, mode, expected_identity=None):
         """Restore mode on a validated file descriptor, never on a path referent."""
         descriptor = ProjectExecutionLifecycle._open_regular_file(path, relative)
         if descriptor is None:
@@ -116,6 +122,13 @@ class ProjectExecutionLifecycle:
                 f"Target file disappeared before permission restoration: {relative.as_posix()}"
             )
         try:
+            current_info = os.fstat(descriptor)
+            if expected_identity is not None and (
+                current_info.st_dev, current_info.st_ino
+            ) != expected_identity:
+                raise ValueError(
+                    f"Target inode changed before permission restoration: {relative.as_posix()}"
+                )
             if not hasattr(os, "fchmod"):
                 raise ValueError("Safe descriptor-based permission restoration is unavailable.")
             os.fchmod(descriptor, mode)
@@ -233,7 +246,9 @@ class ProjectExecutionLifecycle:
             restored = []
             for relative, destination, current_hash, before_hash, after_hash, backup_bytes, backup_mode in reversed(scoped):
                 ProjectExecutionExecutor._assert_no_symlink(root, relative)
-                latest_hash = self._current_regular_file_hash(destination, relative)
+                latest_hash, latest_identity = self._current_regular_file_hash_and_identity(
+                    destination, relative
+                )
                 if latest_hash not in (after_hash, before_hash):
                     raise ValueError(f"Target file changed during rollback; refusing write: {relative.as_posix()}")
                 if latest_hash == before_hash:
@@ -244,7 +259,7 @@ class ProjectExecutionLifecycle:
                     if backup_mode is None or not isinstance(backup_mode, int) or backup_mode < 0 or backup_mode > 0o7777:
                         raise ValueError(f"Backup permission mode is invalid: {relative.as_posix()}")
                     self._restore_mode_without_following_symlink(
-                        destination, relative, backup_mode
+                        destination, relative, backup_mode, expected_identity=latest_identity
                     )
                     restored.append(relative.as_posix())
                     continue
