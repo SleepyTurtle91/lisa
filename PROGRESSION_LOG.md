@@ -1209,7 +1209,7 @@ Key per-case results:
 
 ### Status
 - Review-driven fixes committed to `fix/cpi-06-execution-review-findings`.
-- Focused and full CI validation pending.
+- Focused CPI and full architecture/integration CI passed on the remediation head.
 - Original PR #3 branch has not been modified; no merges have been performed.
 
 ### Changes
