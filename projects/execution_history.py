@@ -90,7 +90,7 @@ class ProjectExecutionHistory:
                 raise ValueError("Execution audit has changed since its latest trusted-ledger event.")
             ledger_status = (
                 "legacy_snapshot" if latest_event.get("event_type") == "legacy_import"
-                else "anchored"
+                else "locally_authenticated"
             )
         if not isinstance(audit, dict) or audit.get("schema_version") != 1:
             raise ValueError("Unsupported or malformed execution audit schema.")
