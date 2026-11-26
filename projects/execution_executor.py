@@ -2,6 +2,7 @@
 import hashlib
 import json
 import os
+import shutil
 import stat
 import tempfile
 from datetime import datetime, timezone
@@ -110,6 +111,23 @@ class ProjectExecutionExecutor:
                 raise ValueError(f"{label} evidence changed since planning: {relative.as_posix()}")
 
     @staticmethod
+    def _ensure_private_directory(path, exist_ok=True):
+        """Create a state directory with owner-only permissions on POSIX."""
+        path = Path(path)
+        path.mkdir(parents=True, exist_ok=exist_ok, mode=0o700)
+        if os.name == "posix":
+            os.chmod(path, 0o700)
+        return path
+
+    @staticmethod
+    def _write_private_file(path, content):
+        """Create a new owner-readable/writable backup without a permissive window."""
+        descriptor = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(descriptor, "wb") as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+    @staticmethod
     def _atomic_write(path, content, mode=None):
         temp_path = None
         try:
@@ -149,8 +167,12 @@ class ProjectExecutionExecutor:
         try:
             source_root = Path(source.root_path).resolve(strict=True)
             target_root = Path(target.root_path).resolve(strict=True)
-            if source_root == target_root:
-                raise ValueError("Source and target resolve to the same project root.")
+            if (
+                source_root == target_root
+                or source_root in target_root.parents
+                or target_root in source_root.parents
+            ):
+                raise ValueError("Source and target project roots must not overlap.")
             if not target_root.is_dir() or not source_root.is_dir():
                 raise ValueError("Source and target project roots must be existing directories.")
             self._verify_plan_evidence(source_root, plan.source_evidence, "Source")
@@ -214,29 +236,30 @@ class ProjectExecutionExecutor:
             ):
                 raise ValueError("Execution backups/audit must be stored outside the source project.")
 
+            self._ensure_private_directory(self._state_dir)
+            self._ensure_private_directory(execution_dir, exist_ok=False)
             backup_dir = execution_dir / "backups"
-            backup_dir.mkdir(parents=True, exist_ok=False)
-
-            backup_manifest = []
-            for change, relative, destination, current, mode in scoped:
-                if current is not None:
-                    backup_path = backup_dir.joinpath(*relative.parts)
-                    backup_path.parent.mkdir(parents=True, exist_ok=True)
-                    backup_path.write_bytes(current)
-                    backup_manifest.append({
-                        "path": relative.as_posix(),
-                        "backup": backup_path.relative_to(execution_dir).as_posix(),
-                        "sha256": self._sha256(current),
-                        "mode": stat.S_IMODE(mode),
-                    })
-                else:
-                    backup_manifest.append({
-                        "path": relative.as_posix(), "backup": None,
-                        "sha256": None, "mode": None,
-                    })
-
             applied = []
             try:
+                self._ensure_private_directory(backup_dir, exist_ok=False)
+                backup_manifest = []
+                for change, relative, destination, current, mode in scoped:
+                    if current is not None:
+                        backup_path = backup_dir.joinpath(*relative.parts)
+                        backup_path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+                        self._write_private_file(backup_path, current)
+                        backup_manifest.append({
+                            "path": relative.as_posix(),
+                            "backup": backup_path.relative_to(execution_dir).as_posix(),
+                            "sha256": self._sha256(current),
+                            "mode": stat.S_IMODE(mode),
+                        })
+                    else:
+                        backup_manifest.append({
+                            "path": relative.as_posix(), "backup": None,
+                            "sha256": None, "mode": None,
+                        })
+
                 for change, relative, destination, current, mode in scoped:
                     self._assert_no_symlink(target_root, relative)
                     if destination.exists():
@@ -276,6 +299,7 @@ class ProjectExecutionExecutor:
                 self._atomic_write(
                     audit_path,
                     (json.dumps(audit, indent=2, sort_keys=True) + "\n").encode("utf-8"),
+                    mode=0o600,
                 )
             except Exception:
                 rollback_errors = []
@@ -288,9 +312,15 @@ class ProjectExecutionExecutor:
                     except Exception as rollback_error:
                         rollback_errors.append(str(rollback_error))
                 if rollback_errors:
-                    raise RuntimeError("Execution failed and rollback was incomplete: " + "; ".join(rollback_errors))
+                    raise RuntimeError("Execution failed and rollback was incomplete; recovery data retained: " + "; ".join(rollback_errors))
+                try:
+                    shutil.rmtree(execution_dir)
+                except Exception as cleanup_error:
+                    raise RuntimeError(
+                        "Execution failed and rollback completed, but the replay marker could not be cleared; "
+                        f"operator cleanup is required: {cleanup_error}"
+                    )
                 raise
-
             return ProjectExecutionResult(
                 success=True,
                 execution_id=execution_id,
