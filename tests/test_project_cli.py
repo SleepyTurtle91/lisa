@@ -316,5 +316,33 @@ class TestProjectCLI(unittest.TestCase):
 
 
 
+    def test_project_ledger_verify_and_migrate_commands(self):
+        import json
+        from lisa.projects.execution_ledger import ProjectExecutionLedger
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            original_state = lisa_main.PROJECT_EXECUTION_STATE_PATH
+            lisa_main.PROJECT_EXECUTION_STATE_PATH = root / "executions"
+            try:
+                legacy = lisa_main.PROJECT_EXECUTION_STATE_PATH / "exec_legacy"
+                legacy.mkdir(parents=True)
+                (legacy / "audit.json").write_text(json.dumps({
+                    "schema_version": 1, "execution_id": "exec_legacy",
+                    "created_at": "2026-11-01T00:00:00+00:00",
+                }), encoding="utf-8")
+                output = io.StringIO()
+                with redirect_stdout(output):
+                    lisa_main.run_project_command(["ledger", "migrate"])
+                self.assertIn("Legacy execution snapshots imported: 1", output.getvalue())
+                output = io.StringIO()
+                with redirect_stdout(output):
+                    lisa_main.run_project_command(["ledger", "verify"])
+                self.assertIn("Ledger status: verified", output.getvalue())
+                self.assertEqual(ProjectExecutionLedger(lisa_main.PROJECT_EXECUTION_STATE_PATH).verify()["event_count"], 1)
+            finally:
+                lisa_main.PROJECT_EXECUTION_STATE_PATH = original_state
+
+
 if __name__ == "__main__":
     unittest.main()
