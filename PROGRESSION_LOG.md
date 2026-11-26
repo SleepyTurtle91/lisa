@@ -1008,3 +1008,36 @@ Key per-case results:
 
 
 
+
+
+---
+
+## 2026-11-26 — CPI-01 Project Registry and CLI Management
+
+### Status
+- Implemented in draft PR; CI validation pending.
+
+### What was added
+- A persistent, versioned local project registry with atomic JSON file replacement.
+- Deterministic project identity and explicit register/list/activate/deactivate/unregister operations.
+- Top-level CLI commands for project management.
+- REPL commands for adding, listing, and switching projects.
+- Default startup uses the registered active project when no explicit path is supplied.
+- Focused tests for persistence, active context restoration, corrupt registry handling, persistence rollback, and missing project directories.
+
+### Safety boundaries
+- A running session is not silently retargeted; switching restarts the REPL.
+- Project registration does not copy, modify, or execute project files.
+- Project-specific instructions and evidence are not shared across contexts.
+- CPI feature discovery, compatibility analysis, and adaptation remain future stages.
+
+### Evidence and limitations
+- Source changes are present in the CPI feature branch.
+- No test execution or CI success is claimed yet.
+- PR #2 remains draft pending validation and review.
+
+### Follow-up
+- Verify CI and fix any regressions.
+- Add project profile and architecture indexing with explicit source provenance.
+- Add cross-project capability discovery and compatibility analysis only after project isolation is validated.
+

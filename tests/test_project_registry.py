@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 
 from lisa.projects import ProjectExecutor, ProjectOperation, ProjectRequest
+from lisa.projects.registry import ProjectRegistry
 
 
 class TestProjectRegistry(unittest.TestCase):
@@ -94,9 +95,7 @@ class TestProjectRegistry(unittest.TestCase):
         registered = self.register(project)
         project_id = registered.manifest.project_id
         storage = self.root / "registry.json"
-        persistent = ProjectExecutor(registry=__import__(
-            "lisa.projects.registry", fromlist=["ProjectRegistry"]
-        ).ProjectRegistry(storage_path=storage))
+        persistent = ProjectExecutor(registry=ProjectRegistry(storage_path=storage))
         added = persistent.execute(
             ProjectRequest(operation=ProjectOperation.REGISTER, path=str(project))
         )
@@ -106,21 +105,28 @@ class TestProjectRegistry(unittest.TestCase):
         )
         self.assertTrue(activated.success, activated.error)
 
-        reloaded = __import__(
-            "lisa.projects.registry", fromlist=["ProjectRegistry"]
-        ).ProjectRegistry(storage_path=storage)
+        reloaded = ProjectRegistry(storage_path=storage)
         self.assertEqual(reloaded.get(project_id).name, "persisted")
         self.assertEqual(reloaded.active_context().project_id, project_id)
 
     def test_corrupt_registry_fails_closed(self):
         storage = self.root / "corrupt.json"
         storage.write_text("{not valid json", encoding="utf-8")
-        from lisa.projects.registry import ProjectRegistry
         with self.assertRaises(ValueError):
             ProjectRegistry(storage_path=storage)
 
     def test_failed_persistence_rolls_back_registration(self):
         from lisa.projects.registry import ProjectRegistry
+        blocker = self.root / "not-a-directory"
+        blocker.write_text("file", encoding="utf-8")
+        registry = ProjectRegistry(storage_path=blocker / "projects.json")
+        project = self.make_project("rollback")
+        manifest = self.register(project).manifest
+        with self.assertRaises(OSError):
+            registry.register(manifest)
+        self.assertIsNone(registry.get(manifest.project_id))
+
+    def test_failed_persistence_rolls_back_registration(self):
         blocker = self.root / "not-a-directory"
         blocker.write_text("file", encoding="utf-8")
         registry = ProjectRegistry(storage_path=blocker / "projects.json")

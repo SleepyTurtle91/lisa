@@ -20,24 +20,43 @@ CPI is a general L.I.S.A. capability. It must not depend on FlashPOS, ExtroPOS, 
 
 | Stage | Capability | Status |
 |---|---|---|
-| CPI-01 | Project identity, registry, and isolated project contexts | Initial implementation |
+| CPI-01 | Project identity, persistent registry, CLI management, isolated project contexts | Implemented in draft PR; validation pending |
 | CPI-02 | Project profile and architecture knowledge index | Planned |
 | CPI-03 | Cross-project capability discovery | Planned |
 | CPI-04 | Compatibility and conflict analysis | Planned |
 | CPI-05 | Adaptation planning and operator approval | Planned |
 | CPI-06 | Governed target execution, regression validation, and audit | Planned |
 
+## CPI-01 operator commands
+
+```text
+lisa project add <path>
+lisa project list
+lisa project use <id|name>
+lisa project remove <id>
+lisa
+
+# Inside the REPL
+projects
+project add <path>
+project list
+project use <id|name>
+project remove <id>
+```
+
+The registry is stored at `~/.lisa/projects.json` and uses a versioned schema with atomic file replacement. Project registration persists across CLI launches. A malformed or unsupported registry fails closed rather than silently discarding registrations. The registry is separate from the recent-project list.
+
 ## CPI-01 implementation boundary
 
-The initial registry is in-memory and process-local. Registration is explicit through a typed ProjectRequest; paths are canonicalized and must identify an existing directory containing at least one recognized project marker. Project IDs are deterministic for a canonical local path.
+Registration resolves a canonical directory and requires at least one recognized project marker. Project IDs are deterministic for a canonical local path. A registry can retain multiple project manifests, while only one project is active at a time. Activation verifies that the project directory still exists and returns an immutable ProjectContext.
 
-Only one project can be the active CLI-style context at a time. The registry can retain multiple registered manifests, and activation returns an immutable ProjectContext for that project. Switching active context does not mutate project files.
+Switching projects restarts the REPL against the selected root, so a running session is not silently retargeted mid-flight. Adding a project does not read or execute its code. Registration and activation do not modify project files.
 
 This stage deliberately does not:
-- persist registrations across L.I.S.A. restarts;
-- index source code or project instructions;
+- index source code, architecture, or project instructions;
 - share memory or instructions between projects;
 - copy, edit, or execute code across project roots;
+- perform feature discovery or compatibility analysis;
 - change frozen kernel/session contracts or NE laws.
 
 Those capabilities require their own evidence, contracts, tests, and authorization design.

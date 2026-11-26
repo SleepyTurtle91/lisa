@@ -1389,3 +1389,31 @@ Evaluated `QuestionDrivenInvestigationEngine` (`benchmarks/ne_018_2_investigatio
 
 
 
+
+
+---
+
+## 🧭 CPI-01 — Persistent Project Identity and CLI Context Selection
+
+**Date**: 2026-11-26
+
+**Observed implementation state (source inspection)**:
+- Added typed project manifest, immutable context, request/result contracts, lifecycle states, resolver, registry, and executor under `projects/`.
+- Added optional JSON persistence for the registry at the CLI boundary. Persistence uses a versioned schema and same-directory temporary-file replacement.
+- Added deterministic CLI operations for registering, listing, activating, and unregistering projects, both as top-level commands and REPL commands.
+- Active project selection is restored when L.I.S.A. starts without an explicit target path.
+- Project switching restarts the REPL rather than mutating the project root of an existing session.
+
+**Evidence classification**:
+- `FILE_FACT`: source files and tests are present in the CPI feature branch.
+- `EXECUTION_FACT`: not yet established. No successful test or CI run is claimed in this entry.
+- No source-code indexing or cross-project feature reuse is implemented at this stage.
+
+**Interpretation**:
+CPI-01 now has an operator-facing registry workflow and persistent local project selection. This is a foundation for project isolation, not evidence that L.I.S.A. can yet understand or safely transfer features between projects.
+
+**Open validation questions**:
+1. Does the new registry test suite pass in the repository's supported Python environment?
+2. Does CLI command classification preserve natural-language routing for compound prompts?
+3. Does the CI baseline fail independently because of the existing hard-coded test paths and provider health assumptions?
+

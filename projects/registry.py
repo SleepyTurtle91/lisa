@@ -37,6 +37,8 @@ class ProjectRegistry:
             return
         try:
             data = json.loads(self._storage_path.read_text(encoding="utf-8"))
+            if not isinstance(data, dict):
+                raise ValueError("Project registry root must be a JSON object.")
             if data.get("schema_version") != self.STORAGE_VERSION:
                 raise ValueError("Unsupported project registry schema version.")
             projects = data.get("projects")
@@ -118,7 +120,12 @@ class ProjectRegistry:
             return existing
         self._projects[manifest.project_id] = manifest
         self._states[manifest.project_id] = ProjectState.REGISTERED
-        self._persist()
+        try:
+            self._persist()
+        except Exception:
+            self._projects.pop(manifest.project_id, None)
+            self._states.pop(manifest.project_id, None)
+            raise
         return manifest
 
     def get(self, project_id: str) -> Optional[ProjectManifest]:
@@ -139,18 +146,33 @@ class ProjectRegistry:
             raise KeyError(f"Project is not registered: {project_id}")
         if not Path(manifest.root_path).is_dir():
             raise ValueError(f"Registered project directory is no longer available: {manifest.root_path}")
-        if self._active_project_id is not None:
-            self._states[self._active_project_id] = ProjectState.REGISTERED
+        previous_active = self._active_project_id
+        if previous_active is not None:
+            self._states[previous_active] = ProjectState.REGISTERED
         self._active_project_id = project_id
         self._states[project_id] = ProjectState.ACTIVE
-        self._persist()
+        try:
+            self._persist()
+        except Exception:
+            self._active_project_id = previous_active
+            self._states[project_id] = ProjectState.REGISTERED
+            if previous_active is not None:
+                self._states[previous_active] = ProjectState.ACTIVE
+            raise
         return ProjectContext(project_id=project_id, root_path=manifest.root_path)
 
     def deactivate(self) -> None:
-        if self._active_project_id is not None:
-            self._states[self._active_project_id] = ProjectState.REGISTERED
+        previous_active = self._active_project_id
+        if previous_active is None:
+            return
+        self._states[previous_active] = ProjectState.REGISTERED
         self._active_project_id = None
-        self._persist()
+        try:
+            self._persist()
+        except Exception:
+            self._active_project_id = previous_active
+            self._states[previous_active] = ProjectState.ACTIVE
+            raise
 
     def active_context(self) -> Optional[ProjectContext]:
         if self._active_project_id is None:
@@ -161,9 +183,19 @@ class ProjectRegistry:
     def unregister(self, project_id: str) -> bool:
         if project_id not in self._projects:
             return False
-        if self._active_project_id == project_id:
+        manifest = self._projects[project_id]
+        previous_state = self._states[project_id]
+        was_active = self._active_project_id == project_id
+        if was_active:
             self._active_project_id = None
         del self._projects[project_id]
         del self._states[project_id]
-        self._persist()
+        try:
+            self._persist()
+        except Exception:
+            self._projects[project_id] = manifest
+            self._states[project_id] = previous_state
+            if was_active:
+                self._active_project_id = project_id
+            raise
         return True
