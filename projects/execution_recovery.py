@@ -278,7 +278,10 @@ class ProjectExecutionRecovery:
         """Rollback an interrupted apply after exact, manifest-bound approval."""
         self._assert_state_safe()
         directory, journal_path, journal = self._load_journal(execution_id)
-        descriptor, lock = self._acquire_lock(directory)
+        try:
+            descriptor, lock = self._acquire_lock(directory)
+        except Exception as exc:
+            return {"success": False, "execution_id": execution_id, "error": str(exc)}
         try:
             # Reload after acquiring the per-execution lock; the preview may be stale.
             directory, journal_path, journal = self._load_journal(execution_id)
