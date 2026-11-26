@@ -237,3 +237,28 @@ CPI-06.5 persists a recovery manifest and the complete before/after file hashes 
 - Recovery locks fail closed if another recovery is running. A stale lock is removed only when its recorded PID is confirmed absent; unreadable or ambiguous locks require manual inspection.
 
 This milestone does not add arbitrary command execution, directory creation, deletion patches, or automatic acceptance of adaptations. It only makes the existing bounded file-replacement workflow recoverable.
+
+
+## CPI-06.6 execution recovery security review
+
+The CPI-06.5 review identified and addressed the following recovery edge cases:
+
+- Execution state roots are checked for symlink components before execution state is created or target files are changed. The executor and recovery workflow now apply the same lexical-path safety boundary.
+- Nested backup directories are created one level at a time, with each newly created directory entry fsynced through its parent before target writes begin.
+- Recovery compares both content hashes and permission modes. Existing files must retain their recorded original mode while in either known content state; newly created files must retain the executor's defined mode. Permission-only changes are treated as unknown later state and block recovery.
+- Recovery does not finalize a rolled-back journal when a ledger append is pending or has failed. Operators must first use the explicit ledger recovery workflow where applicable. A retry recognizes an already committed matching recovery event and does not append a duplicate.
+- If recovery reaches the restored target state but ledger finalization is interrupted, the journal remains pending and retryable rather than claiming terminal completion.
+
+Operator sequence when recovery reports a pending ledger transaction:
+
+```text
+lisa project ledger verify
+lisa project ledger recover
+lisa project recover
+```
+
+The ledger recovery command still requires its own exact digest approval. Then preview and approve the execution recovery again using the newly displayed `RECOVER <digest>`.
+
+**Known limitation:** a crash before the execution journal becomes durable can leave an incomplete preparation directory. No target write occurs before the durable journal, so this state is not a partially applied target. It is an operator-inspection condition, not an automatically recoverable execution. The system must not silently delete or reuse it.
+
+This review improves the tested local crash-recovery behavior; it does not claim protection against storage devices that violate fsync guarantees, malicious local administrators, or concurrent external processes that ignore L.I.S.A.'s locks.

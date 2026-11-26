@@ -32,7 +32,19 @@ class ProjectExecutionExecutor:
 
     def __init__(self, registry, state_dir=None):
         self._registry = registry
-        self._state_dir = Path(state_dir or (Path.home() / ".lisa" / "executions")).expanduser().resolve(strict=False)
+        self._state_dir_input = Path(
+            state_dir or (Path.home() / ".lisa" / "executions")
+        ).expanduser().absolute()
+        self._state_dir = self._state_dir_input.resolve(strict=False)
+
+    def _assert_state_dir_safe(self):
+        cursor = self._state_dir_input
+        while cursor != cursor.parent:
+            if cursor.is_symlink():
+                raise ValueError("Execution state path must not contain symlinks.")
+            cursor = cursor.parent
+        if self._state_dir.exists() and not self._state_dir.is_dir():
+            raise ValueError("Execution state path must be a directory.")
 
     @staticmethod
     def _sha256(content):
@@ -121,6 +133,22 @@ class ProjectExecutionExecutor:
         finally:
             os.close(descriptor)
 
+    @classmethod
+    def _mkdir_durable(cls, directory, root):
+        """Create each backup directory and persist its entry in its parent."""
+        directory = Path(directory)
+        root = Path(root)
+        relative = directory.relative_to(root)
+        current = root
+        for part in relative.parts:
+            child = current / part
+            if not child.exists():
+                child.mkdir()
+                cls._fsync_directory(current)
+            elif child.is_symlink() or not child.is_dir():
+                raise ValueError(f"Unsafe backup directory: {child}")
+            current = child
+
     @staticmethod
     def _atomic_write(path, content, mode=None):
         temp_path = None
@@ -160,6 +188,9 @@ class ProjectExecutionExecutor:
         if source is None or target is None:
             return ProjectExecutionResult(success=False, error="Source and target must both remain registered.")
         try:
+            self._assert_state_dir_safe()
+            self._state_dir.mkdir(parents=True, exist_ok=True)
+            self._fsync_directory(self._state_dir.parent)
             source_root = Path(source.root_path).resolve(strict=True)
             target_root = Path(target.root_path).resolve(strict=True)
             if source_root == target_root:
@@ -229,9 +260,10 @@ class ProjectExecutionExecutor:
             ):
                 raise ValueError("Execution backups/audit must be stored outside the source project.")
 
-            backup_dir = execution_dir / "backups"
-            backup_dir.mkdir(parents=True, exist_ok=False)
+            execution_dir.mkdir(parents=False, exist_ok=False)
             self._fsync_directory(self._state_dir)
+            backup_dir = execution_dir / "backups"
+            backup_dir.mkdir(exist_ok=False)
             self._fsync_directory(execution_dir)
 
             backup_manifest = []
@@ -239,7 +271,7 @@ class ProjectExecutionExecutor:
             for change, relative, destination, current, mode in scoped:
                 if current is not None:
                     backup_path = backup_dir.joinpath(*relative.parts)
-                    backup_path.parent.mkdir(parents=True, exist_ok=True)
+                    self._mkdir_durable(backup_path.parent, backup_dir)
                     with backup_path.open("xb") as handle:
                         handle.write(current)
                         handle.flush()

@@ -1329,3 +1329,33 @@ Key per-case results:
 ### Follow-up
 - Run focused CPI, full architecture/unit, and integration CI.
 - Inspect crash-injection results and any regressions before considering CPI-06.5 complete.
+
+
+---
+
+## 2026-11-26 — CPI-06.6 Execution Recovery Security Review
+
+### Review scope
+- Approval-bound execution journal and backup ordering.
+- Directory-entry durability for nested backup paths.
+- Recovery preflight and target content/permission state checks.
+- Ledger pending-append interaction with execution recovery.
+- Retry behavior after a committed ledger event but interrupted journal finalization.
+- Executor/recovery consistency for symlinked execution-state paths.
+
+### Findings addressed
+- Nested backup directory entries now fsync their parent directories before any target write.
+- Executor rejects symlinked execution-state path components before creating execution state or modifying targets.
+- Recovery rejects permission-only target changes instead of silently accepting or overwriting them.
+- Recovery refuses to proceed while an authenticated ledger append is pending; operator must explicitly recover the ledger first.
+- Recovery remains pending if ledger finalization fails. A retry recognizes an already committed matching recovery event and avoids duplicate ledger events.
+- Added regression tests for permission-only changes, symlinked state roots, and idempotent retry after a durable ledger event.
+
+### Safety boundary and remaining limitations
+- A pre-journal preparation directory may remain after interruption before the durable journal; no target writes have occurred at that point. It requires operator inspection and is not automatically cleaned up.
+- Recovery relies on local filesystem durability semantics and L.I.S.A.'s own locks. It cannot guarantee behavior from storage that violates fsync guarantees or from external processes that ignore the locks.
+- No shell commands, builds, or target tests are executed by L.I.S.A.
+- CI passed on run [45767380089](https://github.com/SleepyTurtle91/lisa/actions/runs/45767380089).
+- Project/CLI suite: 89/89 passed; input-classifier suite: 6/6 passed.
+- Full architecture/unit suite: 202/202 passed; integration suite: 1/1 passed.
+- No PR merge performed.

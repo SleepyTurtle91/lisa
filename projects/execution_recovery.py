@@ -6,6 +6,7 @@ It never completes an interrupted apply or overwrites an unknown later version.
 import hashlib
 import json
 import os
+import stat
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -172,6 +173,11 @@ class ProjectExecutionRecovery:
                 not isinstance(before_hash, str) or len(before_hash) != self.SHA256_LENGTH
             ):
                 raise ValueError(f"Invalid pre-execution hash for {key}.")
+            mode = item.get("mode")
+            if before_hash is not None and (
+                not isinstance(mode, int) or mode < 0 or mode > 0o7777
+            ):
+                raise ValueError(f"Invalid original permission mode for {key}.")
             if not isinstance(after_hash, str) or len(after_hash) != self.SHA256_LENGTH:
                 raise ValueError(f"Invalid post-execution hash for {key}.")
             destination = ProjectExecutionExecutor._assert_no_symlink(target_root, relative)
@@ -304,10 +310,25 @@ class ProjectExecutionRecovery:
                     raise ValueError(
                         f"Target has an unknown version; refusing recovery: {relative.as_posix()}"
                     )
+                if current_hash is not None:
+                    expected_mode = item.get("mode") if before_hash is not None else 0o644
+                    current_mode = stat.S_IMODE(destination.lstat().st_mode)
+                    if current_mode != expected_mode:
+                        raise ValueError(
+                            f"Target permissions have an unknown version; refusing recovery: {relative.as_posix()}"
+                        )
                 backup_bytes = None
                 if before_hash is not None:
                     backup_bytes = (directory / item["backup"]).read_bytes()
                 scoped.append((relative, destination, current_hash, before_hash, after_hash, backup_bytes, item.get("mode")))
+
+            pending_ledger = self._state_dir / ProjectExecutionLedger.PENDING_NAME
+            if pending_ledger.is_symlink():
+                raise ValueError("Pending ledger transaction path is unsafe.")
+            if pending_ledger.exists():
+                raise ValueError(
+                    "A ledger append is pending. Run 'lisa project ledger recover' first, then retry execution recovery."
+                )
 
             journal["status"] = "recovery_in_progress"
             journal["recovery_digest"] = digest
@@ -322,8 +343,19 @@ class ProjectExecutionRecovery:
                 current = destination.read_bytes() if destination.is_file() else None
                 current_hash = self._digest(current) if current is not None else None
                 if current_hash == before_hash:
+                    if current_hash is not None:
+                        expected_mode = mode if before_hash is not None else 0o644
+                        if stat.S_IMODE(destination.lstat().st_mode) != expected_mode:
+                            raise ValueError(
+                                f"Target permissions changed during recovery; refusing overwrite: {relative.as_posix()}"
+                            )
                     restored.append(relative.as_posix())
                 elif current_hash == after_hash:
+                    expected_mode = mode if before_hash is not None else 0o644
+                    if stat.S_IMODE(destination.lstat().st_mode) != expected_mode:
+                        raise ValueError(
+                            f"Target permissions changed during recovery; refusing overwrite: {relative.as_posix()}"
+                        )
                     if before_hash is None:
                         destination.unlink()
                         self._fsync_directory(destination.parent)
@@ -342,10 +374,15 @@ class ProjectExecutionRecovery:
             audit_path = directory / "audit.json"
             if audit_path.is_symlink():
                 raise ValueError("Execution audit path is unsafe.")
+            existing_rolled_back_audit = False
             if audit_path.exists():
                 audit = json.loads(audit_path.read_text(encoding="utf-8"))
                 if not isinstance(audit, dict) or audit.get("execution_id") != execution_id:
                     raise ValueError("Existing execution audit is malformed or has the wrong identity.")
+                existing_rolled_back_audit = (
+                    isinstance(audit.get("lifecycle"), dict)
+                    and audit["lifecycle"].get("status") == "rolled_back"
+                )
             else:
                 audit = {
                     "schema_version": 1,
@@ -376,33 +413,45 @@ class ProjectExecutionRecovery:
                     ],
                     "validation": {"status": "required_not_run"},
                 }
-            audit["lifecycle"] = {
-                "status": "rolled_back",
-                "rollback_digest": self._rollback_digest(execution_id, audit),
-                "rolled_back_at": datetime.now(timezone.utc).isoformat(),
-                "restored_files": sorted(item["path"] for item in journal["files"]),
-                "recovery_digest": digest,
-            }
-            self._atomic_write(
-                audit_path, (json.dumps(audit, indent=2, sort_keys=True) + "\n").encode("utf-8")
-            )
+            if not existing_rolled_back_audit:
+                audit["lifecycle"] = {
+                    "status": "rolled_back",
+                    "rollback_digest": self._rollback_digest(execution_id, audit),
+                    "rolled_back_at": datetime.now(timezone.utc).isoformat(),
+                    "restored_files": sorted(item["path"] for item in journal["files"]),
+                    "recovery_digest": digest,
+                }
+                self._atomic_write(
+                    audit_path, (json.dumps(audit, indent=2, sort_keys=True) + "\n").encode("utf-8")
+                )
 
-            ledger_warning = None
-            try:
-                ProjectExecutionLedger(self._state_dir).append(
+            ledger = ProjectExecutionLedger(self._state_dir)
+            audit_hash = self._digest(audit_path.read_bytes())
+            ledger_state = ledger.verify()
+            if not ledger_state["success"]:
+                raise ValueError(
+                    "Target files are restored, but ledger verification/recovery is still required: "
+                    + ledger_state.get("error", "unknown ledger state")
+                )
+            already_recorded = any(
+                event.get("event_type") == "execution_recovered"
+                and event.get("execution_id") == execution_id
+                and (event.get("details") or {}).get("audit_sha256") == audit_hash
+                for event in ledger_state.get("events", [])
+            )
+            if not already_recorded:
+                ledger.append(
                     "execution_recovered", execution_id,
                     {
-                        "audit_sha256": self._digest(audit_path.read_bytes()),
+                        "audit_sha256": audit_hash,
                         "rollback_digest": audit["lifecycle"]["rollback_digest"],
-                        "recovery_digest": digest,
+                        "recovery_digest": audit["lifecycle"].get("recovery_digest", digest),
                     },
                 )
-            except Exception as exc:
-                ledger_warning = str(exc)
 
             journal["status"] = "recovered_rolled_back"
             journal["recovered_at"] = datetime.now(timezone.utc).isoformat()
-            journal["ledger_warning"] = ledger_warning
+            journal["ledger_warning"] = None
             self._atomic_write(
                 journal_path, (json.dumps(journal, indent=2, sort_keys=True) + "\n").encode("utf-8")
             )
@@ -410,7 +459,7 @@ class ProjectExecutionRecovery:
                 "success": True,
                 "execution_id": execution_id,
                 "restored_files": tuple(sorted(item["path"] for item in journal["files"])),
-                "ledger_warning": ledger_warning,
+                "ledger_warning": None,
             }
         except Exception as exc:
             return {"success": False, "execution_id": execution_id, "error": str(exc)}
