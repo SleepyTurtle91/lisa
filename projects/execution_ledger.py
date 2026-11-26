@@ -243,7 +243,7 @@ class ProjectExecutionLedger:
             mac = hmac.new(key, self._canonical(body), hashlib.sha256).hexdigest()
             event = {**body, "mac": mac}
             event["event_hash"] = self._sha256(self._canonical(event))
-            encoded = self._canonical(event) + b"\\n"
+            encoded = self._canonical(event) + b"\n"
 
             descriptor = os.open(
                 str(self._ledger_path),
