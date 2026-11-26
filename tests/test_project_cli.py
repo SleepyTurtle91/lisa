@@ -190,11 +190,11 @@ class TestProjectCLI(unittest.TestCase):
             source.mkdir()
             target.mkdir()
             (source / "README.md").write_text(
-                "# Inventory\\nInventory supports stocktake.", encoding="utf-8"
+                "# Inventory\nInventory supports stocktake.", encoding="utf-8"
             )
             (source / "settings.gradle.kts").write_text('include(":app")', encoding="utf-8")
             (target / "README.md").write_text(
-                "# Target\\nCore must not depend on Feature. Money must use BigDecimal.",
+                "# Target\nCore must not depend on Feature. Money must use BigDecimal.",
                 encoding="utf-8",
             )
             (target / "settings.gradle.kts").write_text('include(":app")', encoding="utf-8")
@@ -202,7 +202,7 @@ class TestProjectCLI(unittest.TestCase):
             unsafe_path = "app/terminal" + chr(27) + "[2J.kt"
             patch_file = root / "adaptation.json"
             patch_file.write_text(json.dumps({
-                "changes": [{"path": unsafe_path, "content": "class Terminal {}\\n"}]
+                "changes": [{"path": unsafe_path, "content": "class Terminal {}\n"}]
             }), encoding="utf-8")
 
             original_path = self._with_registry(root)
@@ -225,7 +225,7 @@ class TestProjectCLI(unittest.TestCase):
                 rendered = output.getvalue()
                 self.assertTrue((target / unsafe_path).exists())
                 self.assertNotIn(chr(27), rendered)
-                self.assertIn(r"\\x1b[2J", rendered)
+                self.assertIn(r"\x1b[2J", rendered)
                 self.assertIn("Execution completed", rendered)
             finally:
                 lisa_main.PROJECT_REGISTRY_PATH = original_path
