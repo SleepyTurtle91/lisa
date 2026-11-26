@@ -169,7 +169,7 @@ lisa project verify <execution-id>
 - History lists execution IDs, source and target project names, timestamps, changed-file counts, lifecycle state, validation state, and integrity status, newest first.
 - The optional project filter matches either the source or target project ID.
 - Malformed execution records remain visible in history as failed-integrity entries rather than silently disappearing.
-- Verification checks execution identity against its approval digest, audit schema, duplicate/path-safe manifests, changed-file/backup manifest agreement, backup SHA-256 values, rollback digest/restoration manifest, and validation-record digest.
+- Verification checks execution identity against its approval digest, audit schema, duplicate/path-safe manifests, changed-file/backup manifest agreement, backup SHA-256 values, current target-file state, rollback digest/restoration manifest, and validation-record digest.
 - When a validation report was recorded and the target remains registered, verification rechecks the report file's size and SHA-256 against its captured metadata.
 - Both commands are read-only: they do not edit execution records, project files, backups, or validation evidence.
 
