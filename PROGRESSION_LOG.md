@@ -1223,3 +1223,20 @@ Key per-case results:
 - Architecture & Integration CI passed: 158 architecture/unit tests and 1 integration test.
 - Independent review of the updated head is pending.
 - PR #11 remains open and unmerged.
+
+
+---
+
+## 2026-11-26 — CPI Foundation Evidence Precision Follow-up
+
+### Changes
+- Prevent compound capability aliases from being assembled across unrelated evidence excerpts or paths.
+- Recognize prefixed snake_case e-invoice identifiers without broadening matches to generic invoice text.
+- Filter persisted legacy VCS capability markers from registry-loaded manifests and profiles.
+- Make secret redaction aware of escaped quotes inside JSON values.
+- Added focused regressions for all four review findings.
+
+### Status
+- Dedicated remediation branch stacked on CPI foundation review PR #11.
+- CI and independent review pending.
+- No merge performed.
