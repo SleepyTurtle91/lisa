@@ -63,7 +63,7 @@ class TestCapabilityDiscovery(unittest.TestCase):
     def test_normalizes_underscore_aliases_for_matching_and_evidence(self):
         readme = self.source / "README.md"
         readme.write_text(
-            "# Retail capabilities\\nMy_Invois integration supports e-invoice submission.",
+            "# Retail capabilities\nMy_Invois integration supports e-invoice submission.",
             encoding="utf-8",
         )
         result = self.discovery.execute(CapabilityDiscoveryRequest(query="einvoice"))
