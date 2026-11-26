@@ -292,6 +292,38 @@ class ProjectExecutionLedger:
         finally:
             os.close(descriptor)
 
+    def _remove_stale_lock_if_dead(self, lock_path):
+        """Remove a lock only when its recorded owner PID is demonstrably gone."""
+        if lock_path.is_symlink():
+            raise ValueError("Ledger lock path is unsafe.")
+        try:
+            info = lock_path.lstat()
+        except FileNotFoundError:
+            return
+        if not lock_path.is_file():
+            raise ValueError("Ledger lock is not a regular file; inspect it manually.")
+        raw_pid = lock_path.read_text(encoding="ascii").strip()
+        try:
+            pid = int(raw_pid)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("Ledger lock owner is unreadable; inspect .ledger.lock manually.") from exc
+        if pid <= 0:
+            raise ValueError("Ledger lock owner PID is invalid; inspect .ledger.lock manually.")
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            current = lock_path.lstat()
+            if (info.st_dev, info.st_ino) != (current.st_dev, current.st_ino):
+                raise ValueError("Ledger lock changed during stale-lock inspection; retry.")
+            lock_path.unlink()
+            self._fsync_directory()
+        except PermissionError as exc:
+            raise ValueError("Cannot confirm whether the ledger lock owner is alive; refusing to remove it.") from exc
+        except OSError as exc:
+            raise ValueError("Cannot confirm whether the ledger lock owner is alive; refusing to remove it.") from exc
+        else:
+            raise ValueError(f"Ledger is locked by active process {pid}; refusing concurrent access.")
+
     def _acquire_lock(self):
         lock_path = self._state_dir / self.LOCK_NAME
         if lock_path.is_symlink():
@@ -300,10 +332,14 @@ class ProjectExecutionLedger:
             descriptor = os.open(
                 str(lock_path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600
             )
-        except FileExistsError as exc:
-            raise ValueError(
-                "Ledger is busy or has a stale lock; inspect .ledger.lock before retrying."
-            ) from exc
+        except FileExistsError:
+            self._remove_stale_lock_if_dead(lock_path)
+            try:
+                descriptor = os.open(
+                    str(lock_path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600
+                )
+            except FileExistsError as exc:
+                raise ValueError("Ledger is busy; another process acquired the lock.") from exc
         try:
             data = str(os.getpid()).encode("ascii")
             view = memoryview(data)
