@@ -25,7 +25,7 @@ CPI is a general L.I.S.A. capability. It must not depend on a particular project
 | CPI-03 | Cross-project capability discovery with evidence provenance | Implemented; focused CI passing |
 | CPI-04 | Compatibility and conflict triage with architecture constraint evidence | Implemented; focused CI passing |
 | CPI-05 | Review-only adaptation planning | Implemented; focused CI passing |
-| CPI-06 | Explicit approval, bounded target file execution, backups, rollback, and audit | Implemented as a bounded first release; regression validation remains operator-run |
+| CPI-06 | Explicit approval, bounded target file execution, backups, rollback, and audit | Implemented; see CPI-06.1 recovery lifecycle |
 
 ## Operator commands
 
@@ -122,3 +122,36 @@ Execution safeguards:
 CPI-06 intentionally does **not** execute shell commands, build scripts, or tests. A successful file application reports \`validation_required=true\`; the operator must run the target project's normal regression suite before accepting the adaptation. This avoids granting a cross-project adaptation implicit permission to execute arbitrary target code.
 
 The executor is a bounded file-application capability, not a semantic code porter. Human review of the patch and target-specific regression validation remain mandatory.
+
+
+## CPI-06.1 recovery and validation lifecycle
+
+CPI-06.1 adds two explicit operator workflows:
+
+\`\`\`text
+lisa project rollback <execution-id>
+lisa project validate <execution-id> --status passed|failed --command <description> --summary <result> [--evidence <relative-report-path>]
+\`\`\`
+
+### Rollback
+
+- The operator reviews the execution ID and must type the exact \`ROLLBACK <digest>\` phrase.
+- The digest binds the execution approval, target root, changed-file manifest, and backup manifest.
+- The target project must still be registered at the exact original root.
+- Every backup is checked against its recorded SHA-256 before any restore begins.
+- Rollback proceeds only when each affected file still matches either the applied hash or the original pre-execution hash. Unrelated later edits cause a fail-closed refusal.
+- Existing files are restored from verified backups, including their original permission mode; files created by the execution are removed.
+- A lifecycle journal records \`rollback_in_progress\` before restoration and \`rolled_back\` after completion. An interrupted rollback can be retried safely when files are either already restored or still match the applied state.
+
+Rollback never overwrites a target file whose current contents are neither the known applied version nor the known original version.
+
+### Validation evidence
+
+- The operator records a test status (\`passed\` or \`failed\`), test command/description, and concise result summary.
+- An optional report file must be inside the registered target project, be a regular non-symlink file, and be no larger than 10 MiB. L.I.S.A. stores its relative path, byte count, and SHA-256; it does not copy report contents into the audit.
+- The operator must type an exact \`RECORD <digest>\` phrase bound to the execution, status, command, summary, and report hash.
+- L.I.S.A. checks that all adapted files still match their recorded post-execution hashes before accepting the validation record.
+- Validation is labelled \`operator_reported_passed\` or \`operator_reported_failed\`. It is an operator attestation, not an independently verified result: L.I.S.A. does not execute build/test commands or claim to have observed their output.
+- Validation cannot be recorded after rollback.
+
+These lifecycle operations do not grant permission to run arbitrary target code. They provide controlled recovery and an auditable place to record human-run regression results.
