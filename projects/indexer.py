@@ -133,6 +133,22 @@ class ProjectProfileIndexer:
                     technologies.add("go")
                 elif suffix == ".java":
                     technologies.add("java")
+                elif suffix == ".cs":
+                    technologies.add("csharp")
+                elif suffix == ".swift":
+                    technologies.add("swift")
+                elif suffix == ".php":
+                    technologies.add("php")
+                elif suffix == ".rb":
+                    technologies.add("ruby")
+                elif suffix in (".cpp", ".hpp"):
+                    technologies.add("cpp")
+                elif suffix in (".c", ".h"):
+                    technologies.add("c")
+                elif suffix == ".scala":
+                    technologies.add("scala")
+                elif suffix == ".sql":
+                    technologies.add("sql")
 
             if name == "AndroidManifest.xml":
                 technologies.add("android")
