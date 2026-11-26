@@ -270,8 +270,13 @@ class ProjectExecutionLedger:
                             f"operator recovery is required: {recovery_error}"
                         )
                     if current.get("status") == "not_initialized":
-                        self._ledger_path.unlink(missing_ok=True)
-                        self._key_path.unlink(missing_ok=True)
+                        try:
+                            self._write_head(key, 0, "0" * 64)
+                        except Exception as checkpoint_error:
+                            raise RuntimeError(
+                                "Initial ledger append failed and an empty authenticated checkpoint "
+                                f"could not be established: {checkpoint_error}"
+                            ) from checkpoint_error
                     raise
             finally:
                 os.close(descriptor)
