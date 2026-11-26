@@ -41,8 +41,9 @@ class ProjectProfileIndexer:
     }
 
     SECRET_ASSIGNMENT = re.compile(
-        r'''(?im)(["']?\b(?:api[_-]?key|client[_-]?secret|access[_-]?token|refresh[_-]?token|password|passwd|secret|private[_-]?key)\b["']?\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;]+)'''
+        r'''(?im)(["']?\b(?:api[_-]?key|client[_-]?secret|access[_-]?token|refresh[_-]?token|password|passwd|secret|private[_-]?key)\b["']?\s*[:=]\s*)(?:"(?:\\\\.|[^"\\\\])*"|'(?:\\\\.|[^'\\\\])*'|[^\s,;]+)'''
     )
+    NON_TECHNICAL_CAPABILITIES: Set[str] = {"git", "hg", "svn", "vcs"}
     PRIVATE_KEY_BLOCK = re.compile(
         r"-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----",
         re.DOTALL,
@@ -103,7 +104,7 @@ class ProjectProfileIndexer:
         )
         evidence_candidates: List[Tuple[Path, str]] = []
         source_paths: List[str] = []
-        technologies = set(manifest.capabilities)
+        technologies = {\n            capability for capability in manifest.capabilities\n            if capability.casefold() not in self.NON_TECHNICAL_CAPABILITIES\n        }
 
         for path in all_files:
             relative = path.relative_to(root)
