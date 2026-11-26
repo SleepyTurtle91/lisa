@@ -73,6 +73,35 @@ class TestProjectProfile(unittest.TestCase):
         self.assertNotIn(".env", evidence_paths)
         self.assertNotIn("build/generated/Generated.kt", profile.source_files_sample)
 
+    def test_profile_maps_all_inventoried_source_languages(self):
+        from lisa.projects.indexer import ProjectProfileIndexer
+
+        suffixes = {
+            ".cs": "csharp", ".swift": "swift", ".php": "php", ".rb": "ruby",
+            ".cpp": "cpp", ".hpp": "cpp", ".c": "c", ".h": "c",
+            ".scala": "scala", ".sql": "sql",
+        }
+        source_dir = self.project / "languages"
+        source_dir.mkdir()
+        for index, suffix in enumerate(suffixes):
+            (source_dir / f"sample_{index}{suffix}").write_text("sample", encoding="utf-8")
+
+        result = self.executor.execute(ProjectProfileRequest(project_id=self.project_id))
+        self.assertTrue(result.success, result.error)
+        for technology in set(suffixes.values()):
+            with self.subTest(technology=technology):
+                self.assertIn(technology, result.profile.technologies)
+
+    def test_redacts_quoted_json_secret_properties(self):
+        from lisa.projects.indexer import ProjectProfileIndexer
+
+        excerpt = '{"api_key": "do-not-leak", "client_secret": "also-secret"}'
+        redacted, changed = ProjectProfileIndexer._redact_excerpt(excerpt)
+        self.assertTrue(changed)
+        self.assertNotIn("do-not-leak", redacted)
+        self.assertNotIn("also-secret", redacted)
+        self.assertIn("[REDACTED]", redacted)
+
     def test_profile_evidence_is_hashed_and_bounded(self):
         result = self.executor.execute(ProjectProfileRequest(
             project_id=self.project_id, max_bytes_per_file=1024
