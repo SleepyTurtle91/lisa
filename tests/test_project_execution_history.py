@@ -44,7 +44,7 @@ class TestProjectExecutionHistory(unittest.TestCase):
             source_project_id=self.source_id, target_project_id=self.target_id,
             capability_query="inventory stocktake",
         )).plan
-        self.state = root / "executions"
+        self.plan = plan\n        self.state = root / "executions"
         self.executor = ProjectExecutionExecutor(self.registry, state_dir=self.state)
         change = ExecutionChange(
             "app/Inventory.kt", "class Inventory {}\n",
@@ -102,6 +102,71 @@ class TestProjectExecutionHistory(unittest.TestCase):
         records = self.history.list_history()
         self.assertEqual(len(records), 1)
         self.assertEqual(records[0]["integrity_status"], "failed")
+
+    def test_lifecycle_refuses_audit_changed_since_prior_ledger_snapshot(self):
+        from lisa.projects.execution_ledger import ProjectExecutionLedger
+
+        audit_path = Path(self.execution.audit_path)
+        audit = json.loads(audit_path.read_text(encoding="utf-8"))
+        audit["created_at"] = "2026-01-01T00:00:00+00:00"
+        audit_path.write_text(json.dumps(audit), encoding="utf-8")
+
+        lifecycle = ProjectExecutionLifecycle(self.registry, state_dir=self.state)
+        with self.assertRaisesRegex(ValueError, "changed since its latest authenticated ledger snapshot"):
+            lifecycle.preview_rollback_digest(self.execution.execution_id)
+
+        ledger = ProjectExecutionLedger(self.state).verify()
+        self.assertTrue(ledger["success"], ledger.get("error"))
+        self.assertEqual(ledger["event_count"], 1)
+
+    def test_legacy_snapshot_status_survives_later_validation_event(self):
+        from lisa.projects.execution_ledger import ProjectExecutionLedger
+
+        audit_bytes = Path(self.execution.audit_path).read_bytes()
+        ledger = ProjectExecutionLedger(self.state)
+        ledger.append("legacy_import", self.execution.execution_id, {
+            "audit_sha256": hashlib.sha256(audit_bytes).hexdigest(),
+            "trust": "snapshot_at_migration_time_only",
+        })
+
+        lifecycle = ProjectExecutionLifecycle(self.registry, state_dir=self.state)
+        digest = lifecycle.preview_validation_digest(
+            self.execution.execution_id, "passed", "pytest -q", "migration check passed"
+        )
+        result = lifecycle.record_validation(
+            self.execution.execution_id, "passed", "pytest -q",
+            "migration check passed", f"RECORD {digest}",
+        )
+        self.assertTrue(result["success"], result.get("error"))
+
+        verified = self.history.verify(self.execution.execution_id)
+        self.assertTrue(verified["success"], verified.get("error"))
+        self.assertEqual(verified["record"]["ledger_status"], "legacy_snapshot")
+
+    def test_history_listing_verifies_ledger_once_and_reuses_event_index(self):
+        from unittest.mock import patch
+        from lisa.projects.execution_ledger import ProjectExecutionLedger
+
+        change = ExecutionChange("app/Second.kt", "class Second {}\\n")
+        digest = self.executor.approval_digest(self.plan, [change], self.target)
+        second = self.executor.execute(ProjectExecutionRequest(
+            self.plan, (change,), f"APPLY {digest}"
+        ))
+        self.assertTrue(second.success, second.error)
+
+        original_verify = ProjectExecutionLedger.verify
+        calls = 0
+
+        def counted_verify(ledger):
+            nonlocal calls
+            calls += 1
+            return original_verify(ledger)
+
+        with patch.object(ProjectExecutionLedger, "verify", new=counted_verify):
+            records = self.history.list_history()
+
+        self.assertEqual(len(records), 2)
+        self.assertEqual(calls, 1)
 
     def test_validation_evidence_hash_is_verified(self):
         report = self.target / "report.txt"
