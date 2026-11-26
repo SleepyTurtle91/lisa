@@ -1,6 +1,8 @@
 import asyncio
 import os
 import unittest
+import tempfile
+from pathlib import Path
 from lisa.tools.base import ToolRequest
 from lisa.tools.dispatcher import ToolExecutor
 from lisa.tools.filesystem.read_file import ReadFileTool
@@ -17,12 +19,15 @@ class TestReadFileTool(unittest.TestCase):
         registry.register(ReadFileTool())
 
         executor = ToolExecutor(registry)
-        req = ToolRequest(tool_name="read_file", arguments={"path": "AGENTS.md"})
+        with tempfile.TemporaryDirectory() as temp_dir:
+            expected = "Portable project instructions"
+            (Path(temp_dir) / "AGENTS.md").write_text(expected, encoding="utf-8")
+            req = ToolRequest(tool_name="read_file", arguments={"path": "AGENTS.md"})
 
-        result = asyncio.run(executor.execute_request(req, project_path="/home/user/Projects/lisa"))
+            result = asyncio.run(executor.execute_request(req, project_path=temp_dir))
 
-        self.assertTrue(result.success)
-        self.assertIn("L.I.S.A. Engineering Operating System", result.output)
+            self.assertTrue(result.success)
+            self.assertIn(expected, result.output)
 
 if __name__ == "__main__":
     unittest.main()
