@@ -132,7 +132,7 @@ class TestGovernedProjectExecution(unittest.TestCase):
         original = destination.read_bytes()
         expected = hashlib.sha256(original).hexdigest()
         result = self.executor.execute(self.request([
-            ExecutionChange("app/Main.kt", "class Main { val private = true }\\n", expected)
+            ExecutionChange("app/Main.kt", "class Main { val private = true }\n", expected)
         ]))
         self.assertTrue(result.success, result.error)
 
@@ -150,7 +150,7 @@ class TestGovernedProjectExecution(unittest.TestCase):
         original = destination.read_bytes()
         change = ExecutionChange(
             "app/Main.kt",
-            "class Main { val retry = true }\\n",
+            "class Main { val retry = true }\n",
             hashlib.sha256(original).hexdigest(),
         )
         request = self.request([change])
