@@ -1563,7 +1563,7 @@ The adaptation plan preview is evidence-bearing and review-only. It cannot apply
 
 **Evidence classification**:
 - `FILE_FACT`: implementation and regression-test changes are present on `fix/cpi-foundation-review-findings`.
-- `EXECUTION_FACT`: pending GitHub Actions validation for PR #11. No test pass is claimed in this entry.
+- `EXECUTION_FACT`: PR #11 CPI Contract CI run [45780814919](https://github.com/SleepyTurtle91/lisa/actions/runs/45780814919) passed 38/38 project/CLI/profile/discovery/compatibility/adaptation tests and 8/8 input-classifier tests. This run preceded the workflow addition for `test_repl.py`; REPL selection and full Architecture & Integration validation remain pending.
 
 **Interpretation**:
 These changes address the reviewed failure modes at the CPI foundation boundary. The result remains a deterministic lexical project inventory and capability discovery system; it does not establish semantic equivalence or authorize project modification.
