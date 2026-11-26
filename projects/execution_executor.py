@@ -317,6 +317,8 @@ class ProjectExecutionExecutor:
             )
 
             applied = []
+            ledger_attempted = False
+            ledger_recorded = False
             try:
                 for index, (change, relative, destination, current, mode) in enumerate(scoped):
                     self._assert_no_symlink(target_root, relative)
@@ -352,6 +354,7 @@ class ProjectExecutionExecutor:
                     (json.dumps(journal, indent=2, sort_keys=True) + "\n").encode("utf-8"),
                 )
                 audit_bytes = audit_path.read_bytes()
+                ledger_attempted = True
                 ProjectExecutionLedger(self._state_dir).append(
                     "execution_applied", execution_id,
                     {
@@ -360,13 +363,28 @@ class ProjectExecutionExecutor:
                         "target_project_id": plan.target_project_id,
                     },
                 )
+                ledger_recorded = True
                 journal["status"] = "completed"
                 journal["completed_at"] = datetime.now(timezone.utc).isoformat()
                 self._atomic_write(
                     journal_path,
                     (json.dumps(journal, indent=2, sort_keys=True) + "\n").encode("utf-8"),
                 )
-            except Exception:
+            except Exception as execution_error:
+                if ledger_recorded:
+                    return ProjectExecutionResult(
+                        success=True,
+                        execution_id=execution_id,
+                        changed_files=tuple(relative.as_posix() for _, relative, _, _, _ in scoped),
+                        backup_directory=str(backup_dir),
+                        audit_path=str(audit_path),
+                        validation_required=True,
+                        warning=(
+                            "Target files and authenticated execution event are committed, "
+                            "but the journal finalization write failed. The journal remains "
+                            "in finalizing state: " + str(execution_error)
+                        ),
+                    )
                 rollback_errors = []
                 for relative, destination, current, mode, after_hash in reversed(applied):
                     try:
@@ -402,7 +420,17 @@ class ProjectExecutionExecutor:
                         "use 'lisa project recover' after inspecting the journal: "
                         + "; ".join(rollback_errors)
                     )
-                if execution_dir.exists():
+                if ledger_attempted:
+                    journal["status"] = "recovery_required"
+                    journal["rollback_errors"] = [
+                        "Ledger append was attempted but did not complete cleanly; "
+                        "verify/recover the ledger before finalizing this execution."
+                    ]
+                    self._atomic_write(
+                        journal_path,
+                        (json.dumps(journal, indent=2, sort_keys=True) + "\\n").encode("utf-8"),
+                    )
+                elif execution_dir.exists():
                     import shutil
                     shutil.rmtree(execution_dir)
                     self._fsync_directory(self._state_dir)
