@@ -23,9 +23,9 @@ CPI is a general L.I.S.A. capability. It must not depend on a particular project
 | CPI-01 | Project identity, persistent registry, CLI management, isolated project contexts | Implemented; focused CI passing |
 | CPI-02 | Read-only project profiles and evidence-backed architecture inventory | Implemented; focused CI passing |
 | CPI-03 | Cross-project capability discovery with evidence provenance | Implemented; focused CI passing |
-| CPI-04 | Compatibility and conflict triage with architecture constraint evidence | Implemented in draft PR; validation pending |
-| CPI-05 | Adaptation planning and operator approval | Planned |
-| CPI-06 | Governed target execution, regression validation, and audit | Planned |
+| CPI-04 | Compatibility and conflict triage with architecture constraint evidence | Implemented; focused CI passing |
+| CPI-05 | Review-only adaptation planning | Implemented in draft PR; validation pending |
+| CPI-06 | Explicit approval, governed target execution, regression validation, and audit | Planned |
 
 ## Operator commands
 
@@ -35,6 +35,7 @@ lisa project list
 lisa project inspect <id|name>
 lisa project find <terms>
 lisa project compare <source-id> <target-id> [terms]
+lisa project plan <source-id> <target-id> <terms>
 lisa project use <id|name>
 lisa project remove <id>
 lisa
@@ -46,6 +47,7 @@ project list
 project inspect <id|name>
 project find <terms>
 project compare <source-id> <target-id> [terms]
+project plan <source-id> <target-id> <terms>
 project use <id|name>
 project remove <id>
 ```
@@ -75,6 +77,12 @@ Statuses are deliberately conservative:
 
 The report does not claim there are no conflicts. Extracted constraints are review requirements, not machine-resolved rules. The tool never copies, edits, or executes code.
 
-## Remaining boundary
+## CPI-05 review-only adaptation plan
 
-CPI-04 does not yet generate implementation plans, authorize target changes, or perform code adaptation. Those capabilities require their own evidence, contracts, tests, and operator approval.
+`project plan <source-id> <target-id> <terms>` creates a deterministic plan preview containing source evidence references, target constraints, data/persistence review tasks, target-native adaptation guidance, regression test requirements, and an explicit operator authorization step.
+
+A plan is either `ready_for_review` or `blocked`. It always has `authorization_required=true` and `execution_authorized=false`. Plans are not persisted and cannot execute code. The operator must review the evidence and decide whether a separate, explicitly authorized implementation request should exist.
+
+## CPI-06 remaining boundary
+
+CPI-06 is not implemented. No command currently copies, modifies, or executes code across project roots. Governed target execution must be designed as a separate, auditable subsystem with explicit file scope, operator approval, rollback strategy, and regression validation.

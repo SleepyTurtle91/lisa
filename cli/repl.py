@@ -25,6 +25,8 @@ from lisa.projects.capability_discovery import CapabilityDiscoveryExecutor
 from lisa.projects.capability_request import CapabilityDiscoveryRequest
 from lisa.projects.compatibility_executor import ProjectCompatibilityExecutor
 from lisa.projects.compatibility_request import ProjectCompatibilityRequest
+from lisa.projects.adaptation_planner import ProjectAdaptationPlanner
+from lisa.projects.adaptation_request import ProjectAdaptationRequest
 
 CONFIG_DIR = Path.home() / ".lisa"
 RECENT_FILE = CONFIG_DIR / "recent.json"
@@ -325,6 +327,7 @@ async def start_repl(target_dir: Optional[str] = None):
             print("  project inspect <id|name>  Build a read-only project profile")
             print("  project find <terms>  Search registered projects for capability evidence")
             print("  project compare <source-id> <target-id> [terms]  Triage reuse compatibility")
+            print("  project plan <source-id> <target-id> <terms>  Create a review-only adaptation plan")
             print("  exit / quit    Exit REPL session\n")
         classified = InputBoundaryClassifier.classify(user_input, project_path=target_dir)
 
@@ -362,6 +365,35 @@ async def start_repl(target_dir: Optional[str] = None):
                     for item in result.manifests:
                         active = "*" if result.context and result.context.project_id == item.project_id else " "
                         print(f" {active} {item.name} [{item.project_id}] - {item.root_path}")
+                elif action == "plan" and len(parts) >= 4:
+                    source = _project_identifier(project_executor, parts[1])
+                    target = _project_identifier(project_executor, parts[2])
+                    if source is None or target is None:
+                        print("Source or target not found/ambiguous. Use 'projects' to list IDs.")
+                    else:
+                        planned = ProjectAdaptationPlanner(
+                            registry=ProjectRegistry(storage_path=PROJECT_REGISTRY_FILE)
+                        ).execute(ProjectAdaptationRequest(
+                            source_project_id=source.project_id,
+                            target_project_id=target.project_id,
+                            capability_query=" ".join(parts[3:]),
+                        ))
+                        if not planned.success:
+                            print(f"Adaptation planning failed: {planned.error}")
+                        else:
+                            plan = planned.plan
+                            print(f"\nAdaptation plan {plan.plan_id}: {plan.source_project_name} -> {plan.target_project_name}")
+                            print(f"Status: {plan.status.value}")
+                            print(plan.summary)
+                            for blocker in plan.blockers:
+                                print(f"Blocker: {blocker}")
+                            for constraint in plan.target_constraints:
+                                print(f"Preserve [{constraint.relative_path}]: {constraint.excerpt}")
+                            for step in plan.steps:
+                                print(f"{step.order}. {step.title} — {step.description}")
+                            print(f"Authorization required: {plan.authorization_required}")
+                            print(f"Execution authorized: {plan.execution_authorized}")
+                            print("This is a review-only plan. No code was copied, modified, or executed.\n")
                 elif action in ("compare", "compatibility") and len(parts) >= 3:
                     source = _project_identifier(project_executor, parts[1])
                     target = _project_identifier(project_executor, parts[2])
@@ -448,7 +480,7 @@ async def start_repl(target_dir: Optional[str] = None):
                         ))
                         print("Project unregistered." if removed.success else f"Unregister failed: {removed.error}")
                 else:
-                    print("Usage: project add <path> | project list | project inspect <id|name> | project find <terms> | project compare <source-id> <target-id> [terms] | project use <id|name> | project remove <id>")
+                    print("Usage: project add <path> | project list | project inspect <id|name> | project find <terms> | project compare <source-id> <target-id> [terms] | project plan <source-id> <target-id> <terms> | project use <id|name> | project remove <id>")
             elif cmd == "switch":
                 await runtime.shutdown()
                 print("\nSwitching project...")

@@ -28,6 +28,8 @@ from lisa.projects.capability_discovery import CapabilityDiscoveryExecutor
 from lisa.projects.capability_request import CapabilityDiscoveryRequest
 from lisa.projects.compatibility_executor import ProjectCompatibilityExecutor
 from lisa.projects.compatibility_request import ProjectCompatibilityRequest
+from lisa.projects.adaptation_planner import ProjectAdaptationPlanner
+from lisa.projects.adaptation_request import ProjectAdaptationRequest
 
 PROJECT_REGISTRY_PATH = Path.home() / ".lisa" / "projects.json"
 
@@ -53,6 +55,37 @@ def run_project_command(args):
             tech = ", ".join(item.capabilities) or "unknown stack"
             print(f" {active} {item.name}  [{item.project_id}]  {tech}")
             print(f"    {item.root_path}")
+        return
+    if action == "plan" and len(args) >= 4:
+        listing = executor.execute(ProjectRequest(operation=ProjectOperation.LIST))
+        source_matches = [p for p in listing.manifests if p.project_id == args[1] or p.name.casefold() == args[1].casefold()]
+        target_matches = [p for p in listing.manifests if p.project_id == args[2] or p.name.casefold() == args[2].casefold()]
+        if len(source_matches) != 1 or len(target_matches) != 1:
+            print("Source or target not found/ambiguous. Use 'lisa project list' to see project IDs.")
+            return
+        result = ProjectAdaptationPlanner(
+            registry=ProjectRegistry(storage_path=PROJECT_REGISTRY_PATH)
+        ).execute(ProjectAdaptationRequest(
+            source_project_id=source_matches[0].project_id,
+            target_project_id=target_matches[0].project_id,
+            capability_query=" ".join(args[3:]),
+        ))
+        if not result.success:
+            print(f"Adaptation planning failed: {result.error}")
+            return
+        plan = result.plan
+        print(f"Adaptation plan {plan.plan_id}: {plan.source_project_name} -> {plan.target_project_name}")
+        print(f"Status: {plan.status.value}")
+        print(plan.summary)
+        for blocker in plan.blockers:
+            print(f"Blocker: {blocker}")
+        for constraint in plan.target_constraints:
+            print(f"Preserve [{constraint.relative_path}]: {constraint.excerpt}")
+        for step in plan.steps:
+            print(f"{step.order}. {step.title} — {step.description}")
+        print(f"Authorization required: {plan.authorization_required}")
+        print(f"Execution authorized: {plan.execution_authorized}")
+        print("This is a review-only plan. No code was copied, modified, or executed.")
         return
     if action in ("compare", "compatibility") and len(args) >= 3:
         listing = executor.execute(ProjectRequest(operation=ProjectOperation.LIST))
@@ -174,6 +207,7 @@ def print_help():
     print("  project inspect <id|name> Build a read-only project profile.")
     print("  project find <terms>     Search project evidence for reusable capabilities.")
     print("  project compare <source-id> <target-id> [terms]  Triage reuse compatibility.")
+    print("  project plan <source-id> <target-id> <terms>  Create a review-only adaptation plan.")
     print("  project add <path>     Register a project directory.")
     print("  project use <id|name>  Set the default active project.")
     print("  project remove <id>    Unregister a project.")

@@ -11,6 +11,11 @@ from lisa.cli import main as lisa_main
 
 
 class TestProjectCLI(unittest.TestCase):
+    def _with_registry(self, root):
+        original = lisa_main.PROJECT_REGISTRY_PATH
+        lisa_main.PROJECT_REGISTRY_PATH = root / ".lisa" / "projects.json"
+        return original
+
     def test_project_find_command_prints_evidence_backed_candidates(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -20,8 +25,7 @@ class TestProjectCLI(unittest.TestCase):
                 "# Inventory\nInventory management supports stocktake.",
                 encoding="utf-8",
             )
-            original_path = lisa_main.PROJECT_REGISTRY_PATH
-            lisa_main.PROJECT_REGISTRY_PATH = root / ".lisa" / "projects.json"
+            original_path = self._with_registry(root)
             try:
                 lisa_main.run_project_command(["add", str(project)])
                 output = io.StringIO()
@@ -49,8 +53,7 @@ class TestProjectCLI(unittest.TestCase):
             )
             (target / "settings.gradle.kts").write_text('include(":app")', encoding="utf-8")
 
-            original_path = lisa_main.PROJECT_REGISTRY_PATH
-            lisa_main.PROJECT_REGISTRY_PATH = root / ".lisa" / "projects.json"
+            original_path = self._with_registry(root)
             try:
                 lisa_main.run_project_command(["add", str(source)])
                 lisa_main.run_project_command(["add", str(target)])
@@ -65,6 +68,38 @@ class TestProjectCLI(unittest.TestCase):
             finally:
                 lisa_main.PROJECT_REGISTRY_PATH = original_path
 
+    def test_project_plan_command_is_review_only(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            source = root / "Source"
+            target = root / "Target"
+            source.mkdir()
+            target.mkdir()
+            (source / "README.md").write_text(
+                "# Inventory\nInventory supports stocktake.", encoding="utf-8"
+            )
+            (source / "settings.gradle.kts").write_text('include(":app")', encoding="utf-8")
+            (target / "README.md").write_text(
+                "# Target\nCore must not depend on Feature. Money must use BigDecimal.",
+                encoding="utf-8",
+            )
+            (target / "settings.gradle.kts").write_text('include(":app")', encoding="utf-8")
+
+            original_path = self._with_registry(root)
+            try:
+                lisa_main.run_project_command(["add", str(source)])
+                lisa_main.run_project_command(["add", str(target)])
+                output = io.StringIO()
+                with redirect_stdout(output):
+                    lisa_main.run_project_command([
+                        "plan", source.name, target.name, "inventory", "stocktake"
+                    ])
+                self.assertIn("ready_for_review", output.getvalue())
+                self.assertIn("Execution authorized: False", output.getvalue())
+                self.assertIn("No code was copied", output.getvalue())
+            finally:
+                lisa_main.PROJECT_REGISTRY_PATH = original_path
+
     def test_add_use_and_list_commands_persist_project_selection(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -72,8 +107,7 @@ class TestProjectCLI(unittest.TestCase):
             project.mkdir()
             (project / "README.md").write_text("# CLI test project\n", encoding="utf-8")
 
-            original_path = lisa_main.PROJECT_REGISTRY_PATH
-            lisa_main.PROJECT_REGISTRY_PATH = root / ".lisa" / "projects.json"
+            original_path = self._with_registry(root)
             try:
                 lisa_main.run_project_command(["add", str(project)])
                 registered = lisa_main._project_executor().execute(
