@@ -2,7 +2,7 @@
 NE-017 Real-Project OS Validation Benchmark Harness
 
 Evaluates end-to-end performance of L.I.S.A. Intelligence OS (v2.0.0) on a real engineering workspace
-(e.g., /home/user/development/projects/retails) without synthetic mocks.
+(e.g., a user-selected workspace path) without synthetic mocks.
 
 Measures all 8 System Validation Criteria:
   1. Project Context Grounding & Discovery
@@ -130,7 +130,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="NE-017 Real-Project L.I.S.A. OS Validation")
-    parser.add_argument("project_path", nargs="?", default="/home/user/development/projects/retails")
+    parser.add_argument("project_path", nargs="?", default=os.getcwd())
     args = parser.parse_args()
 
     print("NE-017 — Real-Project L.I.S.A. OS End-to-End Validation")
