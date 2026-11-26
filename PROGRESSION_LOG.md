@@ -1255,3 +1255,21 @@ Key per-case results:
 - Run focused CPI, full architecture/unit, and integration CI.
 - Review interrupted-write and stale-lock recovery behavior before considering the ledger stable.
 
+
+
+---
+
+## 2026-11-26 — CPI-06.3 Ledger Reliability Review Remediation
+
+### Changes
+- Replace permanent stale lock-file blocking with process-released OS advisory locking.
+- Recover incomplete JSONL writes by restoring the prior file length; initialize a valid empty authenticated checkpoint after a failed first append.
+- Require lifecycle operations to verify the current audit against its latest authenticated ledger snapshot before mutation.
+- Preserve legacy snapshot trust status after later rollback/validation events.
+- Verify the ledger once per history listing and reuse an execution-event index.
+- Added focused regressions for stale locks, concurrent writers, short writes, prior-snapshot tampering, legacy trust, and history verification complexity.
+
+### Status
+- Dedicated remediation branch stacked on CPI-06.3.
+- CI and independent review pending.
+- No merge performed.
