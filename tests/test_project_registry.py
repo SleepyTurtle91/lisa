@@ -58,7 +58,7 @@ class TestProjectRegistry(unittest.TestCase):
             with self.subTest(marker=marker):
                 project = self.root / marker.replace(".", "_")
                 project.mkdir()
-                (project / marker).write_text("# build descriptor\\n", encoding="utf-8")
+                (project / marker).write_text("# build descriptor\n", encoding="utf-8")
                 manifest = ProjectResolver().resolve(str(project))
                 self.assertIn(marker, manifest.markers)
 
