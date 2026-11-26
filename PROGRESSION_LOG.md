@@ -1286,3 +1286,14 @@ Key per-case results:
 - Initialize the ledger key and authenticated head before patching writes, then test rollback of a partial second event and successful retry.
 - CPI Contract CI and Architecture & Integration CI passed on the deterministic fixture (run 45792017905).
 - Independent review requested on the corrected head; no merge performed.
+
+
+---
+
+## 2026-11-26 — Review Follow-up
+
+### Follow-up — Crash-recoverable lifecycle audit commits
+- Added an authenticated intent event that binds the prior audit hash, pending snapshot hash, and intended next audit hash before replacing lifecycle audit state.
+- Recovery validates the pending snapshot against the authenticated ledger intent, completes interrupted rollback/validation commits, and removes stale pending records only when the ledger already authenticates the current audit.
+- Added regression coverage for interruptions during rollback-completion and validation-record ledger appends.
+- Full CPI and Architecture & Integration CI rerun pending on the updated implementation.
