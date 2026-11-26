@@ -1215,5 +1215,5 @@ Key per-case results:
 
 ### Status
 - Remediation is on a dedicated branch stacked on CPI-06.1.
-- CI and independent review pending.
+- CI passed: 55 project/CLI tests, 6 input-boundary tests, 168 architecture/unit tests, and 1 integration test. Independent review pending.
 - No merge or modification to the original PR #4 branch.
