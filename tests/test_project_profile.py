@@ -112,6 +112,28 @@ class TestProjectProfile(unittest.TestCase):
         self.assertNotIn("also-secret", redacted)
         self.assertIn("[REDACTED]", redacted)
 
+    def test_redacts_json_secrets_with_escaped_quotes(self):
+        from lisa.projects.indexer import ProjectProfileIndexer
+
+        excerpt = r'{"api_key": "prefix\\"still-secret", "client_secret": "token\\\\\"tail"}'
+        redacted, changed = ProjectProfileIndexer._redact_excerpt(excerpt)
+        self.assertTrue(changed)
+        self.assertNotIn("still-secret", redacted)
+        self.assertNotIn("token", redacted)
+        self.assertIn("[REDACTED]", redacted)
+
+    def test_profile_filters_legacy_vcs_capabilities(self):
+        from dataclasses import replace
+        from lisa.projects.indexer import ProjectProfileIndexer
+
+        legacy_manifest = replace(
+            self.registry.get(self.project_id),
+            capabilities=("git", "kotlin"),
+        )
+        profile = ProjectProfileIndexer().index(legacy_manifest)
+        self.assertNotIn("git", profile.technologies)
+        self.assertIn("kotlin", profile.technologies)
+
     def test_profile_evidence_is_hashed_and_bounded(self):
         result = self.executor.execute(ProjectProfileRequest(
             project_id=self.project_id, max_bytes_per_file=1024
