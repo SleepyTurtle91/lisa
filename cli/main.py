@@ -38,11 +38,11 @@ PROJECT_REGISTRY_PATH = Path.home() / ".lisa" / "projects.json"
 PROJECT_EXECUTION_STATE_PATH = Path.home() / ".lisa" / "executions"
 
 
-def _escape_terminal_controls(value):
-    """Render terminal control characters visibly in operator-facing previews."""
+def _escape_terminal_controls(value, preserve_newlines=False):
+    """Render untrusted terminal controls visibly, optionally preserving content layout."""
     visible = []
     for character in str(value):
-        if character != "\n" and unicodedata.category(character) == "Cc":
+        if not (preserve_newlines and character == "\n") and unicodedata.category(character) == "Cc":
             codepoint = ord(character)
             escaped = f"\\x{codepoint:02x}" if codepoint <= 0xff else f"\\u{codepoint:04x}"
             visible.append(escaped)
@@ -138,7 +138,7 @@ def run_project_command(args):
             safe_path = _escape_terminal_controls(change.relative_path)
             expected_hash = _escape_terminal_controls(change.expected_sha256 or "NEW FILE")
             print(f"--- {safe_path} (expected sha256: {expected_hash})")
-            print(_escape_terminal_controls(change.content))
+            print(_escape_terminal_controls(change.content, preserve_newlines=True))
         print("No commands or tests will be run by this operation.")
         print("Backups and an audit record will be created outside both project roots.")
         try:
