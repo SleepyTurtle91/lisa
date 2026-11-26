@@ -1217,3 +1217,13 @@ Key per-case results:
 - Remediation is on a dedicated branch stacked on CPI-06.1.
 - CI passed: 55 project/CLI tests, 6 input-boundary tests, 168 architecture/unit tests, and 1 integration test. Independent review pending.
 - No merge or modification to the original PR #4 branch.
+
+
+---
+
+## 2026-11-26 — CPI-06.1 No-Follow Mode Restoration
+
+- Replaced path-based permission restoration with validated descriptor-based `fchmod`.
+- Rechecked path identity after mode restoration to detect a swapped symlink.
+- Added a regression proving an external symlink referent's permissions remain unchanged.
+- CI and independent review pending; no merge performed.
