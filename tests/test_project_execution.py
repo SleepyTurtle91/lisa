@@ -332,12 +332,18 @@ class TestGovernedProjectExecution(unittest.TestCase):
             self.skipTest("Descriptor-based POSIX mode restoration is required")
         from unittest.mock import patch
 
+        destination = self.target / "app" / "Main.kt"
+        original = destination.read_bytes()
+        expected = hashlib.sha256(original).hexdigest()
         execution = self._apply_for_lifecycle([
-            ExecutionChange("app/HardLink.kt", "class HardLink { val changed = true }\\n")
+            ExecutionChange(
+                "app/Main.kt", "class Main { val changed = true }\\n", expected
+            )
         ])
-        destination = self.target / "app" / "HardLink.kt"
+        destination.write_bytes(original)
+        destination.chmod(0o644)
         outside = self.source / "outside-hardlink-target.txt"
-        outside.write_bytes(destination.read_bytes())
+        outside.write_bytes(original)
         outside.chmod(0o600)
         outside_mode = outside.stat().st_mode & 0o777
 
