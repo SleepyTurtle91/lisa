@@ -143,7 +143,7 @@ class ProjectProfileIndexer:
                     technologies.add("ruby")
                 elif suffix in (".cpp", ".hpp"):
                     technologies.add("cpp")
-                elif suffix in (".c", ".h"):
+                elif suffix == ".c":
                     technologies.add("c")
                 elif suffix == ".scala":
                     technologies.add("scala")
