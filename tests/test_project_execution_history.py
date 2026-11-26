@@ -149,7 +149,7 @@ class TestProjectExecutionHistory(unittest.TestCase):
         ledger_path = self.state / "ledger.jsonl"
         event = json.loads(ledger_path.read_text(encoding="utf-8"))
         event["execution_id"] = "exec_forged"
-        ledger_path.write_text(json.dumps(event) + "\\n", encoding="utf-8")
+        ledger_path.write_text(json.dumps(event) + "\n", encoding="utf-8")
         result = self.history.verify(self.execution.execution_id)
         self.assertFalse(result["success"])
         self.assertIn("Ledger authentication failed", result["error"])
