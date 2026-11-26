@@ -84,13 +84,15 @@ class TestCapabilityDiscovery(unittest.TestCase):
     def test_each_evidence_excerpt_is_tokenized_once_for_multi_term_query(self):
         class CountingDiscovery(CapabilityDiscoveryExecutor):
             excerpt_tokenizations = 0
+            expected_excerpt = ""
 
             @classmethod
             def _tokens(cls, text):
-                if text.startswith("# Retail capabilities"):
+                if text == cls.expected_excerpt:
                     cls.excerpt_tokenizations += 1
                 return super()._tokens(text)
 
+        CountingDiscovery.expected_excerpt = (self.source / "README.md").read_text(encoding="utf-8")
         counting = CountingDiscovery(
             registry=self.registry,
             profile_executor=self.discovery._profiles,
