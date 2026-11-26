@@ -34,7 +34,7 @@ class CapabilityDiscoveryExecutor:
     }
 
     TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
-    E_INVOICE_PATTERN = re.compile(r"\\be[\\s_-]*invoice\\b", re.IGNORECASE)
+    E_INVOICE_PATTERN = re.compile(r"\be[\s_-]*invoice\b", re.IGNORECASE)
 
     def __init__(self, registry=None, profile_executor=None):
         self._registry = registry or ProjectRegistry()
