@@ -30,8 +30,11 @@ from lisa.projects.compatibility_executor import ProjectCompatibilityExecutor
 from lisa.projects.compatibility_request import ProjectCompatibilityRequest
 from lisa.projects.adaptation_planner import ProjectAdaptationPlanner
 from lisa.projects.adaptation_request import ProjectAdaptationRequest
+from lisa.projects.execution import ExecutionChange, ProjectExecutionRequest
+from lisa.projects.execution_executor import ProjectExecutionExecutor
 
 PROJECT_REGISTRY_PATH = Path.home() / ".lisa" / "projects.json"
+PROJECT_EXECUTION_STATE_PATH = Path.home() / ".lisa" / "executions"
 
 
 def _project_executor():
@@ -55,6 +58,91 @@ def run_project_command(args):
             tech = ", ".join(item.capabilities) or "unknown stack"
             print(f" {active} {item.name}  [{item.project_id}]  {tech}")
             print(f"    {item.root_path}")
+        return
+    if action == "apply" and len(args) >= 6 and "--patch" in args:
+        patch_index = args.index("--patch")
+        if patch_index < 4 or patch_index != len(args) - 2:
+            print("Usage: lisa project apply <source-id> <target-id> <terms> --patch <patch.json>")
+            return
+        listing = executor.execute(ProjectRequest(operation=ProjectOperation.LIST))
+        source_matches = [p for p in listing.manifests if p.project_id == args[1] or p.name.casefold() == args[1].casefold()]
+        target_matches = [p for p in listing.manifests if p.project_id == args[2] or p.name.casefold() == args[2].casefold()]
+        if len(source_matches) != 1 or len(target_matches) != 1:
+            print("Source or target not found/ambiguous. Use 'lisa project list' to see project IDs.")
+            return
+        patch_path = Path(args[-1]).expanduser()
+        try:
+            payload = json.loads(patch_path.read_text(encoding="utf-8"))
+            if not isinstance(payload, dict) or set(payload) != {"changes"} or not isinstance(payload["changes"], list):
+                raise ValueError("Patch file must be a JSON object containing only a 'changes' list.")
+            changes = []
+            for item in payload["changes"]:
+                if not isinstance(item, dict) or set(item) - {"path", "content", "expected_sha256"}:
+                    raise ValueError("Each change may contain only path, content, and expected_sha256.")
+                if not isinstance(item.get("path"), str) or not isinstance(item.get("content"), str):
+                    raise ValueError("Each change requires string path and content fields.")
+                expected = item.get("expected_sha256")
+                if expected is not None and not isinstance(expected, str):
+                    raise ValueError("expected_sha256 must be a string or null.")
+                changes.append(ExecutionChange(
+                    relative_path=item["path"],
+                    content=item["content"],
+                    expected_sha256=expected,
+                ))
+            if not changes:
+                raise ValueError("Patch must contain at least one file change.")
+        except (OSError, json.JSONDecodeError, ValueError) as exc:
+            print(f"Patch file rejected: {exc}")
+            return
+
+        registry = ProjectRegistry(storage_path=PROJECT_REGISTRY_PATH)
+        planned = ProjectAdaptationPlanner(registry=registry).execute(ProjectAdaptationRequest(
+            source_project_id=source_matches[0].project_id,
+            target_project_id=target_matches[0].project_id,
+            capability_query=" ".join(args[3:patch_index]),
+        ))
+        if not planned.success:
+            print(f"Adaptation planning failed: {planned.error}")
+            return
+        plan = planned.plan
+        if plan.status.value != "ready_for_review":
+            print("Execution refused: the adaptation plan is blocked.")
+            for blocker in plan.blockers:
+                print(f"Blocker: {blocker}")
+            return
+
+        target_root = target_matches[0].root_path
+        digest = ProjectExecutionExecutor.approval_digest(plan, changes, target_root)
+        print(f"Governed execution preview: {plan.source_project_name} -> {plan.target_project_name}")
+        print(f"Plan: {plan.plan_id}")
+        print(f"Target root: {target_root}")
+        print("Exact proposed changes:")
+        for change in changes:
+            print(f"--- {change.relative_path} (expected sha256: {change.expected_sha256 or 'NEW FILE'})")
+            print(change.content)
+        print("No commands or tests will be run by this operation.")
+        print("Backups and an audit record will be created outside both project roots.")
+        try:
+            confirmation = input(f"Type exactly 'APPLY {digest}' to authorize these exact changes: ").strip()
+        except (KeyboardInterrupt, EOFError):
+            print("Execution cancelled.")
+            return
+        result = ProjectExecutionExecutor(
+            registry=registry,
+            state_dir=PROJECT_EXECUTION_STATE_PATH,
+        ).execute(ProjectExecutionRequest(
+            plan=plan,
+            changes=tuple(changes),
+            operator_confirmation=confirmation,
+        ))
+        if not result.success:
+            print(f"Execution refused or failed: {result.error}")
+            return
+        print(f"Execution completed: {result.execution_id}")
+        print(f"Changed files: {', '.join(result.changed_files)}")
+        print(f"Backup directory: {result.backup_directory}")
+        print(f"Audit record: {result.audit_path}")
+        print("VALIDATION REQUIRED: run the target project's regression suite before accepting this adaptation.")
         return
     if action == "plan" and len(args) >= 4:
         listing = executor.execute(ProjectRequest(operation=ProjectOperation.LIST))
@@ -214,6 +302,7 @@ def print_help():
     print("  project find <terms>     Search project evidence for reusable capabilities.")
     print("  project compare <source-id> <target-id> [terms]  Triage reuse compatibility.")
     print("  project plan <source-id> <target-id> <terms>  Create a review-only adaptation plan.")
+    print("  project apply <source-id> <target-id> <terms> --patch <patch.json>  Apply an explicitly approved patch.")
     print("  project add <path>     Register a project directory.")
     print("  project use <id|name>  Set the default active project.")
     print("  project remove <id>    Unregister a project.")
@@ -222,6 +311,7 @@ def print_help():
     print("  lisa ./my-project")
     print("  lisa doctor ./my-project")
     print("  lisa compare")
+    print("  lisa project apply source-id target-id inventory --patch adaptation.json")
     print("  python3 cli/benchmark.py ./my-project qwen3:1.7b")
     print("===================================================")
 
