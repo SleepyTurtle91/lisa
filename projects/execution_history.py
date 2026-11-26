@@ -82,6 +82,15 @@ class ProjectExecutionHistory:
             if event.get("execution_id") == execution_id
         ]
         latest_event = matching_events[-1] if matching_events else None
+        journal_path = directory / "execution.journal.json"
+        journal_status = None
+        if journal_path.exists():
+            if journal_path.is_symlink() or not journal_path.is_file():
+                raise ValueError("Execution journal is unsafe.")
+            journal = json.loads(journal_path.read_text(encoding="utf-8"))
+            if not isinstance(journal, dict) or journal.get("execution_id") != execution_id:
+                raise ValueError("Execution journal identity is invalid.")
+            journal_status = journal.get("status")
         ledger_status = "legacy_unanchored"
         if latest_event is not None:
             recorded_hash = (latest_event.get("details") or {}).get("audit_sha256")
@@ -92,6 +101,8 @@ class ProjectExecutionHistory:
                 "legacy_snapshot" if latest_event.get("event_type") == "legacy_import"
                 else "locally_authenticated"
             )
+        elif journal_status in ("applying", "recovery_required", "recovery_in_progress", "finalizing"):
+            ledger_status = "execution_pending_recovery"
         if not isinstance(audit, dict) or audit.get("schema_version") != 1:
             raise ValueError("Unsupported or malformed execution audit schema.")
         if audit.get("execution_id") != execution_id:
@@ -159,7 +170,7 @@ class ProjectExecutionHistory:
         if not isinstance(lifecycle, dict):
             raise ValueError("Lifecycle metadata is malformed.")
         lifecycle_status = lifecycle.get("status", "applied")
-        if lifecycle_status not in ("applied", "rollback_in_progress", "rolled_back"):
+        if lifecycle_status not in ("applying", "applied", "rollback_in_progress", "rolled_back"):
             raise ValueError("Unknown execution lifecycle state.")
 
         target_file_integrity = "not_checked_target_unregistered"
@@ -171,6 +182,8 @@ class ProjectExecutionHistory:
                 actual = self._sha256(destination.read_bytes()) if destination.is_file() else None
                 before_hash = item.get("before_sha256")
                 after_hash = item.get("after_sha256")
+                if lifecycle_status == "applying" and actual not in (before_hash, after_hash):
+                    raise ValueError(f"Target file has an unknown version during interrupted application: {relative.as_posix()}")
                 if lifecycle_status == "applied" and actual != after_hash:
                     raise ValueError(f"Target file no longer matches the applied version: {relative.as_posix()}")
                 if lifecycle_status == "rolled_back" and actual != before_hash:
@@ -245,6 +258,7 @@ class ProjectExecutionHistory:
             "file_count": len(changed),
             "files": changed_paths,
             "lifecycle_status": lifecycle_status,
+            "execution_journal_status": journal_status,
             "validation_status": validation_status,
             "validation_integrity": validation_result,
             "backup_integrity": "verified",
@@ -258,6 +272,7 @@ class ProjectExecutionHistory:
                 "Ledger HMAC and authenticated head checks detect changes while the separate local key and head checkpoint remain intact.",
                 "The local ledger and key are not an external trust anchor; an administrator able to replace both can forge history.",
             ] + (["This execution predates the ledger and has not been imported."] if ledger_status == "legacy_unanchored" else [] )
+              + (["This execution was interrupted; target files may be in a mixed before/after state until explicitly recovered."] if ledger_status == "execution_pending_recovery" else [] )
               + (["This execution was imported as a snapshot; its pre-migration history is not authenticated."] if ledger_status == "legacy_snapshot" else [] ),
         }
 
