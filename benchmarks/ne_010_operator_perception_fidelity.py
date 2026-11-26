@@ -798,7 +798,7 @@ def export_review_packets(artifact_path: Path) -> Dict[str, str]:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run NE-010 operator perception fidelity benchmark")
-    parser.add_argument("project_path", nargs="?", default="/home/user/Projects/lisa")
+    parser.add_argument("project_path", nargs="?", default=str(Path.cwd()))
     parser.add_argument("--profile", choices=["baseline", "harder"], default="baseline")
     parser.add_argument("--export-review-packets", dest="export_review_packets", default=None)
     args = parser.parse_args()
