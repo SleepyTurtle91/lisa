@@ -25,7 +25,9 @@ CPI is a general L.I.S.A. capability. It must not depend on a particular project
 | CPI-03 | Cross-project capability discovery with evidence provenance | Implemented; focused CI passing |
 | CPI-04 | Compatibility and conflict triage with architecture constraint evidence | Implemented; focused CI passing |
 | CPI-05 | Review-only adaptation planning | Implemented; focused CI passing |
-| CPI-06 | Explicit approval, bounded target file execution, backups, rollback, and audit | Implemented; see CPI-06.1 recovery lifecycle |\n| CPI-06.3 | Authenticated, hash-chained execution ledger and legacy snapshot migration | Implemented on PR #6; CI passed |\n| CPI-06.4 | Recoverable ledger appends, explicit interrupted-write recovery, and fault-injection coverage | Implemented on PR branch; CI pending |
+| CPI-06 | Explicit approval, bounded target file execution, backups, rollback, and audit | Implemented; see CPI-06.1 recovery lifecycle |
+| CPI-06.3 | Authenticated, hash-chained execution ledger and legacy snapshot migration | Implemented on PR #6; CI passed |
+| CPI-06.4 | Recoverable ledger appends, explicit interrupted-write recovery, and fault-injection coverage | Implemented on PR branch; CI pending |
 
 ## Operator commands
 
