@@ -1240,3 +1240,9 @@ Key per-case results:
 - Dedicated remediation branch stacked on CPI foundation review PR #11.
 - CI passed: 46 project/CLI/profile/discovery/compatibility/adaptation tests, 8 input-classifier tests, 6 REPL tests, 163 architecture/unit tests, and 1 integration test. Independent review pending.
 - No merge performed.
+
+### Follow-up — Capability evidence precision
+- Keep top-level directory matches separate from sampled source-file evidence paths.
+- Canonicalize e-invoice identifiers when additional snake-case suffixes follow `e_invoice`.
+- Added regression tests for directory-only matches and `create_e_invoice_service.py`.
+- CI pending; no merge performed.
