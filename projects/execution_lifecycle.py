@@ -71,6 +71,7 @@ class ProjectExecutionLifecycle:
             or os.open not in getattr(os, "supports_dir_fd", set())
             or os.stat not in getattr(os, "supports_dir_fd", set())
             or not hasattr(os, "O_DIRECTORY")
+            or not getattr(os, "O_NOFOLLOW", 0)
         ):
             raise ValueError("Safe descriptor-anchored rollback traversal is unavailable.")
 
