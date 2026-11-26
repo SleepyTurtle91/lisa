@@ -255,7 +255,7 @@ class ProjectExecutionHistory:
             "ledger_event_count": len(matching_events),
             "integrity_notes": [
                 "Audit structure, execution identity, manifests, and available backup/evidence hashes are consistent.",
-                "Ledger authentication detects changes while the separate local key remains intact.",
+                "Ledger HMAC and authenticated head checks detect changes while the separate local key and head checkpoint remain intact.",
                 "The local ledger and key are not an external trust anchor; an administrator able to replace both can forge history.",
             ] + (["This execution predates the ledger and has not been imported."] if ledger_status == "legacy_unanchored" else [] )
               + (["This execution was imported as a snapshot; its pre-migration history is not authenticated."] if ledger_status == "legacy_snapshot" else [] ),
