@@ -2,7 +2,7 @@ name: L.I.S.A. CPI Contract CI
 
 on:
   pull_request:
-    branches: [ main, feat/cross-project-intelligence-foundation ]
+    branches: [ main, feat/cross-project-intelligence-foundation, feat/cpi-06-governed-execution ]
     paths:
       - "projects/**"
       - "cli/**"
@@ -10,7 +10,7 @@ on:
       - "tests/test_ne_014_1_input_classifier.py"
       - ".github/workflows/cpi.yml"
   push:
-    branches: [ feat/cross-project-intelligence-foundation ]
+    branches: [ feat/cross-project-intelligence-foundation, feat/cpi-06-governed-execution, feat/cpi-06-1-recovery-validation ]
 
 jobs:
   cpi-contracts:
