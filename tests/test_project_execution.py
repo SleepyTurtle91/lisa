@@ -172,6 +172,65 @@ class TestGovernedProjectExecution(unittest.TestCase):
         self.assertIn("Existing execution state directory is not private", result.error)
         self.assertEqual(shared_state.stat().st_mode & 0o777, 0o755)
 
+
+    def test_existing_execution_state_directory_must_be_owned_by_current_user(self):
+        if os.name != "posix":
+            self.skipTest("POSIX ownership is not portable to Windows")
+        from types import SimpleNamespace
+        from unittest.mock import patch
+
+        shared_state = self.source.parent / "foreign-owned-state"
+        shared_state.mkdir()
+        shared_state.chmod(0o700)
+        original_stat = Path.stat
+
+        def foreign_owner(path, *args, **kwargs):
+            info = original_stat(path, *args, **kwargs)
+            if path == shared_state:
+                return SimpleNamespace(st_mode=info.st_mode, st_uid=os.geteuid() + 1)
+            return info
+
+        with patch.object(Path, "stat", new=foreign_owner):
+            with self.assertRaisesRegex(ValueError, "not owned by the current user"):
+                ProjectExecutionExecutor._ensure_private_directory(shared_state)
+
+    def test_linux_mount_identity_unavailable_fails_closed(self):
+        import sys
+        from unittest.mock import patch
+
+        if not sys.platform.startswith("linux"):
+            self.skipTest("Linux mount identity policy is Linux-specific")
+
+        with patch.object(ProjectExecutionExecutor, "_mount_identity", return_value=None):
+            result = self.executor.execute(self.request([
+                ExecutionChange("app/UnknownMount.kt", "class UnknownMount {}")
+            ]))
+
+        self.assertFalse(result.success)
+        self.assertIn("Unable to verify Linux mount identities", result.error)
+        self.assertFalse((self.target / "app" / "UnknownMount.kt").exists())
+
+    def test_execution_state_bind_mount_alias_of_project_root_is_rejected(self):
+        from pathlib import Path
+        from unittest.mock import patch
+
+        aliased_state = self.source / "private-state-alias"
+        executor = ProjectExecutionExecutor(self.registry, state_dir=aliased_state)
+
+        def overlaps(first, second):
+            if Path(first) == aliased_state.resolve():
+                return True
+            return False
+
+        with patch.object(ProjectExecutionExecutor, "_filesystem_roots_overlap", side_effect=overlaps):
+            result = executor.execute(self.request([
+                ExecutionChange("app/StateAlias.kt", "class StateAlias {}")
+            ]))
+
+        self.assertFalse(result.success)
+        self.assertIn("outside the source project", result.error)
+        self.assertFalse((self.target / "app" / "StateAlias.kt").exists())
+
     def test_backup_state_and_files_are_private_on_posix(self):
         if os.name != "posix":
             self.skipTest("POSIX permission bits are not portable to Windows")
