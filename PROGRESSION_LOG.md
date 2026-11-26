@@ -1223,3 +1223,19 @@ Key per-case results:
 - Run CPI contract and architecture/integration CI.
 - Inspect test output and correct any failures before requesting independent review.
 - Keep PR #3's existing base/head dependency chain intact until CPI foundation remediation is integrated.
+
+
+---
+
+## 2026-11-26 — CPI-06 Follow-up Execution Hardening
+
+### Changes
+- Existing execution state directories are no longer chmodded. Unsafe shared directories are rejected without permission changes.
+- Linux bind-mount aliases are checked using mountinfo filesystem identities in addition to resolved path comparisons.
+- Successful execution summaries escape untrusted changed-file paths.
+- Added regression tests for alias detection, shared-directory permissions, and terminal-safe summaries.
+
+### Status
+- Remediation is on a dedicated branch stacked on CPI-06.
+- CI and independent review pending.
+- No merge has been performed.
