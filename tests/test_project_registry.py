@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 import sys
@@ -50,6 +51,50 @@ class TestProjectRegistry(unittest.TestCase):
         self.assertIn("kotlin", result.manifest.capabilities)
         self.assertNotIn("java", result.manifest.capabilities)
         self.assertTrue(result.manifest.project_id.startswith("prj_"))
+
+    def test_cmake_and_makefile_are_valid_project_markers(self):
+        from lisa.projects.resolver import ProjectResolver
+
+        for marker in ("CMakeLists.txt", "Makefile"):
+            with self.subTest(marker=marker):
+                project = self.root / marker.replace(".", "_")
+                project.mkdir()
+                (project / marker).write_text("# build descriptor\n", encoding="utf-8")
+                manifest = ProjectResolver().resolve(str(project))
+                self.assertIn(marker, manifest.markers)
+
+    def test_git_marker_does_not_become_a_technology(self):
+        from lisa.projects.resolver import ProjectResolver
+
+        project = self.root / "git_only"
+        project.mkdir()
+        (project / ".git").write_text("gitdir: metadata\n", encoding="utf-8")
+        manifest = ProjectResolver().resolve(str(project))
+        self.assertIn(".git", manifest.markers)
+        self.assertNotIn("git", manifest.capabilities)
+
+    def test_loading_legacy_registry_filters_vcs_capabilities(self):
+        from lisa.projects.resolver import ProjectResolver
+
+        project = self.make_project("legacy_git", "README.md")
+        (project / ".git").write_text("gitdir: metadata\n", encoding="utf-8")
+        manifest = ProjectResolver().resolve(str(project))
+        storage = self.root / "legacy-registry.json"
+        storage.write_text(json.dumps({
+            "schema_version": 1,
+            "active_project_id": None,
+            "projects": [{
+                "project_id": manifest.project_id,
+                "name": manifest.name,
+                "root_path": manifest.root_path,
+                "markers": list(manifest.markers),
+                "capabilities": ["git", "python"],
+            }],
+        }), encoding="utf-8")
+
+        loaded = ProjectRegistry(storage_path=storage)
+        capabilities = loaded.get(manifest.project_id).capabilities
+        self.assertEqual(capabilities, ("python",))
 
     def test_registration_is_idempotent_for_same_project(self):
         project = self.make_project("extropos")

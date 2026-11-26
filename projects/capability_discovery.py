@@ -34,6 +34,7 @@ class CapabilityDiscoveryExecutor:
     }
 
     TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
+    E_INVOICE_PATTERN = re.compile(r"(?<![a-z0-9])e[\s_-]*invoice(?![a-z0-9])", re.IGNORECASE)
 
     def __init__(self, registry=None, profile_executor=None):
         self._registry = registry or ProjectRegistry()
@@ -41,8 +42,9 @@ class CapabilityDiscoveryExecutor:
 
     @classmethod
     def _tokens(cls, text: str) -> Set[str]:
+        normalized_text = cls.E_INVOICE_PATTERN.sub("einvoice", text.casefold())
         return {
-            token for token in cls.TOKEN_PATTERN.findall(text.casefold())
+            token for token in cls.TOKEN_PATTERN.findall(normalized_text)
             if len(token) > 1 and token not in cls.STOP_WORDS
         }
 
@@ -54,9 +56,16 @@ class CapabilityDiscoveryExecutor:
         return {token}
 
     @classmethod
+    def _contains_tokens(cls, haystack: Set[str], terms: Iterable[str]) -> bool:
+        for term in terms:
+            normalized = cls._tokens(term)
+            if normalized and normalized.issubset(haystack):
+                return True
+        return False
+
+    @classmethod
     def _contains_any(cls, text: str, terms: Iterable[str]) -> bool:
-        haystack = cls._tokens(text)
-        return any(term in haystack for term in terms)
+        return cls._contains_tokens(cls._tokens(text), terms)
 
     def execute(self, request: CapabilityDiscoveryRequest) -> CapabilityDiscoveryResult:
         if not isinstance(request, CapabilityDiscoveryRequest):
@@ -92,24 +101,35 @@ class CapabilityDiscoveryExecutor:
             if not profile_result.success:
                 continue
             profile = profile_result.profile
-            evidence_text = "\n".join(item.excerpt for item in profile.evidence)
-            path_text = "\n".join(profile.top_level_directories + profile.source_files_sample)
-            corpus = evidence_text + "\n" + path_text
+            evidence_token_sets = tuple(
+                (item, self._tokens(item.excerpt)) for item in profile.evidence
+            )
+            path_units = profile.top_level_directories + profile.source_files_sample
+            path_token_sets = tuple(
+                (path, self._tokens(path)) for path in path_units
+            )
 
+            # Each alias must be supported by one evidence excerpt or one path.
+            # Pooling tokens across unrelated excerpts can manufacture a match.
             matched = tuple(sorted(
                 term for term in query_terms
-                if self._contains_any(corpus, self._expansions(term))
+                if any(
+                    self._contains_tokens(tokens, self._expansions(term))
+                    for _, tokens in evidence_token_sets
+                ) or any(
+                    self._contains_tokens(tokens, self._expansions(term))
+                    for _, tokens in path_token_sets
+                )
             ))
             if not matched:
                 continue
 
+            expanded_terms = tuple(self._expansions(term) for term in matched)
             evidence_refs = []
-            for item in profile.evidence:
-                item_terms = self._tokens(item.excerpt)
+            for item, item_tokens in evidence_token_sets:
                 if any(
-                    expanded_term in item_terms
-                    for term in matched
-                    for expanded_term in self._expansions(term)
+                    self._contains_tokens(item_tokens, terms)
+                    for terms in expanded_terms
                 ):
                     evidence_refs.append(CapabilityEvidence(
                         relative_path=item.relative_path,
@@ -120,8 +140,8 @@ class CapabilityDiscoveryExecutor:
             source_paths = tuple(
                 path for path in profile.source_files_sample
                 if any(
-                    self._contains_any(path, self._expansions(term))
-                    for term in matched
+                    self._contains_tokens(self._tokens(path), terms)
+                    for terms in expanded_terms
                 )
             )
             matches.append(CapabilityMatch(

@@ -40,6 +40,15 @@ class TestInputBoundaryClassifier(unittest.TestCase):
         self.assertEqual(res.command, "project")
         self.assertEqual(res.target, "add /tmp/example")
 
+    def test_project_prose_is_not_misclassified_as_a_command(self):
+        res = InputBoundaryClassifier.classify("project is failing to start, diagnose it")
+        self.assertEqual(res.input_class, InputClass.NATURAL_LANGUAGE)
+        self.assertIsNone(res.command)
+
+    def test_unknown_project_subcommand_is_natural_language(self):
+        res = InputBoundaryClassifier.classify("project architecture needs review")
+        self.assertEqual(res.input_class, InputClass.NATURAL_LANGUAGE)
+
     def test_projects_literal_command_is_direct(self):
         res = InputBoundaryClassifier.classify("projects")
         self.assertEqual(res.input_class, InputClass.DIRECT_COMMAND)

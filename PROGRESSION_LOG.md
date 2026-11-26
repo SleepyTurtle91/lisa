@@ -1166,3 +1166,83 @@ Key per-case results:
 - Plan previews include source evidence and target constraints.
 - Every plan requires authorization and is marked not authorized for execution.
 - CPI-06 remains a separate future milestone. No code is transferred or applied by this branch.
+
+
+---
+
+## 2026-11-26 — CPI Foundation Review Remediation
+
+### Status
+- Review-driven implementation changes committed on `fix/cpi-foundation-review-findings`.
+- Focused CPI CI passed: 38/38 project tests, 8/8 input-classifier tests, and 6/6 REPL tests.
+- Architecture & Unit CI passed: 155 tests; the integration test command also exited successfully.
+- Original PR #2 source branch remains unchanged by the remediation code. The foundation branch received only CI workflow trigger/coverage updates.
+
+### Changes
+- Recognize CMakeLists.txt and Makefile as valid project markers.
+- Keep Git/VCS markers out of technology compatibility profiles.
+- Map all inventoried source suffixes to explicit technology markers.
+- Redact quoted JSON secret properties in evidence excerpts.
+- Normalize underscore-separated capability aliases consistently during candidate matching and evidence attribution.
+- Preserve natural-language routing for prose beginning with `project`.
+- Ensure an explicit REPL switch reaches project selection instead of restoring the active project.
+- Add regression coverage for the above cases.
+
+### Governance
+- Changes are isolated in PR #11, targeting the CPI foundation branch.
+- No PR has been merged.
+- No target project has been modified or executed by this remediation.
+- The CPI workflow trigger was extended on the foundation branch so stacked remediation PRs targeting that branch can receive focused CI.
+
+### Follow-up
+- Reconcile the corresponding automated review threads on PR #2 with verified fixes.
+- Obtain a fresh automated review of PR #11 and address any new findings.
+- Only after PR #11 is validated should the original CPI foundation PR be considered merge-ready.
+
+
+---
+
+## 2026-11-26 — CPI Foundation Follow-up Review
+
+### Findings
+- Follow-up Codex review identified four additional issues after the first remediation validation:
+  - `e_invoice` tokenization could collapse to generic `invoice`.
+  - `.h` headers were classified as C even though they may contain C++.
+  - Evidence excerpts were re-tokenized once per matched query term.
+  - The research checkpoint retained validation questions already answered by recorded CI.
+
+### Changes
+- Canonicalize `e-invoice`, `e_invoice`, and `einvoice` as one distinct lexical token; generic invoice text no longer satisfies an e-invoice query.
+- Treat `.h` as ambiguous and leave it out of C/C++ technology conclusions.
+- Tokenize each evidence excerpt once during attribution and reuse the token set for all matched terms.
+- Update the research checkpoint to distinguish completed CI evidence from genuinely pending review/validation.
+
+### Status
+- Follow-up regression tests added.
+- CPI Contract CI passed: 41 project/CLI tests, 8 input-classifier tests, and 6 REPL tests.
+- Architecture & Integration CI passed: 158 architecture/unit tests and 1 integration test.
+- Independent review of the updated head is pending.
+- PR #11 remains open and unmerged.
+
+
+---
+
+## 2026-11-26 — CPI Foundation Evidence Precision Follow-up
+
+### Changes
+- Prevent compound capability aliases from being assembled across unrelated evidence excerpts or paths.
+- Recognize prefixed snake_case e-invoice identifiers without broadening matches to generic invoice text.
+- Filter persisted legacy VCS capability markers from registry-loaded manifests and profiles.
+- Make secret redaction aware of escaped quotes inside JSON values.
+- Added focused regressions for all four review findings.
+
+### Status
+- Dedicated remediation branch stacked on CPI foundation review PR #11.
+- CI passed: 46 project/CLI/profile/discovery/compatibility/adaptation tests, 8 input-classifier tests, 6 REPL tests, 163 architecture/unit tests, and 1 integration test. Independent review pending.
+- No merge performed.
+
+### Follow-up — Capability evidence precision
+- Keep top-level directory matches separate from sampled source-file evidence paths.
+- Canonicalize e-invoice identifiers when additional snake-case suffixes follow `e_invoice`.
+- Added regression tests for directory-only matches and `create_e_invoice_service.py`.
+- CI pending; no merge performed.
