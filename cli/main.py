@@ -38,7 +38,7 @@ PROJECT_REGISTRY_PATH = Path.home() / ".lisa" / "projects.json"
 PROJECT_EXECUTION_STATE_PATH = Path.home() / ".lisa" / "executions"
 
 
-def _escape_terminal_controls(value, preserve_newlines=True):
+def _escape_terminal_controls(value, preserve_newlines=False):
     """Render untrusted terminal controls visibly, optionally preserving content layout."""
     visible = []
     for character in str(value):
