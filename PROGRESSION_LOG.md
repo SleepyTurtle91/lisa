@@ -1041,3 +1041,24 @@ Key per-case results:
 - Add project profile and architecture indexing with explicit source provenance.
 - Add cross-project capability discovery and compatibility analysis only after project isolation is validated.
 
+
+
+---
+
+## 2026-11-26 — CPI-01 Focused CI Verification
+
+### Status
+- Focused CPI CI passed; full repository CI remains failing.
+
+### Evidence
+- [CPI Contract CI run 45744145922](https://github.com/SleepyTurtle91/lisa/actions/runs/45744145922): registry/CLI tests 11/11 passed; command classification tests 6/6 passed.
+- The full Architecture & Integration CI run at the same head executed 120 tests and ended with 10 failures and 7 errors.
+- Full-suite failures include existing fixed-path assumptions and provider health failures in the CI environment. They are not counted as CPI test failures.
+
+### Interpretation
+- The dedicated CPI contract boundary is currently green.
+- The full repository is not green. The focused workflow is supplemental evidence, not a replacement for the existing suite.
+
+### Follow-up
+- Continue CPI-02 with evidence-backed project profiling.
+- Keep legacy CI failures visible and track them separately from CPI work.

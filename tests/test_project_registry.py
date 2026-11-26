@@ -2,6 +2,7 @@ import tempfile
 import unittest
 import sys
 from pathlib import Path
+from dataclasses import is_dataclass
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
@@ -26,6 +27,18 @@ class TestProjectRegistry(unittest.TestCase):
         return self.executor.execute(
             ProjectRequest(operation=ProjectOperation.REGISTER, path=str(path))
         )
+
+    def test_project_contracts_are_frozen_dataclasses(self):
+        from lisa.projects import ProjectContext, ProjectManifest, ProjectRequest, ProjectResult
+        for contract in (ProjectContext, ProjectManifest, ProjectRequest, ProjectResult):
+            with self.subTest(contract=contract.__name__):
+                self.assertTrue(is_dataclass(contract))
+                self.assertTrue(contract.__dataclass_params__.frozen)
+                custom_methods = [
+                    name for name in dir(contract)
+                    if not name.startswith("__") and callable(getattr(contract, name))
+                ]
+                self.assertEqual(custom_methods, [])
 
     def test_registers_project_with_canonical_identity(self):
         project = self.make_project("flashpos", "settings.gradle.kts")

@@ -1417,3 +1417,24 @@ CPI-01 now has an operator-facing registry workflow and persistent local project
 2. Does CLI command classification preserve natural-language routing for compound prompts?
 3. Does the CI baseline fail independently because of the existing hard-coded test paths and provider health assumptions?
 
+
+
+---
+
+## 🧪 CPI-01 — Focused CI Verification
+
+**Date**: 2026-11-26
+
+**Observed execution evidence**:
+- Dedicated GitHub Actions workflow: `L.I.S.A. CPI Contract CI`.
+- Run: [45744145922](https://github.com/SleepyTurtle91/lisa/actions/runs/45744145922).
+- Project registry and CLI tests: **11/11 passed** at that run.
+- Deterministic project command classification tests: **6/6 passed** at that run.
+
+**Separate full-suite result**:
+- The repository-wide Architecture & Integration CI remained failing at the same branch head: 120 tests, 10 failures, 7 errors.
+- The observed failures are outside the dedicated CPI test selection. They include legacy fixed-path assumptions, provider handshake failures when Ollama is unavailable in the runner, and other pre-existing runtime/integration test expectations.
+- The CPI-focused workflow passed independently; this does not imply the entire repository test suite is green.
+
+**Interpretation**:
+CPI-01 has a verified focused test boundary for project registration, persistence, lifecycle, CLI operations, and command classification. Full-repository stabilization remains separate work and must not be hidden by the focused workflow.

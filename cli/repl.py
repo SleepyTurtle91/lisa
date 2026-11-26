@@ -19,6 +19,8 @@ from lisa.telemetry.activity_renderer import FlightConsole
 from lisa.cli.input_classifier import InputBoundaryClassifier, InputClass
 from lisa.projects import ProjectExecutor, ProjectOperation, ProjectRequest
 from lisa.projects.registry import ProjectRegistry
+from lisa.projects.profile_executor import ProjectProfileExecutor
+from lisa.projects.profile_request import ProjectProfileRequest
 
 CONFIG_DIR = Path.home() / ".lisa"
 RECENT_FILE = CONFIG_DIR / "recent.json"
@@ -316,6 +318,7 @@ async def start_repl(target_dir: Optional[str] = None):
             print("  project add <path>   Register another project")
             print("  project use <id|name> Switch to a registered project")
             print("  project remove <id>  Unregister a project")
+            print("  project inspect <id|name>  Build a read-only project profile")
             print("  exit / quit    Exit REPL session\n")
         classified = InputBoundaryClassifier.classify(user_input, project_path=target_dir)
 
@@ -353,6 +356,26 @@ async def start_repl(target_dir: Optional[str] = None):
                     for item in result.manifests:
                         active = "*" if result.context and result.context.project_id == item.project_id else " "
                         print(f" {active} {item.name} [{item.project_id}] - {item.root_path}")
+                elif action in ("inspect", "profile") and value:
+                    selected = _project_identifier(project_executor, value)
+                    if selected is None:
+                        print("Project not found or ambiguous. Use 'projects' to list IDs.")
+                    else:
+                        profiled = ProjectProfileExecutor(
+                            registry=ProjectRegistry(storage_path=PROJECT_REGISTRY_FILE)
+                        ).execute(ProjectProfileRequest(project_id=selected.project_id))
+                        if not profiled.success:
+                            print(f"Project inspection failed: {profiled.error}")
+                        else:
+                            profile = profiled.profile
+                            print(f"\nProject profile: {profile.name} [{profile.project_id}]")
+                            print(f"Technologies: {', '.join(profile.technologies) or 'unknown'}")
+                            print(f"Top-level directories: {', '.join(profile.top_level_directories) or '(none)'}")
+                            print(f"Source files inventoried: {profile.source_file_count}")
+                            print("Evidence:")
+                            for item in profile.evidence:
+                                print(f"  - {item.relative_path} [{item.evidence_kind}; sha256:{item.sha256[:12]}]")
+                            print()
                 elif action in ("use", "activate") and value:
                     selected = _project_identifier(project_executor, value)
                     if selected is None:
@@ -372,7 +395,7 @@ async def start_repl(target_dir: Optional[str] = None):
                         ))
                         print("Project unregistered." if removed.success else f"Unregister failed: {removed.error}")
                 else:
-                    print("Usage: project add <path> | project list | project use <id|name> | project remove <id>")
+                    print("Usage: project add <path> | project list | project inspect <id|name> | project use <id|name> | project remove <id>")
             elif cmd == "switch":
                 await runtime.shutdown()
                 print("\nSwitching project...")

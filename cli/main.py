@@ -22,6 +22,8 @@ from lisa.core.context import SessionContext, Capability
 from lisa.cli.repl import start_repl
 from lisa.projects import ProjectExecutor, ProjectOperation, ProjectRequest
 from lisa.projects.registry import ProjectRegistry
+from lisa.projects.profile_executor import ProjectProfileExecutor
+from lisa.projects.profile_request import ProjectProfileRequest
 
 PROJECT_REGISTRY_PATH = Path.home() / ".lisa" / "projects.json"
 
@@ -47,6 +49,28 @@ def run_project_command(args):
             tech = ", ".join(item.capabilities) or "unknown stack"
             print(f" {active} {item.name}  [{item.project_id}]  {tech}")
             print(f"    {item.root_path}")
+        return
+    if action in ("inspect", "profile") and len(args) >= 2:
+        identifier = " ".join(args[1:])
+        listing = executor.execute(ProjectRequest(operation=ProjectOperation.LIST))
+        matches = [p for p in listing.manifests if p.project_id == identifier or p.name.casefold() == identifier.casefold()]
+        if len(matches) != 1:
+            print("Project not found or name is ambiguous. Use 'lisa project list' to see project IDs.")
+            return
+        profile_result = ProjectProfileExecutor(
+            registry=ProjectRegistry(storage_path=PROJECT_REGISTRY_PATH)
+        ).execute(ProjectProfileRequest(project_id=matches[0].project_id))
+        if not profile_result.success:
+            print(f"Project inspection failed: {profile_result.error}")
+            return
+        profile = profile_result.profile
+        print(f"Project: {profile.name} [{profile.project_id}]")
+        print(f"Technologies: {', '.join(profile.technologies) or 'unknown'}")
+        print(f"Top-level directories: {', '.join(profile.top_level_directories) or '(none)'}")
+        print(f"Source files inventoried: {profile.source_file_count}")
+        print("Evidence files:")
+        for item in profile.evidence:
+            print(f"  - {item.relative_path} [{item.evidence_kind}; sha256:{item.sha256[:12]}]")
         return
     if action == "add" and len(args) >= 2:
         result = executor.execute(ProjectRequest(
@@ -92,6 +116,7 @@ def print_help():
     print("  doctor [path]          Run platform health diagnostics, architecture & performance gate checks.")
     print("  compare [path]         Analyze historical benchmark flight logs and throughput performance trends.")
     print("  project list           List registered projects.")
+    print("  project inspect <id|name> Build a read-only project profile.")
     print("  project add <path>     Register a project directory.")
     print("  project use <id|name>  Set the default active project.")
     print("  project remove <id>    Unregister a project.")

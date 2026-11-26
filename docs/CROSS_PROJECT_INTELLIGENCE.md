@@ -4,7 +4,7 @@
 
 Cross-Project Intelligence allows L.I.S.A. to understand and compare multiple independent software projects, discover reusable capabilities, and plan safe adaptations without conflating project-specific context.
 
-CPI is a general L.I.S.A. capability. It must not depend on FlashPOS, ExtroPOS, a particular language, operating system, model provider, or developer workspace layout.
+CPI is a general L.I.S.A. capability. It must not depend on a particular project, programming language, operating system, model provider, or developer workspace layout.
 
 ## Non-negotiable boundaries
 
@@ -20,8 +20,8 @@ CPI is a general L.I.S.A. capability. It must not depend on FlashPOS, ExtroPOS, 
 
 | Stage | Capability | Status |
 |---|---|---|
-| CPI-01 | Project identity, persistent registry, CLI management, isolated project contexts | Implemented in draft PR; validation pending |
-| CPI-02 | Project profile and architecture knowledge index | Planned |
+| CPI-01 | Project identity, persistent registry, CLI management, isolated project contexts | Implemented; focused CI passing |
+| CPI-02 | Read-only project profiles and evidence-backed architecture inventory | Implemented in draft PR; validation pending |
 | CPI-03 | Cross-project capability discovery | Planned |
 | CPI-04 | Compatibility and conflict analysis | Planned |
 | CPI-05 | Adaptation planning and operator approval | Planned |
@@ -32,6 +32,7 @@ CPI is a general L.I.S.A. capability. It must not depend on FlashPOS, ExtroPOS, 
 ```text
 lisa project add <path>
 lisa project list
+lisa project inspect <id|name>
 lisa project use <id|name>
 lisa project remove <id>
 lisa
@@ -40,23 +41,30 @@ lisa
 projects
 project add <path>
 project list
+project inspect <id|name>
 project use <id|name>
 project remove <id>
 ```
 
 The registry is stored at `~/.lisa/projects.json` and uses a versioned schema with atomic file replacement. Project registration persists across CLI launches. A malformed or unsupported registry fails closed rather than silently discarding registrations. The registry is separate from the recent-project list.
 
-## CPI-01 implementation boundary
+## CPI-02 project profiling
 
-Registration resolves a canonical directory and requires at least one recognized project marker. Project IDs are deterministic for a canonical local path. A registry can retain multiple project manifests, while only one project is active at a time. Activation verifies that the project directory still exists and returns an immutable ProjectContext.
+Project inspection is read-only and deterministic. It inventories top-level directories and source-file paths, recognizes technology markers, and captures bounded excerpts from allowlisted project documentation and build descriptors. Each evidence item carries a relative path, evidence kind, SHA-256 digest of the inspected bytes, inspected byte count, and truncation flag.
 
-Switching projects restarts the REPL against the selected root, so a running session is not silently retargeted mid-flight. Adding a project does not read or execute its code. Registration and activation do not modify project files.
+Source code is inventoried by filename and extension only; source contents are not ingested by CPI-02. Generated output, dependency directories, VCS internals, virtual environments, and common build caches are excluded. Evidence is generated on demand and is not yet persisted as a long-lived knowledge index.
 
-This stage deliberately does not:
-- index source code, architecture, or project instructions;
-- share memory or instructions between projects;
+## CPI-02 operator behavior
+
+`project inspect <id|name>` prints the project profile, detected technologies, top-level directories, source-file count, and evidence references. It does not print document excerpts or change project files.
+
+## Remaining boundary
+
+CPI-02 does not yet:
+- share project instructions, memories, or source code between projects;
+- discover reusable features or business capabilities;
+- determine architectural compatibility;
 - copy, edit, or execute code across project roots;
-- perform feature discovery or compatibility analysis;
 - change frozen kernel/session contracts or NE laws.
 
 Those capabilities require their own evidence, contracts, tests, and authorization design.
