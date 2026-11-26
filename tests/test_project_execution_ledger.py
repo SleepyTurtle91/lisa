@@ -114,7 +114,7 @@ class TestProjectExecutionLedger(unittest.TestCase):
 
     def test_recovery_rejects_incorrect_confirmation_without_mutation(self):
         self.ledger.append("execution_applied", "exec_one", {})
-        with unittest.mock.patch.object(
+        with mock.patch.object(
             self.ledger, "_append_bytes", side_effect=SystemExit("simulated interruption")
         ):
             with self.assertRaises(SystemExit):
