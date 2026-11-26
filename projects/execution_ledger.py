@@ -101,7 +101,7 @@ class ProjectExecutionLedger:
                 suffix=".tmp", delete=False,
             ) as handle:
                 temporary = Path(handle.name)
-                handle.write(self._canonical(head) + b"\\n")
+                handle.write(self._canonical(head) + b"\n")
                 handle.flush()
                 os.fsync(handle.fileno())
             os.chmod(temporary, 0o600)
