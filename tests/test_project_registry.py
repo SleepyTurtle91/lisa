@@ -51,6 +51,27 @@ class TestProjectRegistry(unittest.TestCase):
         self.assertNotIn("java", result.manifest.capabilities)
         self.assertTrue(result.manifest.project_id.startswith("prj_"))
 
+    def test_cmake_and_makefile_are_valid_project_markers(self):
+        from lisa.projects.resolver import ProjectResolver
+
+        for marker in ("CMakeLists.txt", "Makefile"):
+            with self.subTest(marker=marker):
+                project = self.root / marker.replace(".", "_")
+                project.mkdir()
+                (project / marker).write_text("# build descriptor\\n", encoding="utf-8")
+                manifest = ProjectResolver().resolve(str(project))
+                self.assertIn(marker, manifest.markers)
+
+    def test_git_marker_does_not_become_a_technology(self):
+        from lisa.projects.resolver import ProjectResolver
+
+        project = self.root / "git_only"
+        project.mkdir()
+        (project / ".git").write_text("gitdir: metadata\\n", encoding="utf-8")
+        manifest = ProjectResolver().resolve(str(project))
+        self.assertIn(".git", manifest.markers)
+        self.assertNotIn("git", manifest.capabilities)
+
     def test_registration_is_idempotent_for_same_project(self):
         project = self.make_project("extropos")
         first = self.register(project)
