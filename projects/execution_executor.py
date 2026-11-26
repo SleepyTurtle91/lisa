@@ -19,6 +19,10 @@ class ProjectExecutionExecutor:
     normal, operator-reviewed workflow.
     """
 
+    MAX_FILES = 100
+    MAX_FILE_BYTES = 1024 * 1024
+    MAX_TOTAL_BYTES = 5 * 1024 * 1024
+
     PROTECTED_PARTS = {
         ".git", ".lisa", ".env", ".ssh", "secrets", "credentials",
         "node_modules", "__pycache__",
@@ -26,7 +30,7 @@ class ProjectExecutionExecutor:
 
     def __init__(self, registry, state_dir=None):
         self._registry = registry
-        self._state_dir = Path(state_dir or (Path.home() / ".lisa" / "executions")).expanduser()
+        self._state_dir = Path(state_dir or (Path.home() / ".lisa" / "executions")).expanduser().resolve(strict=False)
 
     @staticmethod
     def _sha256(content):
@@ -103,8 +107,7 @@ class ProjectExecutionExecutor:
                 handle.write(content)
                 handle.flush()
                 os.fsync(handle.fileno())
-            if mode is not None:
-                os.chmod(temp_path, stat.S_IMODE(mode))
+            os.chmod(temp_path, stat.S_IMODE(mode) if mode is not None else 0o644)
             os.replace(str(temp_path), str(path))
         finally:
             if temp_path is not None and temp_path.exists():
@@ -141,12 +144,24 @@ class ProjectExecutionExecutor:
             if request.operator_confirmation != f"APPLY {digest}":
                 raise ValueError("Explicit approval mismatch. Review the exact patch and confirm with: APPLY <approval-digest>.")
             execution_id = "exec_" + digest[:20]
+            execution_dir = self._state_dir / execution_id
+            if execution_dir.exists():
+                raise ValueError("This approval digest has already been executed; refusing replay.")
+            if len(request.changes) > self.MAX_FILES:
+                raise ValueError(f"Execution scope exceeds the {self.MAX_FILES}-file limit.")
 
             scoped = []
             seen = set()
+            total_bytes = 0
             for change in request.changes:
                 if not isinstance(change.content, str):
                     raise ValueError("File contents must be UTF-8 text.")
+                content_bytes = change.content.encode("utf-8")
+                if len(content_bytes) > self.MAX_FILE_BYTES:
+                    raise ValueError(f"File exceeds the {self.MAX_FILE_BYTES}-byte limit: {change.relative_path}")
+                total_bytes += len(content_bytes)
+                if total_bytes > self.MAX_TOTAL_BYTES:
+                    raise ValueError(f"Execution payload exceeds the {self.MAX_TOTAL_BYTES}-byte limit.")
                 relative = self._validated_relative_path(change.relative_path)
                 key = relative.as_posix()
                 if key in seen:
@@ -183,10 +198,7 @@ class ProjectExecutionExecutor:
             ):
                 raise ValueError("Execution backups/audit must be stored outside the source project.")
 
-            execution_dir = self._state_dir / execution_id
             backup_dir = execution_dir / "backups"
-            if execution_dir.exists():
-                raise ValueError("This approval digest has already been executed; refusing replay.")
             backup_dir.mkdir(parents=True, exist_ok=False)
 
             backup_manifest = []
@@ -210,6 +222,13 @@ class ProjectExecutionExecutor:
             applied = []
             try:
                 for change, relative, destination, current, mode in scoped:
+                    self._assert_no_symlink(target_root, relative)
+                    if destination.exists():
+                        latest = destination.read_bytes()
+                        if current is None or self._sha256(latest) != self._sha256(current):
+                            raise ValueError(f"Target changed during execution; refusing write: {relative.as_posix()}")
+                    elif current is not None:
+                        raise ValueError(f"Target file disappeared during execution; refusing write: {relative.as_posix()}")
                     content = change.content.encode("utf-8")
                     self._atomic_write(destination, content, mode=mode)
                     applied.append((destination, current, mode))
