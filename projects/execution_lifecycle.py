@@ -48,9 +48,30 @@ class ProjectExecutionLifecycle:
         audit_path = execution_dir / "audit.json"
         if audit_path.is_symlink() or not audit_path.is_file():
             raise ValueError("Execution audit record is missing or unsafe.")
-        audit = json.loads(audit_path.read_text(encoding="utf-8"))
-        if audit.get("schema_version") != 1 or audit.get("execution_id") != execution_id:
+        audit_bytes = audit_path.read_bytes()
+        audit = json.loads(audit_bytes.decode("utf-8"))
+        if not isinstance(audit, dict) or audit.get("schema_version") != 1 or audit.get("execution_id") != execution_id:
             raise ValueError("Execution audit identity or schema is invalid.")
+
+        ledger = ProjectExecutionLedger(self._state_dir).verify()
+        if not ledger["success"]:
+            raise ValueError("Execution ledger verification failed: " + ledger["error"])
+        matching_events = [
+            event for event in ledger.get("events", [])
+            if event.get("execution_id") == execution_id
+        ]
+        if not matching_events:
+            raise ValueError(
+                "Execution has no authenticated ledger snapshot; run "
+                "'lisa project ledger migrate' before rollback or validation."
+            )
+        latest_event = matching_events[-1]
+        details = latest_event.get("details")
+        if not isinstance(details, dict) or details.get("audit_sha256") != self._sha256(audit_bytes):
+            raise ValueError(
+                "Execution audit changed since its latest authenticated ledger snapshot; "
+                "lifecycle mutation is refused."
+            )
         return execution_dir, audit_path, audit
 
     def _registered_target_root(self, audit):
