@@ -326,6 +326,8 @@ class TestGovernedProjectExecution(unittest.TestCase):
 
 
     def test_mode_restore_refuses_hard_link_swapped_after_hash_verification(self):
+        import os
+
         if os.name != "posix" or not hasattr(os, "fchmod"):
             self.skipTest("Descriptor-based POSIX mode restoration is required")
         from unittest.mock import patch
