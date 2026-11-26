@@ -452,7 +452,10 @@ class ProjectExecutionLedger:
             return {"success": False, "status": "failed", "error": "Pending ledger transaction path is unsafe."}
         if not self._pending_path.exists():
             return {"success": True, "status": "no_pending_transaction"}
-        descriptor, lock_path = self._acquire_lock()
+        try:
+            descriptor, lock_path = self._acquire_lock()
+        except Exception as exc:
+            return {"success": False, "status": "failed", "error": str(exc)}
         try:
             key = self._load_key(create=False)
             pending = self._read_pending(key)
