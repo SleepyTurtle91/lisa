@@ -135,7 +135,7 @@ class ProjectExecutionHistory:
                 raise ValueError("Registered target root does not match the execution audit.")
             target_status = "registered"
 
-        lifecycle = audit.get("lifecycle") or {}
+        lifecycle = audit.get("lifecycle", {})
         if not isinstance(lifecycle, dict):
             raise ValueError("Lifecycle metadata is malformed.")
         lifecycle_status = lifecycle.get("status", "applied")
@@ -160,7 +160,7 @@ class ProjectExecutionHistory:
                 states.append(actual)
             target_file_integrity = "verified"
 
-        if lifecycle_status == "rolled_back":
+        if lifecycle_status in ("rollback_in_progress", "rolled_back"):
             expected = self._canonical_digest({
                 "approval_digest": approval,
                 "target_root": audit.get("target_root"),
@@ -170,11 +170,14 @@ class ProjectExecutionHistory:
             })
             if lifecycle.get("rollback_digest") != expected:
                 raise ValueError("Rollback digest does not match the execution manifest.")
-            restored = lifecycle.get("restored_files")
-            if not isinstance(restored, list) or set(restored) != set(changed_paths):
-                raise ValueError("Rollback restoration manifest is incomplete or inconsistent.")
+            if lifecycle_status == "rolled_back":
+                restored = lifecycle.get("restored_files")
+                if not isinstance(restored, list) or set(restored) != set(changed_paths):
+                    raise ValueError("Rollback restoration manifest is incomplete or inconsistent.")
 
-        validation = audit.get("validation") or {}
+        validation = audit.get("validation", {})
+        if not isinstance(validation, dict):
+            raise ValueError("Validation metadata is malformed.")
         validation_status = validation.get("status", "required_not_run")
         validation_result = "not_recorded"
         validation_path = directory / "validation.json"
@@ -188,6 +191,18 @@ class ProjectExecutionHistory:
                 raise ValueError("Validation record status does not match the audit.")
             if record.get("status") not in ("operator_reported_passed", "operator_reported_failed"):
                 raise ValueError("Validation record contains an unknown status.")
+            if record.get("target_project_id") != target_id:
+                raise ValueError("Validation record target project identity does not match the execution audit.")
+            record_root_value = record.get("target_root")
+            audit_root_value = audit.get("target_root")
+            if not isinstance(record_root_value, str) or not record_root_value:
+                raise ValueError("Validation record target root is missing or malformed.")
+            if not isinstance(audit_root_value, str) or not audit_root_value:
+                raise ValueError("Execution audit target root is missing or malformed.")
+            record_root = Path(record_root_value).resolve(strict=False)
+            audit_root = Path(audit_root_value).resolve(strict=False)
+            if record_root != audit_root or (target_root is not None and record_root != target_root):
+                raise ValueError("Validation record target root does not match the execution audit and registered root.")
             digest = self._validation_digest(execution_id, audit, record)
             if record.get("evidence_digest") != digest or validation.get("evidence_digest") != digest:
                 raise ValueError("Validation record digest does not match its contents.")
