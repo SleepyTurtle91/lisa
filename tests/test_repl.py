@@ -1,7 +1,10 @@
 import tempfile
 import unittest
+import sys
 from pathlib import Path
 from unittest.mock import patch
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from lisa.cli.repl import add_recent_project, get_recent_projects, scan_common_projects
 
