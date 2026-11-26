@@ -175,7 +175,9 @@ class ProjectExecutionExecutor:
             execution_id = "exec_" + digest[:20]
             execution_dir = self._state_dir / execution_id
             if execution_dir.exists():
-                raise ValueError("This approval digest has already been executed; refusing replay.")
+                if not (execution_dir / self.JOURNAL_NAME).exists():
+                    raise ValueError("An incomplete pre-journal execution directory exists. No target writes occur before the journal is durable; inspect this state directory before retrying.")
+                raise ValueError("This approval digest has already been executed or has a recoverable journal; refusing replay.")
             if len(request.changes) > self.MAX_FILES:
                 raise ValueError(f"Execution scope exceeds the {self.MAX_FILES}-file limit.")
 
@@ -428,7 +430,7 @@ class ProjectExecutionExecutor:
                     ]
                     self._atomic_write(
                         journal_path,
-                        (json.dumps(journal, indent=2, sort_keys=True) + "\\n").encode("utf-8"),
+                        (json.dumps(journal, indent=2, sort_keys=True) + "\n").encode("utf-8"),
                     )
                 elif execution_dir.exists():
                     import shutil
