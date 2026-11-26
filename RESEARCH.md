@@ -1600,4 +1600,4 @@ These changes address the reviewed failure modes at the CPI foundation boundary.
 
 **Evidence classification**:
 - `FILE_FACT`: implementation and regression tests are present on `fix/cpi-foundation-precision-followup`.
-- `EXECUTION_FACT`: pending CI validation on this remediation head.
+- `EXECUTION_FACT`: [CPI Contract CI run 45786686543](https://github.com/SleepyTurtle91/lisa/actions/runs/45786686543) passed 46/46 project/CLI/profile/discovery/compatibility/adaptation tests, 8/8 input-classifier tests, and 6/6 REPL tests. [Architecture & Integration CI run 45786686531](https://github.com/SleepyTurtle91/lisa/actions/runs/45786686531) passed 163/163 architecture/unit tests and 1/1 integration test.
