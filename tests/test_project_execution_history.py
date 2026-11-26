@@ -61,7 +61,7 @@ class TestProjectExecutionHistory(unittest.TestCase):
         self.assertEqual(item["lifecycle_status"], "applied")
         self.assertEqual(item["file_count"], 1)
         self.assertEqual(item["integrity_status"], "consistent")
-        self.assertEqual(item["ledger_status"], "anchored")
+        self.assertEqual(item["ledger_status"], "locally_authenticated")
 
     def test_project_filter_matches_source_or_target(self):
         self.assertEqual(len(self.history.list_history(self.source_id)), 1)
