@@ -64,8 +64,8 @@ class ProjectExecutionLifecycle:
         return root
 
     @staticmethod
-    def _current_regular_file_hash(path, relative):
-        """Return None only for a genuinely absent path; reject non-regular objects."""
+    def _open_regular_file(path, relative):
+        """Open a regular target file without following a final-component symlink."""
         try:
             path_info = path.lstat()
         except FileNotFoundError:
@@ -90,13 +90,52 @@ class ProjectExecutionLifecycle:
                     f"Rollback path is a symlink or non-regular object: {relative.as_posix()}"
                 ) from exc
             raise
+        info = os.fstat(descriptor)
+        if not stat.S_ISREG(info.st_mode):
+            os.close(descriptor)
+            raise ValueError(
+                f"Rollback path is not a regular file: {relative.as_posix()}"
+            )
+        return descriptor
+
+    @classmethod
+    def _current_regular_file_hash(cls, path, relative):
+        """Return None only for an absent path; reject non-regular objects."""
+        descriptor = cls._open_regular_file(path, relative)
+        if descriptor is None:
+            return None
         with os.fdopen(descriptor, "rb") as handle:
-            info = os.fstat(handle.fileno())
-            if not stat.S_ISREG(info.st_mode):
-                raise ValueError(
-                    f"Rollback path is not a regular file: {relative.as_posix()}"
-                )
             return hashlib.sha256(handle.read()).hexdigest()
+
+    @staticmethod
+    def _restore_mode_without_following_symlink(path, relative, mode):
+        """Restore mode on a validated file descriptor, never on a path referent."""
+        descriptor = ProjectExecutionLifecycle._open_regular_file(path, relative)
+        if descriptor is None:
+            raise ValueError(
+                f"Target file disappeared before permission restoration: {relative.as_posix()}"
+            )
+        try:
+            if not hasattr(os, "fchmod"):
+                raise ValueError("Safe descriptor-based permission restoration is unavailable.")
+            opened_info = os.fstat(descriptor)
+            os.fchmod(descriptor, mode)
+            entry_info = os.stat(path, follow_symlinks=False)
+            current_info = os.fstat(descriptor)
+            if (
+                not stat.S_ISREG(entry_info.st_mode)
+                or (entry_info.st_dev, entry_info.st_ino)
+                != (current_info.st_dev, current_info.st_ino)
+            ):
+                raise ValueError(
+                    f"Target path changed during permission restoration: {relative.as_posix()}"
+                )
+            if stat.S_IMODE(current_info.st_mode) != mode:
+                raise ValueError(
+                    f"Original permission mode could not be restored: {relative.as_posix()}"
+                )
+        finally:
+            os.close(descriptor)
 
     @staticmethod
     def _rollback_digest(execution_id, audit):
@@ -201,9 +240,9 @@ class ProjectExecutionLifecycle:
                 if latest_hash == before_hash:
                     if backup_mode is None or not isinstance(backup_mode, int) or backup_mode < 0 or backup_mode > 0o7777:
                         raise ValueError(f"Backup permission mode is invalid: {relative.as_posix()}")
-                    os.chmod(destination, backup_mode)
-                    if stat.S_IMODE(destination.stat().st_mode) != backup_mode:
-                        raise ValueError(f"Original permission mode could not be restored: {relative.as_posix()}")
+                    self._restore_mode_without_following_symlink(
+                        destination, relative, backup_mode
+                    )
                     restored.append(relative.as_posix())
                     continue
                 if before_hash is None:
