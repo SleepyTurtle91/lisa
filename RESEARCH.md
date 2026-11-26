@@ -1590,3 +1590,22 @@ CPI-06 establishes a narrow, operator-approved file application boundary. It is 
 **Evidence classification**:
 - `FILE_FACT`: implementation and regression tests are present on `fix/cpi-06-1-recovery-review-findings`.
 - `EXECUTION_FACT`: [CPI Contract CI run 45784635474](https://github.com/SleepyTurtle91/lisa/actions/runs/45784635474) passed 55/55 project/CLI tests and 6/6 input-boundary tests. The architecture/unit suite passed 168/168 tests and integration passed 1/1.
+
+
+---
+
+## CPI-06.1 Follow-up — No-Follow Permission Restoration
+
+**Date**: 2026-11-26
+
+A follow-up independent review identified a race in the permission restoration path: a target could be swapped to a symlink after the hash check but before path-based `chmod`, causing permissions on the symlink referent to be changed.
+
+**Implementation**:
+- Open the validated regular file with no-follow/non-blocking flags where supported.
+- Keep the descriptor open while restoring its mode with `fchmod`.
+- Re-check the directory entry without following symlinks and compare device/inode identity with the open descriptor before reporting success.
+- Add a regression that swaps the target path to an external symlink immediately before `fchmod` and verifies the external referent's mode is unchanged.
+
+**Evidence classification**:
+- `FILE_FACT`: code and regression test are present on `fix/cpi-06-1-no-follow-mode-restore`.
+- `EXECUTION_FACT`: pending CI validation on this remediation head.
