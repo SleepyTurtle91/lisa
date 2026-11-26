@@ -136,7 +136,8 @@ def run_project_command(args):
         print("Exact proposed changes:")
         for change in changes:
             safe_path = _escape_terminal_controls(change.relative_path)
-            print(f"--- {safe_path} (expected sha256: {change.expected_sha256 or 'NEW FILE'})")
+            expected_hash = _escape_terminal_controls(change.expected_sha256 or "NEW FILE")
+            print(f"--- {safe_path} (expected sha256: {expected_hash})")
             print(_escape_terminal_controls(change.content))
         print("No commands or tests will be run by this operation.")
         print("Backups and an audit record will be created outside both project roots.")
