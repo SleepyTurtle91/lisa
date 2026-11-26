@@ -112,7 +112,12 @@ class ProjectExecutionLifecycle:
 
             changed = audit.get("changed_files", [])
             backups = {item["path"]: item for item in audit.get("backups", [])}
-            if not changed or set(backups) != {item.get("path") for item in changed}:
+            if (
+                not changed
+                or len(backups) != len(audit.get("backups", []))
+                or len({item.get("path") for item in changed}) != len(changed)
+                or set(backups) != {item.get("path") for item in changed}
+            ):
                 raise ValueError("Audit changed-file and backup manifests do not match.")
             scoped = []
             for item in changed:
@@ -131,7 +136,12 @@ class ProjectExecutionLifecycle:
                     if backup_rel.is_absolute() or ".." in backup_rel.parts or not backup_rel.parts:
                         raise ValueError("Backup manifest contains an unsafe path.")
                     backup_path = execution_dir / backup_rel
-                    if backup_path.is_symlink() or not backup_path.is_file():
+                    current_backup_path = execution_dir
+                    for part in backup_rel.parts:
+                        current_backup_path = current_backup_path / part
+                        if current_backup_path.is_symlink():
+                            raise ValueError("Backup path contains a symlink.")
+                    if execution_dir.resolve() not in backup_path.resolve().parents or backup_path.is_symlink() or not backup_path.is_file():
                         raise ValueError(f"Backup is missing or unsafe: {relative.as_posix()}")
                     backup_bytes = backup_path.read_bytes()
                     backup_mode = backup.get("mode")
@@ -139,7 +149,7 @@ class ProjectExecutionLifecycle:
                         raise ValueError(f"Backup integrity check failed: {relative.as_posix()}")
                 elif backup.get("backup") is not None:
                     raise ValueError(f"Unexpected backup for newly created file: {relative.as_posix()}")
-                scoped.append((relative, destination, current_hash, before_hash, backup_bytes, backup_mode))
+                scoped.append((relative, destination, current_hash, before_hash, after_hash, backup_bytes, backup_mode))
 
             audit.setdefault("lifecycle", {})["status"] = "rollback_in_progress"
             audit["lifecycle"]["rollback_started_at"] = datetime.now(timezone.utc).isoformat()
@@ -147,12 +157,17 @@ class ProjectExecutionLifecycle:
             self._atomic_write(audit_path, (json.dumps(audit, indent=2, sort_keys=True) + "\n").encode())
 
             restored = []
-            for relative, destination, current_hash, before_hash, backup_bytes, backup_mode in reversed(scoped):
-                if current_hash == before_hash:
+            for relative, destination, current_hash, before_hash, after_hash, backup_bytes, backup_mode in reversed(scoped):
+                ProjectExecutionExecutor._assert_no_symlink(root, relative)
+                latest_hash = self._sha256(destination.read_bytes()) if destination.is_file() else None
+                if latest_hash not in (after_hash, before_hash):
+                    raise ValueError(f"Target file changed during rollback; refusing write: {relative.as_posix()}")
+                if latest_hash == before_hash:
                     restored.append(relative.as_posix())
                     continue
                 if before_hash is None:
-                    destination.unlink()
+                    if destination.exists():
+                        destination.unlink()
                 else:
                     ProjectExecutionExecutor._atomic_write(destination, backup_bytes, mode=backup_mode)
                 restored.append(relative.as_posix())
