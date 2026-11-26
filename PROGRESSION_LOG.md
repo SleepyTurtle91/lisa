@@ -1062,3 +1062,32 @@ Key per-case results:
 ### Follow-up
 - Continue CPI-02 with evidence-backed project profiling.
 - Keep legacy CI failures visible and track them separately from CPI work.
+
+
+---
+
+## 2026-11-26 — CPI-02 Read-Only Project Profile
+
+### Status
+- Implemented; focused CPI CI passed.
+
+### What was added
+- Bounded read-only project profiling over documentation and build descriptors.
+- Deterministic technology markers, top-level directory inventory, and source-file path inventory.
+- Evidence records with relative path, evidence kind, SHA-256 digest, byte count, and truncation state.
+- Secret-like assignment and PEM private-key redaction in returned excerpts.
+- Top-level CLI and REPL `project inspect` commands.
+
+### Evidence
+- [CPI Contract CI run 45744620787](https://github.com/SleepyTurtle91/lisa/actions/runs/45744620787): 17/17 project/CLI/profile tests and 6/6 classifier tests passed.
+- Fixture tests confirm the profile is deterministic and read-only.
+
+### Safety boundary
+- Source code contents are not indexed.
+- .env files, build outputs, dependency directories, and VCS internals are excluded.
+- Evidence excerpts are bounded and secret-like values are redacted.
+- No cross-project code changes or transfers are possible at this stage.
+
+### Follow-up
+- Implement deterministic cross-project capability discovery.
+- Then add compatibility/conflict analysis before any adaptation workflow.

@@ -1,5 +1,9 @@
 """Project identity, isolation, and profiling contracts for L.I.S.A."""
 
+from lisa.projects.capability import CapabilityEvidence, CapabilityMatch
+from lisa.projects.capability_discovery import CapabilityDiscoveryExecutor
+from lisa.projects.capability_request import CapabilityDiscoveryRequest
+from lisa.projects.capability_result import CapabilityDiscoveryResult
 from lisa.projects.context import ProjectContext
 from lisa.projects.executor import ProjectExecutor
 from lisa.projects.manifest import ProjectManifest
@@ -14,6 +18,8 @@ from lisa.projects.result import ProjectResult
 from lisa.projects.state import ProjectState
 
 __all__ = [
+    "CapabilityDiscoveryExecutor", "CapabilityDiscoveryRequest",
+    "CapabilityDiscoveryResult", "CapabilityEvidence", "CapabilityMatch",
     "ProjectContext", "ProjectEvidence", "ProjectExecutor", "ProjectManifest",
     "ProjectOperation", "ProjectProfile", "ProjectProfileExecutor",
     "ProjectProfileRequest", "ProjectProfileResult", "ProjectRegistry",

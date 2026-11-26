@@ -24,6 +24,8 @@ from lisa.projects import ProjectExecutor, ProjectOperation, ProjectRequest
 from lisa.projects.registry import ProjectRegistry
 from lisa.projects.profile_executor import ProjectProfileExecutor
 from lisa.projects.profile_request import ProjectProfileRequest
+from lisa.projects.capability_discovery import CapabilityDiscoveryExecutor
+from lisa.projects.capability_request import CapabilityDiscoveryRequest
 
 PROJECT_REGISTRY_PATH = Path.home() / ".lisa" / "projects.json"
 
@@ -49,6 +51,26 @@ def run_project_command(args):
             tech = ", ".join(item.capabilities) or "unknown stack"
             print(f" {active} {item.name}  [{item.project_id}]  {tech}")
             print(f"    {item.root_path}")
+        return
+    if action in ("find", "search") and len(args) >= 2:
+        query = " ".join(args[1:])
+        discovery = CapabilityDiscoveryExecutor(
+            registry=ProjectRegistry(storage_path=PROJECT_REGISTRY_PATH)
+        ).execute(CapabilityDiscoveryRequest(query=query))
+        if not discovery.success:
+            print(f"Capability search failed: {discovery.error}")
+            return
+        if not discovery.matches:
+            print(f"No project evidence matched: {query}")
+            return
+        print(f"Capability candidates for: {query}")
+        for match in discovery.matches:
+            print(f"  {match.project_name} [{match.project_id}] — {match.score:.0%} match")
+            print(f"    Terms: {', '.join(match.matched_terms)}")
+            for evidence in match.evidence:
+                print(f"    Evidence: {evidence.relative_path} [{evidence.evidence_kind}; sha256:{evidence.sha256[:12]}]")
+            for source_path in match.source_paths:
+                print(f"    Source path: {source_path}")
         return
     if action in ("inspect", "profile") and len(args) >= 2:
         identifier = " ".join(args[1:])
@@ -117,6 +139,7 @@ def print_help():
     print("  compare [path]         Analyze historical benchmark flight logs and throughput performance trends.")
     print("  project list           List registered projects.")
     print("  project inspect <id|name> Build a read-only project profile.")
+    print("  project find <terms>     Search project evidence for reusable capabilities.")
     print("  project add <path>     Register a project directory.")
     print("  project use <id|name>  Set the default active project.")
     print("  project remove <id>    Unregister a project.")

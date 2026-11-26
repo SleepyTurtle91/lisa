@@ -21,6 +21,8 @@ from lisa.projects import ProjectExecutor, ProjectOperation, ProjectRequest
 from lisa.projects.registry import ProjectRegistry
 from lisa.projects.profile_executor import ProjectProfileExecutor
 from lisa.projects.profile_request import ProjectProfileRequest
+from lisa.projects.capability_discovery import CapabilityDiscoveryExecutor
+from lisa.projects.capability_request import CapabilityDiscoveryRequest
 
 CONFIG_DIR = Path.home() / ".lisa"
 RECENT_FILE = CONFIG_DIR / "recent.json"
@@ -319,6 +321,7 @@ async def start_repl(target_dir: Optional[str] = None):
             print("  project use <id|name> Switch to a registered project")
             print("  project remove <id>  Unregister a project")
             print("  project inspect <id|name>  Build a read-only project profile")
+            print("  project find <terms>  Search registered projects for capability evidence")
             print("  exit / quit    Exit REPL session\n")
         classified = InputBoundaryClassifier.classify(user_input, project_path=target_dir)
 
@@ -356,6 +359,24 @@ async def start_repl(target_dir: Optional[str] = None):
                     for item in result.manifests:
                         active = "*" if result.context and result.context.project_id == item.project_id else " "
                         print(f" {active} {item.name} [{item.project_id}] - {item.root_path}")
+                elif action in ("find", "search") and value:
+                    discovery = CapabilityDiscoveryExecutor(
+                        registry=ProjectRegistry(storage_path=PROJECT_REGISTRY_FILE)
+                    ).execute(CapabilityDiscoveryRequest(query=value))
+                    if not discovery.success:
+                        print(f"Capability search failed: {discovery.error}")
+                    elif not discovery.matches:
+                        print(f"No project evidence matched: {value}")
+                    else:
+                        print(f"\nCapability candidates for: {value}")
+                        for match in discovery.matches:
+                            print(f"  {match.project_name} [{match.project_id}] — {match.score:.0%} match")
+                            print(f"    Terms: {', '.join(match.matched_terms)}")
+                            for evidence in match.evidence:
+                                print(f"    Evidence: {evidence.relative_path} [{evidence.evidence_kind}; sha256:{evidence.sha256[:12]}]")
+                            for source_path in match.source_paths:
+                                print(f"    Source path: {source_path}")
+                        print()
                 elif action in ("inspect", "profile") and value:
                     selected = _project_identifier(project_executor, value)
                     if selected is None:
@@ -395,7 +416,7 @@ async def start_repl(target_dir: Optional[str] = None):
                         ))
                         print("Project unregistered." if removed.success else f"Unregister failed: {removed.error}")
                 else:
-                    print("Usage: project add <path> | project list | project inspect <id|name> | project use <id|name> | project remove <id>")
+                    print("Usage: project add <path> | project list | project inspect <id|name> | project find <terms> | project use <id|name> | project remove <id>")
             elif cmd == "switch":
                 await runtime.shutdown()
                 print("\nSwitching project...")

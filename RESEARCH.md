@@ -1438,3 +1438,23 @@ CPI-01 now has an operator-facing registry workflow and persistent local project
 
 **Interpretation**:
 CPI-01 has a verified focused test boundary for project registration, persistence, lifecycle, CLI operations, and command classification. Full-repository stabilization remains separate work and must not be hidden by the focused workflow.
+
+
+---
+
+## 🧪 CPI-02 — Read-Only Project Profile Verification
+
+**Date**: 2026-11-26
+
+**Observed execution evidence**:
+- Dedicated CPI Contract CI run [45744620787](https://github.com/SleepyTurtle91/lisa/actions/runs/45744620787).
+- Project registry, CLI, and profile test selection: **17/17 passed**.
+- Deterministic input-boundary classification tests: **6/6 passed**.
+- Profile tests verify deterministic repeated output, no project-file mutation, bounded document reads, evidence hashes, build-directory exclusion, and secret-like value redaction in excerpts.
+
+**Interpretation**:
+CPI-02 provides a bounded, read-only inventory of project structure and selected documentation/build descriptors. Source files are inventoried by path only; their contents are not ingested. The profile is generated on demand and is not yet a persistent semantic knowledge base.
+
+**Limitations**:
+- The verification is scoped to the CPI workflow and fixture projects.
+- The repository-wide Architecture & Integration suite remains red with 10 failures and 7 errors at the corresponding branch head; those failures are tracked separately.

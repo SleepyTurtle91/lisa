@@ -1,5 +1,7 @@
 import tempfile
 import unittest
+import io
+from contextlib import redirect_stdout
 import sys
 from pathlib import Path
 
@@ -9,6 +11,27 @@ from lisa.cli import main as lisa_main
 
 
 class TestProjectCLI(unittest.TestCase):
+    def test_project_find_command_prints_evidence_backed_candidates(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            project = root / "Inventory App"
+            project.mkdir()
+            (project / "README.md").write_text(
+                "# Inventory\nInventory management supports stocktake.",
+                encoding="utf-8",
+            )
+            original_path = lisa_main.PROJECT_REGISTRY_PATH
+            lisa_main.PROJECT_REGISTRY_PATH = root / ".lisa" / "projects.json"
+            try:
+                lisa_main.run_project_command(["add", str(project)])
+                output = io.StringIO()
+                with redirect_stdout(output):
+                    lisa_main.run_project_command(["find", "inventory", "stocktake"])
+                self.assertIn("Inventory App", output.getvalue())
+                self.assertIn("README.md", output.getvalue())
+            finally:
+                lisa_main.PROJECT_REGISTRY_PATH = original_path
+
     def test_add_use_and_list_commands_persist_project_selection(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
