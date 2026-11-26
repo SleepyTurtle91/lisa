@@ -170,6 +170,10 @@ class ProjectExecutionHistory:
         if not isinstance(lifecycle, dict):
             raise ValueError("Lifecycle metadata is malformed.")
         lifecycle_status = lifecycle.get("status", "applied")
+        if lifecycle_status == "applying" and journal_status not in (
+            "applying", "recovery_required", "recovery_in_progress", "finalizing"
+        ):
+            raise ValueError("Interrupted execution audit has no matching recoverable journal.")
         if lifecycle_status not in ("applying", "applied", "rollback_in_progress", "rolled_back"):
             raise ValueError("Unknown execution lifecycle state.")
 
