@@ -1239,3 +1239,10 @@ Key per-case results:
 - Remediation is on a dedicated branch stacked on CPI-06.
 - CI passed: 54 project/CLI tests, 6 input-boundary tests, 167 architecture/unit tests, and 1 integration test. Independent review pending.
 - No merge has been performed.
+
+
+### Follow-up — Newline-safe path rendering
+- Escape line-feed control characters in untrusted paths and success summaries.
+- Preserve newline layout only for proposed file contents.
+- Added an end-to-end CLI regression using a filename containing ESC and LF.
+- Follow-up CI pending; no merge performed.
