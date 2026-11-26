@@ -34,7 +34,7 @@ class CapabilityDiscoveryExecutor:
     }
 
     TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
-    E_INVOICE_PATTERN = re.compile(r"(?<![a-z0-9])e[\s_-]*invoice\b", re.IGNORECASE)
+    E_INVOICE_PATTERN = re.compile(r"(?<![a-z0-9])e[\s_-]*invoice(?![a-z0-9])", re.IGNORECASE)
 
     def __init__(self, registry=None, profile_executor=None):
         self._registry = registry or ProjectRegistry()
@@ -138,9 +138,9 @@ class CapabilityDiscoveryExecutor:
                     ))
 
             source_paths = tuple(
-                path for path, path_tokens in path_token_sets
+                path for path in profile.source_files_sample
                 if any(
-                    self._contains_tokens(path_tokens, terms)
+                    self._contains_tokens(self._tokens(path), terms)
                     for terms in expanded_terms
                 )
             )
