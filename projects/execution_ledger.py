@@ -119,35 +119,51 @@ class ProjectExecutionLedger:
             return {"success": False, "status": "failed", "event_count": 0, "events": [], "error": str(exc)}
 
     def append(self, event_type, execution_id, details=None):
-        """Append one authenticated event; existing corruption fails closed."""
+        """Append one authenticated event; concurrent writers fail closed."""
         self._ensure_state_dir()
-        current = self.verify()
-        if not current["success"]:
-            raise ValueError(f"Cannot append to an invalid ledger: {current['error']}")
-        key = self._load_key(create=True)
-        previous = current.get("head_hash", "0" * 64)
-        body = {
-            "schema_version": self.SCHEMA_VERSION,
-            "sequence": current["event_count"] + 1,
-            "occurred_at": datetime.now(timezone.utc).isoformat(),
-            "event_type": str(event_type),
-            "execution_id": str(execution_id),
-            "details": details or {},
-            "previous_hash": previous,
-        }
-        mac = hmac.new(key, self._canonical(body), hashlib.sha256).hexdigest()
-        event = {**body, "mac": mac}
-        event["event_hash"] = self._sha256(self._canonical(event))
-        encoded = self._canonical(event) + b"\n"
-        descriptor = os.open(str(self._ledger_path), os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
+        lock_path = self._state_dir / ".ledger.lock"
+        if lock_path.is_symlink():
+            raise ValueError("Ledger lock path is unsafe.")
         try:
-            written = os.write(descriptor, encoded)
-            if written != len(encoded):
-                raise OSError("Short write while appending execution ledger.")
-            os.fsync(descriptor)
+            lock_fd = os.open(str(lock_path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        except FileExistsError as exc:
+            raise ValueError("Ledger is busy or has a stale lock; inspect .ledger.lock before retrying.") from exc
+        try:
+            os.write(lock_fd, str(os.getpid()).encode("ascii"))
+            os.fsync(lock_fd)
+            current = self.verify()
+            if not current["success"]:
+                raise ValueError(f"Cannot append to an invalid ledger: {current['error']}")
+            key = self._load_key(create=True)
+            previous = current.get("head_hash", "0" * 64)
+            body = {
+                "schema_version": self.SCHEMA_VERSION,
+                "sequence": current["event_count"] + 1,
+                "occurred_at": datetime.now(timezone.utc).isoformat(),
+                "event_type": str(event_type),
+                "execution_id": str(execution_id),
+                "details": details or {},
+                "previous_hash": previous,
+            }
+            mac = hmac.new(key, self._canonical(body), hashlib.sha256).hexdigest()
+            event = {**body, "mac": mac}
+            event["event_hash"] = self._sha256(self._canonical(event))
+            encoded = self._canonical(event) + b"\\n"
+            descriptor = os.open(str(self._ledger_path), os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
+            try:
+                written = os.write(descriptor, encoded)
+                if written != len(encoded):
+                    raise OSError("Short write while appending execution ledger.")
+                os.fsync(descriptor)
+            finally:
+                os.close(descriptor)
+            return event
         finally:
-            os.close(descriptor)
-        return event
+            os.close(lock_fd)
+            try:
+                lock_path.unlink()
+            except FileNotFoundError:
+                pass
 
     def migrate_legacy(self):
         """Anchor current snapshots of pre-ledger records as explicitly legacy imports.
