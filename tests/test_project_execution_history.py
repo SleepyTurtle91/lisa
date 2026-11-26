@@ -44,7 +44,8 @@ class TestProjectExecutionHistory(unittest.TestCase):
             source_project_id=self.source_id, target_project_id=self.target_id,
             capability_query="inventory stocktake",
         )).plan
-        self.plan = plan\n        self.state = root / "executions"
+        self.plan = plan
+        self.state = root / "executions"
         self.executor = ProjectExecutionExecutor(self.registry, state_dir=self.state)
         change = ExecutionChange(
             "app/Inventory.kt", "class Inventory {}\n",
@@ -147,7 +148,7 @@ class TestProjectExecutionHistory(unittest.TestCase):
         from unittest.mock import patch
         from lisa.projects.execution_ledger import ProjectExecutionLedger
 
-        change = ExecutionChange("app/Second.kt", "class Second {}\\n")
+        change = ExecutionChange("app/Second.kt", "class Second {}\n")
         digest = self.executor.approval_digest(self.plan, [change], self.target)
         second = self.executor.execute(ProjectExecutionRequest(
             self.plan, (change,), f"APPLY {digest}"
