@@ -1567,12 +1567,13 @@ The adaptation plan preview is evidence-bearing and review-only. It cannot apply
 - `FILE_FACT`: implementation and regression-test changes are present on `fix/cpi-foundation-review-findings`.
 - `EXECUTION_FACT`: PR #11 CPI Contract CI run [45781061502](https://github.com/SleepyTurtle91/lisa/actions/runs/45781061502) passed 38/38 project/CLI/profile/discovery/compatibility/adaptation tests, 8/8 input-classifier tests, and 6/6 REPL tests. The standalone REPL test module now adds the repository package root to `sys.path`, matching the other focused test modules.
 - Full Architecture & Integration CI run [45781061546](https://github.com/SleepyTurtle91/lisa/actions/runs/45781061546) passed the architecture/unit test command (155 tests) and integration tests (1/1).
+- Follow-up review remediation CI run [45783256245](https://github.com/SleepyTurtle91/lisa/actions/runs/45783256245) passed 41/41 project/CLI/profile/discovery/compatibility/adaptation tests, 8/8 input-classifier tests, and 6/6 REPL tests.
+- Full Architecture & Integration CI run [45783256096](https://github.com/SleepyTurtle91/lisa/actions/runs/45783256096) passed 158/158 architecture/unit tests and 1/1 integration test.
 - The first attempt to add the REPL test module to CPI CI exposed a pre-existing standalone import-path defect on the foundation branch ([run 45780929209](https://github.com/SleepyTurtle91/lisa/actions/runs/45780929209)). The package-root `sys.path` setup was added to the foundation branch and carried into this remediation branch; the final focused run above passes.
 
 **Interpretation**:
 These changes address the reviewed failure modes at the CPI foundation boundary. The result remains a deterministic lexical project inventory and capability discovery system; it does not establish semantic equivalence or authorize project modification.
 
-**Open validation questions**:
-1. Do the focused project/CLI and input-classifier test selections pass on the remediation branch?
-2. Do the new language markers preserve conservative compatibility behavior?
-3. Does the full repository integration suite remain independently red, and if so, which failures are unrelated to CPI?
+**Remaining validation questions**:
+1. Does independent review confirm the follow-up fixes for e-invoice precision, ambiguous C/C++ headers, and evidence tokenization?
+2. Are there any further compatibility-profile false-positive cases that require conservative treatment?
