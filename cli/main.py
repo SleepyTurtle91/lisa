@@ -32,10 +32,10 @@ def print_help():
     print("  compare [path]         Analyze historical benchmark flight logs and throughput performance trends.")
     print("  --help, -h             Display this CLI usage help menu.")
     print("\nExamples:")
-    print("  lisa /home/user/development/projects/extro_pos")
-    print("  lisa doctor /home/user/development/projects/extro_pos")
+    print("  lisa ./my-project")
+    print("  lisa doctor ./my-project")
     print("  lisa compare")
-    print("  python3 cli/benchmark.py /home/user/development/projects/extro_pos qwen3:1.7b")
+    print("  python3 cli/benchmark.py ./my-project qwen3:1.7b")
     print("===================================================")
 
 async def run_doctor(target_dir: str):
