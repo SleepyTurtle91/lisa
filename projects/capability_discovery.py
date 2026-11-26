@@ -34,7 +34,7 @@ class CapabilityDiscoveryExecutor:
     }
 
     TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
-    E_INVOICE_PATTERN = re.compile(r"\be[\s_-]*invoice\b", re.IGNORECASE)
+    E_INVOICE_PATTERN = re.compile(r"(?<![a-z0-9])e[\s_-]*invoice\b", re.IGNORECASE)
 
     def __init__(self, registry=None, profile_executor=None):
         self._registry = registry or ProjectRegistry()
@@ -101,24 +101,32 @@ class CapabilityDiscoveryExecutor:
             if not profile_result.success:
                 continue
             profile = profile_result.profile
-            evidence_text = "\n".join(item.excerpt for item in profile.evidence)
-            path_text = "\n".join(profile.top_level_directories + profile.source_files_sample)
-            corpus = evidence_text + "\n" + path_text
+            evidence_token_sets = tuple(
+                (item, self._tokens(item.excerpt)) for item in profile.evidence
+            )
+            path_units = profile.top_level_directories + profile.source_files_sample
+            path_token_sets = tuple(
+                (path, self._tokens(path)) for path in path_units
+            )
 
-            corpus_tokens = self._tokens(corpus)
+            # Each alias must be supported by one evidence excerpt or one path.
+            # Pooling tokens across unrelated excerpts can manufacture a match.
             matched = tuple(sorted(
                 term for term in query_terms
-                if self._contains_tokens(corpus_tokens, self._expansions(term))
+                if any(
+                    self._contains_tokens(tokens, self._expansions(term))
+                    for _, tokens in evidence_token_sets
+                ) or any(
+                    self._contains_tokens(tokens, self._expansions(term))
+                    for _, tokens in path_token_sets
+                )
             ))
             if not matched:
                 continue
 
-            expanded_terms = tuple(
-                self._expansions(term) for term in matched
-            )
+            expanded_terms = tuple(self._expansions(term) for term in matched)
             evidence_refs = []
-            for item in profile.evidence:
-                item_tokens = self._tokens(item.excerpt)
+            for item, item_tokens in evidence_token_sets:
                 if any(
                     self._contains_tokens(item_tokens, terms)
                     for terms in expanded_terms
@@ -130,9 +138,9 @@ class CapabilityDiscoveryExecutor:
                     ))
 
             source_paths = tuple(
-                path for path in profile.source_files_sample
+                path for path, path_tokens in path_token_sets
                 if any(
-                    self._contains_any(path, terms)
+                    self._contains_tokens(path_tokens, terms)
                     for terms in expanded_terms
                 )
             )
