@@ -192,7 +192,7 @@ lisa project ledger migrate
 - Successful rollback and validation transitions append `rollback_completed` and `validation_recorded` events with the new audit snapshot hash.
 - Every event contains a monotonically increasing sequence, previous-event hash, SHA-256 event hash, and HMAC-SHA256 authentication tag. A separately authenticated head checkpoint binds the expected final sequence and event hash, detecting tail truncation as well as edits, insertion, and reordering.
 - Ledger verification checks record structure, sequence continuity, chain links, event hashes, and HMAC tags. Appends fail closed if the existing ledger does not verify.
-- A single-writer lock prevents concurrent appends from creating duplicate sequence numbers. A stale lock is not removed automatically; an operator must inspect it before retrying.
+- A single-writer lock prevents concurrent appends from creating duplicate sequence numbers. A stale lock is removed only when its recorded PID is confirmed absent; active, unreadable, or ambiguous locks fail closed.
 - History verification compares the current audit file hash with the latest ledger event for that execution. An audit changed after its last ledger event fails verification.
 - `ledger migrate` imports pre-existing executions as `legacy_import` snapshots. It records the audit hash observed at migration time and explicitly labels the trust boundary; it cannot authenticate the original historical chronology.
 - If rollback or validation completes but its ledger append fails, the lifecycle operation remains reported as completed with a visible `ledger_warning`; subsequent verification will expose the stale audit snapshot until the issue is reconciled.
