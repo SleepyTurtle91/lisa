@@ -1535,3 +1535,40 @@ The CPI workflow now reaches a reviewable proposal stage. It still does not prov
 
 **Interpretation**:
 The adaptation plan preview is evidence-bearing and review-only. It cannot apply itself, and it does not authorize target changes.
+
+
+---
+
+## 🧪 CPI Foundation Review Remediation — Implementation Checkpoint
+
+**Date**: 2026-11-26
+
+**Observed source-review findings**:
+- Project resolution did not recognize CMakeLists.txt or Makefile as project markers.
+- The Git marker was exposed as a technology capability, which could create false compatibility signals.
+- The profiler inventoried multiple source suffixes without mapping all of them to technology markers.
+- Quoted JSON secret properties were not covered by the excerpt redaction expression.
+- Underscore-separated capability aliases were tokenized differently from indexed evidence, causing false negatives.
+- Natural-language requests beginning with `project` could be intercepted as management commands.
+- The REPL switch path restored the active project before reaching project selection.
+
+**Implementation changes on remediation branch**:
+- Added CMake/Makefile project recognition and removed VCS markers from technology capabilities.
+- Added technology mappings for C#, Swift, PHP, Ruby, C/C++, Scala, and SQL source suffixes already inventoried by the profiler.
+- Extended secret assignment redaction to quoted JSON property names.
+- Applied the same tokenizer to capability aliases and evidence attribution.
+- Restricted direct `project` classification to recognized subcommands.
+- Added an explicit force-selection path for REPL project switching.
+- Added focused regression tests for these cases.
+
+**Evidence classification**:
+- `FILE_FACT`: implementation and regression-test changes are present on `fix/cpi-foundation-review-findings`.
+- `EXECUTION_FACT`: pending GitHub Actions validation for PR #11. No test pass is claimed in this entry.
+
+**Interpretation**:
+These changes address the reviewed failure modes at the CPI foundation boundary. The result remains a deterministic lexical project inventory and capability discovery system; it does not establish semantic equivalence or authorize project modification.
+
+**Open validation questions**:
+1. Do the focused project/CLI and input-classifier test selections pass on the remediation branch?
+2. Do the new language markers preserve conservative compatibility behavior?
+3. Does the full repository integration suite remain independently red, and if so, which failures are unrelated to CPI?
