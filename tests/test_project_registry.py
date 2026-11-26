@@ -77,7 +77,7 @@ class TestProjectRegistry(unittest.TestCase):
         from lisa.projects.resolver import ProjectResolver
 
         project = self.make_project("legacy_git", "README.md")
-        (project / ".git").write_text("gitdir: metadata\\n", encoding="utf-8")
+        (project / ".git").write_text("gitdir: metadata\n", encoding="utf-8")
         manifest = ProjectResolver().resolve(str(project))
         storage = self.root / "legacy-registry.json"
         storage.write_text(json.dumps({
