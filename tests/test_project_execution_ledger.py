@@ -28,7 +28,7 @@ class TestProjectExecutionLedger(unittest.TestCase):
         path = self.state / "ledger.jsonl"
         event = json.loads(path.read_text(encoding="utf-8"))
         event["execution_id"] = "exec_forged"
-        path.write_text(json.dumps(event) + "\\n", encoding="utf-8")
+        path.write_text(json.dumps(event) + "\n", encoding="utf-8")
         result = self.ledger.verify()
         self.assertFalse(result["success"])
         self.assertIn("authentication failed", result["error"])
