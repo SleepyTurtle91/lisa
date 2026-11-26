@@ -1298,7 +1298,7 @@ Key per-case results:
 
 ### Status
 - Implemented on a dedicated branch stacked on CPI-06.4 PR #7.
-- CI validation pending; no merge performed.
+- CPI contract, full architecture/unit, and integration CI passed; no merge performed.
 
 ### What was added
 - Durable pre-execution backups with file and directory fsync.
@@ -1313,12 +1313,17 @@ Key per-case results:
 - Recovery journal updates after each restored file, allowing another explicitly approved retry after a second interruption.
 - Recovery creates a normal rolled-back audit and records an authenticated ledger event.
 
+### Evidence
+- [CPI Contract CI run 45765529264](https://github.com/SleepyTurtle91/lisa/actions/runs/45765529264): 86/86 project/CLI tests and 6/6 input-classifier tests passed.
+- Full Architecture & Unit suite: 199/199 tests passed.
+- Integration suite: 1/1 test passed.
+
 ### Safety boundary
 - Source projects remain read-only.
 - No shell commands, build scripts, or target tests are executed.
 - Recovery refuses to overwrite files that match neither the before-hash nor the after-hash.
 - Recovery requires the original target project to remain registered at the exact recorded root.
-- A recovery lock is exclusive; active or stale locks are not silently removed.
+- A recovery lock is exclusive. A stale lock is removed only when its recorded PID is confirmed absent; active, unreadable, or ambiguous locks fail closed.
 - The local HMAC ledger remains user-controlled and is not an external trust anchor.
 
 ### Follow-up
