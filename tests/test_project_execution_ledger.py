@@ -16,6 +16,9 @@ class TestProjectExecutionLedger(unittest.TestCase):
     def test_appends_and_verifies_hash_chained_events(self):
         first = self.ledger.append("execution_applied", "exec_one", {"audit_sha256": "a" * 64})
         second = self.ledger.append("validation_recorded", "exec_one", {"audit_sha256": "b" * 64})
+        raw_ledger = (self.state / "ledger.jsonl").read_bytes()
+        self.assertTrue(raw_ledger.endswith(b"\n"))
+        self.assertNotIn(b"\\n", raw_ledger)
         result = self.ledger.verify()
         self.assertTrue(result["success"], result.get("error"))
         self.assertEqual(result["event_count"], 2)
