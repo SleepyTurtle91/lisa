@@ -324,6 +324,8 @@ class ProjectExecutionExecutor:
             try:
                 for index, (change, relative, destination, current, mode) in enumerate(scoped):
                     self._assert_no_symlink(target_root, relative)
+                    if destination.exists() and not destination.is_file():
+                        raise ValueError(f"Target path is no longer a regular file: {relative.as_posix()}")
                     latest = destination.read_bytes() if destination.is_file() else None
                     latest_hash = self._sha256(latest) if latest is not None else None
                     before_hash = journal_files[index]["before_sha256"]
@@ -391,6 +393,8 @@ class ProjectExecutionExecutor:
                 for relative, destination, current, mode, after_hash in reversed(applied):
                     try:
                         self._assert_no_symlink(target_root, relative)
+                        if destination.exists() and not destination.is_file():
+                            raise ValueError(f"Target path is no longer a regular file: {relative.as_posix()}")
                         latest = destination.read_bytes() if destination.is_file() else None
                         latest_hash = self._sha256(latest) if latest is not None else None
                         before_hash = self._sha256(current) if current is not None else None
