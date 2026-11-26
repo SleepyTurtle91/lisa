@@ -1535,3 +1535,36 @@ The CPI workflow now reaches a reviewable proposal stage. It still does not prov
 
 **Interpretation**:
 The adaptation plan preview is evidence-bearing and review-only. It cannot apply itself, and it does not authorize target changes.
+
+
+---
+
+## 🛡️ CPI-06 — Governed Cross-Project File Execution
+
+**Date**: 2026-11-26
+
+**Observed execution evidence**:
+- Dedicated workflow [45749846834](https://github.com/SleepyTurtle91/lisa/actions/runs/45749846834).
+- CPI project/CLI tests: **46/46 passed**.
+- Deterministic input-boundary tests: **6/6 passed**.
+- Full Architecture & Unit suite: **159/159 passed**.
+- Integration suite: **1/1 passed**.
+
+**Observed behavior**:
+- The CLI accepts an explicit JSON patch and derives a deterministic approval digest from the adaptation plan, source evidence hashes, target constraint hashes, canonical target root, exact relative paths, expected current-file hashes, and proposed content hashes.
+- The operator must type the complete `APPLY <digest>` phrase before the executor will write.
+- Source evidence and target constraint files are re-hashed before application; stale plans are rejected.
+- File scope is restricted to listed regular files under the registered target root. Path traversal, absolute paths, symlinks, protected paths, duplicate paths, stale file hashes, and replayed approvals are rejected.
+- Existing target files are backed up; an audit record records file hashes, plan/project identities, approval digest, and the required-but-not-run validation state.
+- File replacement is atomic. If an application or audit write fails, files already changed by that execution are rolled back.
+- The source project is not modified. Shell commands and tests are not executed by CPI-06.
+
+**Interpretation**:
+CPI-06 establishes a narrow, operator-approved file application boundary. It is not a semantic code porter and does not imply that a transferred capability is correct. The approval binds an exact patch to a specific target state, while the required target regression suite remains an independent acceptance gate.
+
+**Limitations**:
+- The initial release supports file creation and replacement only; deletion and directory creation are excluded.
+- Payload is limited to 100 files, 1 MiB per file, and 5 MiB total.
+- Regression tests are not automatically run because executing arbitrary target build/test commands would create a separate code-execution boundary.
+- Manual rollback/recovery command and post-execution validation evidence capture remain follow-up work.
+- Verification is from the repository's GitHub Actions environment (Python 3.14); local Fedora execution has not been observed in this task.
