@@ -378,7 +378,9 @@ class ProjectExecutionLedger:
             "sequence": event["sequence"],
             "event_hash": event["event_hash"],
         }
-        if head not in (old_head, new_head):
+        if head is not None and {
+            "sequence": head["sequence"], "event_hash": head["event_hash"]
+        } not in (old_head, new_head):
             raise ValueError("Authenticated head does not match either side of the pending transaction.")
 
         if suffix != encoded:
