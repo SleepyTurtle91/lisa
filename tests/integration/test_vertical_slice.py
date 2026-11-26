@@ -3,7 +3,7 @@ import asyncio
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 from lisa.core.kernel import LisaRuntime
 from lisa.bootstrap.engine import BootstrapEngine
 from lisa.providers.base import BaseProvider, ChatRequest, ChatResponse
