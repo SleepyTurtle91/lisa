@@ -32,7 +32,7 @@ class ClassificationResult:
 class InputBoundaryClassifier:
     """Classifies user input deterministically to prevent REPL prefix hijacking."""
 
-    LITERAL_COMMANDS = {"help", "doctor", "compare", "switch", "exit", "quit", "list", "ls", "dir"}
+    LITERAL_COMMANDS = {"help", "doctor", "compare", "switch", "exit", "quit", "list", "ls", "dir", "projects"}
 
     @classmethod
     def classify(cls, raw_input: str, project_path: Optional[str] = None) -> ClassificationResult:
@@ -47,7 +47,11 @@ class InputBoundaryClassifier:
         if text_lower in cls.LITERAL_COMMANDS:
             return ClassificationResult(InputClass.DIRECT_COMMAND, text_lower, None, text)
 
-        # 2. Command with Single Short File Target ('read BOOT.md', 'activity compact')
+        # 2. Project management commands are deterministic CLI input.
+        if words[0].lower() == "project" and len(words) >= 2:
+            return ClassificationResult(InputClass.DIRECT_COMMAND, "project", " ".join(words[1:]), text)
+
+        # 3. Command with Single Short File Target ('read BOOT.md', 'activity compact')
         if len(words) == 2 and words[0].lower() in ("read", "activity"):
             cmd = words[0].lower()
             target = words[1]
@@ -55,11 +59,11 @@ class InputBoundaryClassifier:
             if " " not in target:
                 return ClassificationResult(InputClass.DIRECT_COMMAND, cmd, target, text)
 
-        # 3. Absolute or Relative Path Input ('/workspace/Projects/retails', './docs')
+        # 4. Absolute or Relative Path Input ('/workspace/Projects/retails', './docs')
         if (text.startswith("/") or text.startswith("./") or text.startswith("../") or text.startswith("~/")):
             expanded = os.path.expanduser(text)
             if os.path.exists(expanded) or " " not in text:
                 return ClassificationResult(InputClass.PATH_INPUT, "inspect_path", text, text)
 
-        # 4. Fallthrough to Natural Language (Compound prose like 'read files inside /docs and suggest a plan')
+        # 5. Fallthrough to Natural Language (Compound prose like 'read files inside /docs and suggest a plan')
         return ClassificationResult(InputClass.NATURAL_LANGUAGE, None, None, text)

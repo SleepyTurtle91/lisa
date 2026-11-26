@@ -17,9 +17,25 @@ from lisa.core.context import SessionContext, Capability
 from lisa.telemetry.flight_recorder import FlightRecorder
 from lisa.telemetry.activity_renderer import FlightConsole
 from lisa.cli.input_classifier import InputBoundaryClassifier, InputClass
+from lisa.projects import ProjectExecutor, ProjectOperation, ProjectRequest
+from lisa.projects.registry import ProjectRegistry
 
 CONFIG_DIR = Path.home() / ".lisa"
 RECENT_FILE = CONFIG_DIR / "recent.json"
+PROJECT_REGISTRY_FILE = CONFIG_DIR / "projects.json"
+
+
+def _project_executor():
+    return ProjectExecutor(registry=ProjectRegistry(storage_path=PROJECT_REGISTRY_FILE))
+
+
+def _project_identifier(executor, value):
+    result = executor.execute(ProjectRequest(operation=ProjectOperation.LIST))
+    matches = [
+        item for item in result.manifests
+        if item.project_id == value or item.name.casefold() == value.casefold()
+    ]
+    return matches[0] if len(matches) == 1 else None
 
 
 def _activity_mode_from_env() -> str:
@@ -189,6 +205,13 @@ def render_computer_boot_sequence(proj_name: str):
     print()
 
 async def start_repl(target_dir: Optional[str] = None):
+    project_executor = _project_executor()
+    if not target_dir:
+        active_context = project_executor.execute(
+            ProjectRequest(operation=ProjectOperation.LIST)
+        ).context
+        if active_context is not None:
+            target_dir = active_context.root_path
     if not target_dir:
         target_dir = prompt_project_selection()
         if not target_dir:
@@ -205,7 +228,21 @@ async def start_repl(target_dir: Optional[str] = None):
         return
         
     add_recent_project(target_dir)
-    
+
+    registration = project_executor.execute(ProjectRequest(
+        operation=ProjectOperation.REGISTER, path=target_dir
+    ))
+    if not registration.success:
+        print(f"Project registration failed; refusing to start an unregistered context: {registration.error}")
+        return
+    activated = project_executor.execute(ProjectRequest(
+        operation=ProjectOperation.ACTIVATE,
+        project_id=registration.manifest.project_id,
+    ))
+    if not activated.success:
+        print(f"Project activation failed; refusing to start session: {activated.error}")
+        return
+
     boot_cfg = BootstrapEngine.discover(target_dir)
     proj_name = boot_cfg.project.project_name
     
@@ -275,6 +312,10 @@ async def start_repl(target_dir: Optional[str] = None):
             print("  summarize boot Summarize BOOT.md / AGENTS.md active milestone")
             print("  read <file>    Read target file content")
             print("  switch         Switch active project")
+            print("  projects       List registered projects")
+            print("  project add <path>   Register another project")
+            print("  project use <id|name> Switch to a registered project")
+            print("  project remove <id>  Unregister a project")
             print("  exit / quit    Exit REPL session\n")
         classified = InputBoundaryClassifier.classify(user_input, project_path=target_dir)
 
@@ -286,6 +327,52 @@ async def start_repl(target_dir: Optional[str] = None):
             elif cmd == "compare":
                 from lisa.cli.main import run_benchmark_compare
                 await run_benchmark_compare(target_dir)
+            elif cmd == "projects":
+                result = project_executor.execute(ProjectRequest(operation=ProjectOperation.LIST))
+                if not result.manifests:
+                    print("No registered projects.")
+                else:
+                    for item in result.manifests:
+                        active = "*" if result.context and result.context.project_id == item.project_id else " "
+                        print(f" {active} {item.name} [{item.project_id}]")
+                        print(f"    {item.root_path}")
+            elif cmd == "project":
+                parts = (classified.target or "").split()
+                action = parts[0].lower() if parts else "help"
+                value = " ".join(parts[1:]).strip()
+                if action == "add" and value:
+                    added = project_executor.execute(ProjectRequest(
+                        operation=ProjectOperation.REGISTER, path=value
+                    ))
+                    if added.success:
+                        print(f"Registered {added.manifest.name} [{added.manifest.project_id}]")
+                    else:
+                        print(f"Registration failed: {added.error}")
+                elif action in ("list", "ls"):
+                    result = project_executor.execute(ProjectRequest(operation=ProjectOperation.LIST))
+                    for item in result.manifests:
+                        active = "*" if result.context and result.context.project_id == item.project_id else " "
+                        print(f" {active} {item.name} [{item.project_id}] - {item.root_path}")
+                elif action in ("use", "activate") and value:
+                    selected = _project_identifier(project_executor, value)
+                    if selected is None:
+                        print("Project not found or ambiguous. Use 'projects' to list IDs.")
+                    else:
+                        await runtime.shutdown()
+                        print(f"Switching to {selected.name}...")
+                        await start_repl(selected.root_path)
+                        return
+                elif action in ("remove", "unregister") and value:
+                    current = project_executor.execute(ProjectRequest(operation=ProjectOperation.LIST)).context
+                    if current and current.project_id == value:
+                        print("Cannot unregister the active project from its own session. Switch first.")
+                    else:
+                        removed = project_executor.execute(ProjectRequest(
+                            operation=ProjectOperation.UNREGISTER, project_id=value
+                        ))
+                        print("Project unregistered." if removed.success else f"Unregister failed: {removed.error}")
+                else:
+                    print("Usage: project add <path> | project list | project use <id|name> | project remove <id>")
             elif cmd == "switch":
                 await runtime.shutdown()
                 print("\nSwitching project...")

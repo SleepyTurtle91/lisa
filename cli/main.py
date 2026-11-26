@@ -20,6 +20,67 @@ from lisa.tools.filesystem.standard import WriteFileTool, ListDirectoryTool
 from lisa.tools.compiler import ToolCompiler
 from lisa.core.context import SessionContext, Capability
 from lisa.cli.repl import start_repl
+from lisa.projects import ProjectExecutor, ProjectOperation, ProjectRequest
+from lisa.projects.registry import ProjectRegistry
+
+PROJECT_REGISTRY_PATH = Path.home() / ".lisa" / "projects.json"
+
+
+def _project_executor():
+    return ProjectExecutor(registry=ProjectRegistry(storage_path=PROJECT_REGISTRY_PATH))
+
+
+def run_project_command(args):
+    if not args or args[0] in ("help", "--help", "-h"):
+        print("Usage: lisa project <list|add PATH|use ID|NAME|remove ID>")
+        return
+    executor = _project_executor()
+    action = args[0].lower()
+    if action in ("list", "ls"):
+        result = executor.execute(ProjectRequest(operation=ProjectOperation.LIST))
+        if not result.manifests:
+            print("No registered projects. Add one with: lisa project add <path>")
+            return
+        print("Registered L.I.S.A. projects:")
+        for item in result.manifests:
+            active = "*" if result.context and result.context.project_id == item.project_id else " "
+            tech = ", ".join(item.capabilities) or "unknown stack"
+            print(f" {active} {item.name}  [{item.project_id}]  {tech}")
+            print(f"    {item.root_path}")
+        return
+    if action == "add" and len(args) >= 2:
+        result = executor.execute(ProjectRequest(
+            operation=ProjectOperation.REGISTER, path=" ".join(args[1:])
+        ))
+        if not result.success:
+            print(f"Project registration failed: {result.error}")
+        else:
+            print(f"Registered {result.manifest.name} [{result.manifest.project_id}]")
+            print(f"Path: {result.manifest.root_path}")
+        return
+    if action in ("use", "activate") and len(args) >= 2:
+        identifier = " ".join(args[1:])
+        listing = executor.execute(ProjectRequest(operation=ProjectOperation.LIST))
+        matches = [p for p in listing.manifests if p.project_id == identifier or p.name.casefold() == identifier.casefold()]
+        if len(matches) != 1:
+            print("Project not found or name is ambiguous. Use 'lisa project list' to see project IDs.")
+            return
+        result = executor.execute(ProjectRequest(
+            operation=ProjectOperation.ACTIVATE, project_id=matches[0].project_id
+        ))
+        if result.success:
+            print(f"Active project set to {result.manifest.name}. Start with: lisa")
+        else:
+            print(f"Could not activate project: {result.error}")
+        return
+    if action in ("remove", "unregister") and len(args) >= 2:
+        identifier = " ".join(args[1:])
+        result = executor.execute(ProjectRequest(
+            operation=ProjectOperation.UNREGISTER, project_id=identifier
+        ))
+        print("Project unregistered." if result.success else f"Could not unregister project: {result.error}")
+        return
+    print("Invalid project command. Use: lisa project help")
 
 def print_help():
     print("🤖 L.I.S.A. AI Engineering Operating System CLI (v1.1.0)")
@@ -30,6 +91,10 @@ def print_help():
     print("  <path>                 Run interactive AI engineering session on target project directory.")
     print("  doctor [path]          Run platform health diagnostics, architecture & performance gate checks.")
     print("  compare [path]         Analyze historical benchmark flight logs and throughput performance trends.")
+    print("  project list           List registered projects.")
+    print("  project add <path>     Register a project directory.")
+    print("  project use <id|name>  Set the default active project.")
+    print("  project remove <id>    Unregister a project.")
     print("  --help, -h             Display this CLI usage help menu.")
     print("\nExamples:")
     print("  lisa /home/user/development/projects/extro_pos")
@@ -129,12 +194,24 @@ async def main():
         target = sys.argv[2] if len(sys.argv) > 2 else os.getcwd()
         await run_doctor(target)
         return
+    elif len(sys.argv) > 1 and sys.argv[1] == "project":
+        run_project_command(sys.argv[2:])
+        return
+    elif len(sys.argv) > 1 and sys.argv[1] == "projects":
+        run_project_command(["list"])
+        return
     elif len(sys.argv) > 1 and sys.argv[1] == "compare":
         target = sys.argv[2] if len(sys.argv) > 2 else os.getcwd()
         await run_benchmark_compare(target)
         return
 
     target_dir = sys.argv[1] if len(sys.argv) > 1 else None
+    if target_dir is None:
+        active = _project_executor().execute(
+            ProjectRequest(operation=ProjectOperation.LIST)
+        ).context
+        if active is not None:
+            target_dir = active.root_path
     await start_repl(target_dir)
 
 def cli_entrypoint():

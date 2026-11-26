@@ -34,6 +34,17 @@ class TestInputBoundaryClassifier(unittest.TestCase):
         self.assertEqual(res.input_class, InputClass.PATH_INPUT)
         self.assertEqual(res.target, "/workspace/Projects/retails")
 
+    def test_project_management_command_is_direct(self):
+        res = InputBoundaryClassifier.classify("project add /tmp/example")
+        self.assertEqual(res.input_class, InputClass.DIRECT_COMMAND)
+        self.assertEqual(res.command, "project")
+        self.assertEqual(res.target, "add /tmp/example")
+
+    def test_projects_literal_command_is_direct(self):
+        res = InputBoundaryClassifier.classify("projects")
+        self.assertEqual(res.input_class, InputClass.DIRECT_COMMAND)
+        self.assertEqual(res.command, "projects")
+
 
 if __name__ == "__main__":
     unittest.main()
