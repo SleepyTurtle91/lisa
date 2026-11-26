@@ -37,12 +37,15 @@ class ProjectExecutionLedger:
     def _sha256(value):
         return hashlib.sha256(value).hexdigest()
 
-    def _ensure_state_dir(self):
+    def _assert_state_dir_safe(self):
         cursor = self._state_dir_input
         while cursor != cursor.parent:
             if cursor.is_symlink():
                 raise ValueError("Execution state path must not contain symlinks.")
             cursor = cursor.parent
+
+    def _ensure_state_dir(self):
+        self._assert_state_dir_safe()
         self._state_dir.mkdir(parents=True, exist_ok=True)
         if not self._state_dir.is_dir():
             raise ValueError("Execution state path is not a directory.")
@@ -134,6 +137,7 @@ class ProjectExecutionLedger:
     def verify(self):
         """Verify sequence, hash chain, HMAC, and authenticated head checkpoint."""
         try:
+            self._assert_state_dir_safe()
             artifacts = (self._ledger_path.exists(), self._key_path.exists(), self._head_path.exists())
             if not any(artifacts):
                 return {"success": True, "status": "not_initialized", "event_count": 0, "events": []}
