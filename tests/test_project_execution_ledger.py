@@ -84,7 +84,7 @@ class TestProjectExecutionLedger(unittest.TestCase):
         path = self.state / ".ledger.head"
         head = json.loads(path.read_text(encoding="utf-8"))
         head["sequence"] = 99
-        path.write_text(json.dumps(head) + "\\n", encoding="utf-8")
+        path.write_text(json.dumps(head) + "\n", encoding="utf-8")
         result = self.ledger.verify()
         self.assertFalse(result["success"])
         self.assertIn("head checkpoint authentication failed", result["error"])
