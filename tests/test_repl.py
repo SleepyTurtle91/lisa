@@ -34,6 +34,16 @@ class TestReplFunctionality(unittest.TestCase):
             missing = Path(temp_dir) / "does-not-exist"
             self.assertEqual(scan_common_projects([missing]), [])
 
+    def test_scan_common_projects_supports_configured_roots(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            workspace = Path(temp_dir) / "custom-workspace"
+            project = workspace / "configured-project"
+            project.mkdir(parents=True)
+            (project / "AGENTS.md").write_text("# Project", encoding="utf-8")
+
+            with patch.dict("os.environ", {"LISA_PROJECTS_DIRS": str(workspace)}):
+                self.assertEqual(scan_common_projects(), [str(project.resolve())])
+
 
 if __name__ == "__main__":
     unittest.main()
