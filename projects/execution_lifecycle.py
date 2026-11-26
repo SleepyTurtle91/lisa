@@ -237,6 +237,10 @@ class ProjectExecutionLifecycle:
                 if latest_hash not in (after_hash, before_hash):
                     raise ValueError(f"Target file changed during rollback; refusing write: {relative.as_posix()}")
                 if latest_hash == before_hash:
+                    if before_hash is None:
+                        # A file created by this execution is already absent.
+                        restored.append(relative.as_posix())
+                        continue
                     if backup_mode is None or not isinstance(backup_mode, int) or backup_mode < 0 or backup_mode > 0o7777:
                         raise ValueError(f"Backup permission mode is invalid: {relative.as_posix()}")
                     self._restore_mode_without_following_symlink(
