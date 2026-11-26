@@ -35,6 +35,7 @@ from lisa.projects.execution_executor import ProjectExecutionExecutor
 from lisa.projects.execution_lifecycle import ProjectExecutionLifecycle
 from lisa.projects.execution_history import ProjectExecutionHistory
 from lisa.projects.execution_ledger import ProjectExecutionLedger
+from lisa.projects.execution_recovery import ProjectExecutionRecovery
 
 PROJECT_REGISTRY_PATH = Path.home() / ".lisa" / "projects.json"
 PROJECT_EXECUTION_STATE_PATH = Path.home() / ".lisa" / "executions"
@@ -107,6 +108,55 @@ def run_project_command(args):
             return
         print(f"Legacy execution snapshots imported: {result['imported']}")
         print("Imported snapshots are anchored from migration time only; prior history is not authenticated.")
+        return
+
+    if action == "recover":
+        recovery = ProjectExecutionRecovery(
+            ProjectRegistry(storage_path=PROJECT_REGISTRY_PATH),
+            state_dir=PROJECT_EXECUTION_STATE_PATH,
+        )
+        if len(args) == 1:
+            try:
+                pending = recovery.list_pending()
+            except Exception as exc:
+                print(f"Interrupted execution scan failed: {exc}")
+                return
+            if not pending:
+                print("No interrupted executions require recovery.")
+                return
+            print("Interrupted executions (recovery rolls back to the exact pre-execution state):")
+            for item in pending:
+                print(
+                    f"{item['execution_id']} | {item['status']} | "
+                    f"{item['file_count']} files | {item.get('created_at') or 'unknown'}"
+                )
+            print("Review one execution with: lisa project recover <execution-id>")
+            return
+        if len(args) != 2:
+            print("Usage: lisa project recover [<execution-id>]")
+            return
+        try:
+            digest = recovery.preview_digest(args[1])
+        except Exception as exc:
+            print(f"Recovery preview failed: {exc}")
+            return
+        print(f"Execution: {args[1]}")
+        print("L.I.S.A. will restore every affected file to its verified pre-execution state.")
+        print("Recovery is refused if any target file has an unknown later version.")
+        try:
+            confirmation = input(f"Type exactly 'RECOVER {digest}' to authorize rollback: ").strip()
+        except (KeyboardInterrupt, EOFError):
+            print("Execution recovery cancelled.")
+            return
+        result = recovery.recover(args[1], confirmation)
+        if not result["success"]:
+            print(f"Execution recovery refused or failed: {result['error']}")
+            return
+        print(f"Interrupted execution recovered and rolled back: {result['execution_id']}")
+        for path in result["restored_files"]:
+            print(f"Restored: {path}")
+        if result.get("ledger_warning"):
+            print(f"WARNING: target recovery completed but ledger append failed: {result['ledger_warning']}")
         return
 
     if action == "history":
