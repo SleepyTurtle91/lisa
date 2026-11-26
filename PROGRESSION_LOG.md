@@ -1297,3 +1297,8 @@ Key per-case results:
 - Recovery validates the pending snapshot against the authenticated ledger intent, completes interrupted rollback/validation commits, and removes stale pending records only when the ledger already authenticates the current audit.
 - Added regression coverage for interruptions during rollback-completion and validation-record ledger appends.
 - Full CPI and Architecture & Integration CI rerun pending on the updated implementation.
+
+
+### CI confirmation
+- Both `architecture-integration` and `cpi-contracts` jobs passed on the updated lifecycle recovery implementation.
+- [GitHub Actions run 45793771174](https://github.com/SleepyTurtle91/lisa/actions/runs/45793771174)
