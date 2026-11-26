@@ -78,7 +78,7 @@ class TestProjectProfile(unittest.TestCase):
 
         suffixes = {
             ".cs": "csharp", ".swift": "swift", ".php": "php", ".rb": "ruby",
-            ".cpp": "cpp", ".hpp": "cpp", ".c": "c", ".h": "c",
+            ".cpp": "cpp", ".hpp": "cpp", ".c": "c",
             ".scala": "scala", ".sql": "sql",
         }
         source_dir = self.project / "languages"
@@ -91,6 +91,16 @@ class TestProjectProfile(unittest.TestCase):
         for technology in set(suffixes.values()):
             with self.subTest(technology=technology):
                 self.assertIn(technology, result.profile.technologies)
+
+    def test_header_only_h_files_do_not_claim_c_or_cpp(self):
+        header = self.project / "languages" / "ambiguous.h"
+        header.parent.mkdir()
+        header.write_text("struct SharedHeader {};", encoding="utf-8")
+
+        result = self.executor.execute(ProjectProfileRequest(project_id=self.project_id))
+        self.assertTrue(result.success, result.error)
+        self.assertNotIn("c", result.profile.technologies)
+        self.assertNotIn("cpp", result.profile.technologies)
 
     def test_redacts_quoted_json_secret_properties(self):
         from lisa.projects.indexer import ProjectProfileIndexer
