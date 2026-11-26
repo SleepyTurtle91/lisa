@@ -32,6 +32,7 @@ from lisa.projects.adaptation_planner import ProjectAdaptationPlanner
 from lisa.projects.adaptation_request import ProjectAdaptationRequest
 from lisa.projects.execution import ExecutionChange, ProjectExecutionRequest
 from lisa.projects.execution_executor import ProjectExecutionExecutor
+from lisa.projects.execution_lifecycle import ProjectExecutionLifecycle
 
 PROJECT_REGISTRY_PATH = Path.home() / ".lisa" / "projects.json"
 PROJECT_EXECUTION_STATE_PATH = Path.home() / ".lisa" / "executions"
@@ -59,6 +60,78 @@ def run_project_command(args):
             print(f" {active} {item.name}  [{item.project_id}]  {tech}")
             print(f"    {item.root_path}")
         return
+    if action == "rollback" and len(args) == 2:
+        registry = ProjectRegistry(storage_path=PROJECT_REGISTRY_PATH)
+        lifecycle = ProjectExecutionLifecycle(registry, state_dir=PROJECT_EXECUTION_STATE_PATH)
+        try:
+            digest = lifecycle.preview_rollback_digest(args[1])
+        except Exception as exc:
+            print(f"Rollback preview failed: {exc}")
+            return
+        print(f"Execution: {args[1]}")
+        print("L.I.S.A. will restore the exact pre-execution bytes from verified backups.")
+        print("Rollback is refused if any affected target file has changed independently.")
+        try:
+            confirmation = input(f"Type exactly 'ROLLBACK {digest}' to authorize recovery: ").strip()
+        except (KeyboardInterrupt, EOFError):
+            print("Rollback cancelled.")
+            return
+        result = lifecycle.rollback(args[1], confirmation)
+        if not result["success"]:
+            print(f"Rollback refused or failed: {result['error']}")
+            return
+        print(f"Rollback completed: {result['execution_id']}")
+        for path in result["restored_files"]:
+            print(f"Restored: {path}")
+        return
+
+    if action == "validate" and len(args) >= 2:
+        options = {}
+        index = 2
+        allowed = {"--status", "--command", "--summary", "--evidence"}
+        while index < len(args):
+            key = args[index]
+            if key not in allowed or index + 1 >= len(args) or key in options:
+                print("Usage: lisa project validate <execution-id> --status passed|failed --command <description> --summary <result> [--evidence <relative-report-path>]")
+                return
+            options[key] = args[index + 1]
+            index += 2
+        if not all(key in options for key in ("--status", "--command", "--summary")):
+            print("Validation requires --status, --command, and --summary.")
+            return
+        registry = ProjectRegistry(storage_path=PROJECT_REGISTRY_PATH)
+        lifecycle = ProjectExecutionLifecycle(registry, state_dir=PROJECT_EXECUTION_STATE_PATH)
+        try:
+            digest = lifecycle.preview_validation_digest(
+                args[1], options["--status"], options["--command"],
+                options["--summary"], options.get("--evidence"),
+            )
+        except Exception as exc:
+            print(f"Validation preview failed: {exc}")
+            return
+        print(f"Execution: {args[1]}")
+        print(f"Reported test status: {options['--status']}")
+        print(f"Test command/description: {options['--command']}")
+        print(f"Summary: {options['--summary']}")
+        print(f"Evidence file: {options.get('--evidence', '(not supplied; summary only)')}")
+        print("L.I.S.A. will record your attestation; it will not run or independently verify the tests.")
+        try:
+            confirmation = input(f"Type exactly 'RECORD {digest}' to record this validation: ").strip()
+        except (KeyboardInterrupt, EOFError):
+            print("Validation recording cancelled.")
+            return
+        result = lifecycle.record_validation(
+            args[1], options["--status"], options["--command"],
+            options["--summary"], confirmation, options.get("--evidence"),
+        )
+        if not result["success"]:
+            print(f"Validation record refused or failed: {result['error']}")
+            return
+        print(f"Validation recorded: {result['status']}")
+        print(f"Record: {result['validation_path']}")
+        print("This is operator-reported evidence, not an independently verified test result.")
+        return
+
     if action == "apply" and len(args) >= 6 and "--patch" in args:
         patch_index = args.index("--patch")
         if patch_index < 4 or patch_index != len(args) - 2:
@@ -303,6 +376,8 @@ def print_help():
     print("  project compare <source-id> <target-id> [terms]  Triage reuse compatibility.")
     print("  project plan <source-id> <target-id> <terms>  Create a review-only adaptation plan.")
     print("  project apply <source-id> <target-id> <terms> --patch <patch.json>  Apply an explicitly approved patch.")
+    print("  project rollback <execution-id>  Restore verified pre-execution files with explicit approval.")
+    print("  project validate <execution-id> --status passed|failed --command <text> --summary <text> [--evidence <path>]  Record operator-reported regression evidence.")
     print("  project add <path>     Register a project directory.")
     print("  project use <id|name>  Set the default active project.")
     print("  project remove <id>    Unregister a project.")
