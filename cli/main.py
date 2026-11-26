@@ -158,7 +158,10 @@ def run_project_command(args):
             print(f"Execution refused or failed: {result.error}")
             return
         print(f"Execution completed: {result.execution_id}")
-        print(f"Changed files: {', '.join(result.changed_files)}")
+        safe_changed_files = ", ".join(
+            _escape_terminal_controls(path) for path in result.changed_files
+        )
+        print(f"Changed files: {safe_changed_files}")
         print(f"Backup directory: {result.backup_directory}")
         print(f"Audit record: {result.audit_path}")
         print("VALIDATION REQUIRED: run the target project's regression suite before accepting this adaptation.")
