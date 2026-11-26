@@ -23,6 +23,8 @@ from lisa.projects.profile_executor import ProjectProfileExecutor
 from lisa.projects.profile_request import ProjectProfileRequest
 from lisa.projects.capability_discovery import CapabilityDiscoveryExecutor
 from lisa.projects.capability_request import CapabilityDiscoveryRequest
+from lisa.projects.compatibility_executor import ProjectCompatibilityExecutor
+from lisa.projects.compatibility_request import ProjectCompatibilityRequest
 
 CONFIG_DIR = Path.home() / ".lisa"
 RECENT_FILE = CONFIG_DIR / "recent.json"
@@ -322,6 +324,7 @@ async def start_repl(target_dir: Optional[str] = None):
             print("  project remove <id>  Unregister a project")
             print("  project inspect <id|name>  Build a read-only project profile")
             print("  project find <terms>  Search registered projects for capability evidence")
+            print("  project compare <source-id> <target-id> [terms]  Triage reuse compatibility")
             print("  exit / quit    Exit REPL session\n")
         classified = InputBoundaryClassifier.classify(user_input, project_path=target_dir)
 
@@ -359,6 +362,35 @@ async def start_repl(target_dir: Optional[str] = None):
                     for item in result.manifests:
                         active = "*" if result.context and result.context.project_id == item.project_id else " "
                         print(f" {active} {item.name} [{item.project_id}] - {item.root_path}")
+                elif action in ("compare", "compatibility") and len(parts) >= 3:
+                    source = _project_identifier(project_executor, parts[1])
+                    target = _project_identifier(project_executor, parts[2])
+                    if source is None or target is None:
+                        print("Source or target not found/ambiguous. Use 'projects' to list IDs.")
+                    else:
+                        query = " ".join(parts[3:]).strip() or None
+                        compared = ProjectCompatibilityExecutor(
+                            registry=ProjectRegistry(storage_path=PROJECT_REGISTRY_FILE)
+                        ).execute(ProjectCompatibilityRequest(
+                            source_project_id=source.project_id,
+                            target_project_id=target.project_id,
+                            capability_query=query,
+                        ))
+                        if not compared.success:
+                            print(f"Compatibility analysis failed: {compared.error}")
+                        else:
+                            report = compared.report
+                            print(f"\nCompatibility triage: {report.source_project_name} -> {report.target_project_name}")
+                            print(f"Status: {report.status.value}")
+                            print(f"Shared technologies: {', '.join(report.shared_technologies) or '(none)'}")
+                            if report.capability_query:
+                                print(f"Capability query: {report.capability_query} (found: {report.source_capability_found})")
+                                print(f"Matched terms: {', '.join(report.matched_terms) or '(none)'}")
+                            for flag in report.risk_flags:
+                                print(f"Risk: {flag}")
+                            for constraint in report.constraints:
+                                print(f"Constraint [{constraint.project_role}] {constraint.relative_path}: {constraint.excerpt}")
+                            print("No code was transferred or modified. Review the evidence before planning an adaptation.\n")
                 elif action in ("find", "search") and value:
                     discovery = CapabilityDiscoveryExecutor(
                         registry=ProjectRegistry(storage_path=PROJECT_REGISTRY_FILE)
@@ -416,7 +448,7 @@ async def start_repl(target_dir: Optional[str] = None):
                         ))
                         print("Project unregistered." if removed.success else f"Unregister failed: {removed.error}")
                 else:
-                    print("Usage: project add <path> | project list | project inspect <id|name> | project find <terms> | project use <id|name> | project remove <id>")
+                    print("Usage: project add <path> | project list | project inspect <id|name> | project find <terms> | project compare <source-id> <target-id> [terms] | project use <id|name> | project remove <id>")
             elif cmd == "switch":
                 await runtime.shutdown()
                 print("\nSwitching project...")

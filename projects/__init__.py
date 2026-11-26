@@ -4,6 +4,10 @@ from lisa.projects.capability import CapabilityEvidence, CapabilityMatch
 from lisa.projects.capability_discovery import CapabilityDiscoveryExecutor
 from lisa.projects.capability_request import CapabilityDiscoveryRequest
 from lisa.projects.capability_result import CapabilityDiscoveryResult
+from lisa.projects.compatibility import CompatibilityStatus, ProjectCompatibilityReport, ProjectConstraint
+from lisa.projects.compatibility_executor import ProjectCompatibilityExecutor
+from lisa.projects.compatibility_request import ProjectCompatibilityRequest
+from lisa.projects.compatibility_result import ProjectCompatibilityResult
 from lisa.projects.context import ProjectContext
 from lisa.projects.executor import ProjectExecutor
 from lisa.projects.manifest import ProjectManifest
@@ -20,6 +24,9 @@ from lisa.projects.state import ProjectState
 __all__ = [
     "CapabilityDiscoveryExecutor", "CapabilityDiscoveryRequest",
     "CapabilityDiscoveryResult", "CapabilityEvidence", "CapabilityMatch",
+    "CompatibilityStatus", "ProjectCompatibilityExecutor",
+    "ProjectCompatibilityReport", "ProjectCompatibilityRequest",
+    "ProjectCompatibilityResult", "ProjectConstraint",
     "ProjectContext", "ProjectEvidence", "ProjectExecutor", "ProjectManifest",
     "ProjectOperation", "ProjectProfile", "ProjectProfileExecutor",
     "ProjectProfileRequest", "ProjectProfileResult", "ProjectRegistry",
