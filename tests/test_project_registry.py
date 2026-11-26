@@ -140,6 +140,7 @@ class TestProjectRegistry(unittest.TestCase):
     def test_activation_rejects_project_that_has_disappeared(self):
         project = self.make_project("vanishing")
         registered = self.register(project)
+        (project / "README.md").unlink()
         project.rmdir()
         result = self.executor.execute(
             ProjectRequest(
