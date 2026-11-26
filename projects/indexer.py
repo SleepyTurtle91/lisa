@@ -41,7 +41,7 @@ class ProjectProfileIndexer:
     }
 
     SECRET_ASSIGNMENT = re.compile(
-        r'''(?im)(["']?\b(?:api[_-]?key|client[_-]?secret|access[_-]?token|refresh[_-]?token|password|passwd|secret|private[_-]?key)\b["']?\s*[:=]\s*)(?:"(?:\\\\.|[^"\\\\])*"|'(?:\\\\.|[^'\\\\])*'|[^\s,;]+)'''
+        r'''(?im)(["']?\b(?:api[_-]?key|client[_-]?secret|access[_-]?token|refresh[_-]?token|password|passwd|secret|private[_-]?key)\b["']?\s*[:=]\s*)(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[^\s,;]+)'''
     )
     NON_TECHNICAL_CAPABILITIES: Set[str] = {"git", "hg", "svn", "vcs"}
     PRIVATE_KEY_BLOCK = re.compile(
