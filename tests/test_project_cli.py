@@ -11,6 +11,11 @@ from lisa.cli import main as lisa_main
 
 
 class TestProjectCLI(unittest.TestCase):
+    def test_execution_preview_escapes_terminal_control_characters(self):
+        raw = "name\\x1b[2J\\r\\nnext\\tline"
+        visible = lisa_main._escape_terminal_controls(raw)
+        self.assertEqual(visible, "name\\\\x1b[2J\\\\x0d\\nnext\\\\x09line")
+        self.assertNotIn("\\x1b", visible)
     def _with_registry(self, root):
         original = lisa_main.PROJECT_REGISTRY_PATH
         lisa_main.PROJECT_REGISTRY_PATH = root / ".lisa" / "projects.json"
