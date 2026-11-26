@@ -32,6 +32,39 @@ class TestProjectCLI(unittest.TestCase):
             finally:
                 lisa_main.PROJECT_REGISTRY_PATH = original_path
 
+    def test_project_compare_command_prints_compatibility_evidence(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            source = root / "Source"
+            target = root / "Target"
+            source.mkdir()
+            target.mkdir()
+            (source / "README.md").write_text(
+                "# Inventory\nInventory supports stocktake.", encoding="utf-8"
+            )
+            (source / "settings.gradle.kts").write_text('include(":app")', encoding="utf-8")
+            (target / "README.md").write_text(
+                "# Target\nCore must not depend on Feature. Use BigDecimal for money.",
+                encoding="utf-8",
+            )
+            (target / "settings.gradle.kts").write_text('include(":app")', encoding="utf-8")
+
+            original_path = lisa_main.PROJECT_REGISTRY_PATH
+            lisa_main.PROJECT_REGISTRY_PATH = root / ".lisa" / "projects.json"
+            try:
+                lisa_main.run_project_command(["add", str(source)])
+                lisa_main.run_project_command(["add", str(target)])
+                output = io.StringIO()
+                with redirect_stdout(output):
+                    lisa_main.run_project_command([
+                        "compare", source.name, target.name, "inventory", "stocktake"
+                    ])
+                self.assertIn("potential_reuse", output.getvalue())
+                self.assertIn("BigDecimal", output.getvalue())
+                self.assertIn("No code was transferred", output.getvalue())
+            finally:
+                lisa_main.PROJECT_REGISTRY_PATH = original_path
+
     def test_add_use_and_list_commands_persist_project_selection(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

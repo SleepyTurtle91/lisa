@@ -46,8 +46,9 @@ class TestProjectRegistry(unittest.TestCase):
         self.assertTrue(result.success, result.error)
         self.assertEqual(result.manifest.name, "flashpos")
         self.assertEqual(result.manifest.root_path, str(project.resolve()))
-        self.assertIn("java", result.manifest.capabilities)
+        self.assertIn("gradle", result.manifest.capabilities)
         self.assertIn("kotlin", result.manifest.capabilities)
+        self.assertNotIn("java", result.manifest.capabilities)
         self.assertTrue(result.manifest.project_id.startswith("prj_"))
 
     def test_registration_is_idempotent_for_same_project(self):

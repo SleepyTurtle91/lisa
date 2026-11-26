@@ -61,6 +61,13 @@ class ProjectCompatibilityExecutor:
             return ProjectCompatibilityResult(success=False, error="A source project ID is required.")
         if not isinstance(request.target_project_id, str) or not request.target_project_id.strip():
             return ProjectCompatibilityResult(success=False, error="A target project ID is required.")
+        if request.capability_query is not None and (
+            not isinstance(request.capability_query, str)
+            or not request.capability_query.strip()
+        ):
+            return ProjectCompatibilityResult(
+                success=False, error="capability_query must be non-empty when supplied."
+            )
         if request.source_project_id == request.target_project_id:
             return ProjectCompatibilityResult(
                 success=False, error="Source and target projects must be different."

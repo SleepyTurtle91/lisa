@@ -100,8 +100,14 @@ class TestProjectCompatibility(unittest.TestCase):
             source_project_id=self.source_id,
             target_project_id=self.source_id,
         ))
+        blank_query = self.executor.execute(ProjectCompatibilityRequest(
+            source_project_id=self.source_id,
+            target_project_id=self.target_id,
+            capability_query="   ",
+        ))
         self.assertFalse(unknown.success)
         self.assertFalse(same.success)
+        self.assertFalse(blank_query.success)
 
 
 if __name__ == "__main__":
