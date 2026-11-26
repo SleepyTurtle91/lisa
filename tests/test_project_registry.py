@@ -67,7 +67,7 @@ class TestProjectRegistry(unittest.TestCase):
 
         project = self.root / "git_only"
         project.mkdir()
-        (project / ".git").write_text("gitdir: metadata\\n", encoding="utf-8")
+        (project / ".git").write_text("gitdir: metadata\n", encoding="utf-8")
         manifest = ProjectResolver().resolve(str(project))
         self.assertIn(".git", manifest.markers)
         self.assertNotIn("git", manifest.capabilities)
