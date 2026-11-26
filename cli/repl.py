@@ -241,14 +241,20 @@ def render_computer_boot_sequence(proj_name: str):
         time.sleep(0.03)
     print()
 
-async def start_repl(target_dir: Optional[str] = None):
+def _active_project_target(project_executor, force_select: bool = False) -> Optional[str]:
+    """Return the active project path unless the operator explicitly requests selection."""
+    if force_select:
+        return None
+    active_context = project_executor.execute(
+        ProjectRequest(operation=ProjectOperation.LIST)
+    ).context
+    return active_context.root_path if active_context is not None else None
+
+
+async def start_repl(target_dir: Optional[str] = None, force_select: bool = False):
     project_executor = _project_executor()
     if not target_dir:
-        active_context = project_executor.execute(
-            ProjectRequest(operation=ProjectOperation.LIST)
-        ).context
-        if active_context is not None:
-            target_dir = active_context.root_path
+        target_dir = _active_project_target(project_executor, force_select=force_select)
     if not target_dir:
         target_dir = prompt_project_selection()
         if not target_dir:
@@ -519,7 +525,7 @@ async def start_repl(target_dir: Optional[str] = None):
             elif cmd == "switch":
                 await runtime.shutdown()
                 print("\nSwitching project...")
-                await start_repl(None)
+                await start_repl(None, force_select=True)
                 return
             elif cmd == "summarize boot":
                 prompt = f"Please read {target_dir}/BOOT.md and summarize the active milestone."

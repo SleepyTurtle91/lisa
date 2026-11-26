@@ -1413,9 +1413,8 @@ Evaluated `QuestionDrivenInvestigationEngine` (`benchmarks/ne_018_2_investigatio
 CPI-01 now has an operator-facing registry workflow and persistent local project selection. This is a foundation for project isolation, not evidence that L.I.S.A. can yet understand or safely transfer features between projects.
 
 **Open validation questions**:
-1. Does the new registry test suite pass in the repository's supported Python environment?
-2. Does CLI command classification preserve natural-language routing for compound prompts?
-3. Does the CI baseline fail independently because of the existing hard-coded test paths and provider health assumptions?
+1. Do the follow-up CPI and full-suite workflows pass with the new precision, ambiguity, and tokenization regressions?
+2. Does independent review confirm the follow-up fixes?
 
 
 
@@ -1535,3 +1534,46 @@ The CPI workflow now reaches a reviewable proposal stage. It still does not prov
 
 **Interpretation**:
 The adaptation plan preview is evidence-bearing and review-only. It cannot apply itself, and it does not authorize target changes.
+
+
+---
+
+## 🧪 CPI Foundation Review Remediation — Implementation Checkpoint
+
+**Date**: 2026-11-26
+
+**Observed source-review findings**:
+- Project resolution did not recognize CMakeLists.txt or Makefile as project markers.
+- The Git marker was exposed as a technology capability, which could create false compatibility signals.
+- The profiler inventoried multiple source suffixes without mapping all of them to technology markers.
+- Quoted JSON secret properties were not covered by the excerpt redaction expression.
+- Underscore-separated capability aliases were tokenized differently from indexed evidence, causing false negatives.
+- Natural-language requests beginning with `project` could be intercepted as management commands.
+- The REPL switch path restored the active project before reaching project selection.
+
+**Implementation changes on remediation branch**:
+- Added CMake/Makefile project recognition and removed VCS markers from technology capabilities.
+- Added technology mappings for C#, Swift, PHP, Ruby, C/C++, Scala, and SQL source suffixes already inventoried by the profiler.
+- Extended secret assignment redaction to quoted JSON property names.
+- Applied the same tokenizer to capability aliases and evidence attribution.
+- Follow-up review found that the one-character `e` in `e_invoice` was discarded, allowing generic invoice evidence to match e-invoice queries. Added explicit e-invoice canonicalization so generic invoice evidence does not satisfy an e-invoice request.
+- Follow-up review found that `.h` headers are ambiguous between C and C++; stopped assigning them to C while retaining explicit `.c`, `.cpp`, and `.hpp` mappings.
+- Tokenized each evidence excerpt once during attribution rather than re-tokenizing it for every matched query term.
+- Restricted direct `project` classification to recognized subcommands.
+- Added an explicit force-selection path for REPL project switching.
+- Added focused regression tests for these cases.
+
+**Evidence classification**:
+- `FILE_FACT`: implementation and regression-test changes are present on `fix/cpi-foundation-review-findings`.
+- `EXECUTION_FACT`: PR #11 CPI Contract CI run [45781061502](https://github.com/SleepyTurtle91/lisa/actions/runs/45781061502) passed 38/38 project/CLI/profile/discovery/compatibility/adaptation tests, 8/8 input-classifier tests, and 6/6 REPL tests. The standalone REPL test module now adds the repository package root to `sys.path`, matching the other focused test modules.
+- Full Architecture & Integration CI run [45781061546](https://github.com/SleepyTurtle91/lisa/actions/runs/45781061546) passed the architecture/unit test command (155 tests) and integration tests (1/1).
+- Follow-up review remediation CI run [45783256245](https://github.com/SleepyTurtle91/lisa/actions/runs/45783256245) passed 41/41 project/CLI/profile/discovery/compatibility/adaptation tests, 8/8 input-classifier tests, and 6/6 REPL tests.
+- Full Architecture & Integration CI run [45783256096](https://github.com/SleepyTurtle91/lisa/actions/runs/45783256096) passed 158/158 architecture/unit tests and 1/1 integration test.
+- The first attempt to add the REPL test module to CPI CI exposed a pre-existing standalone import-path defect on the foundation branch ([run 45780929209](https://github.com/SleepyTurtle91/lisa/actions/runs/45780929209)). The package-root `sys.path` setup was added to the foundation branch and carried into this remediation branch; the final focused run above passes.
+
+**Interpretation**:
+These changes address the reviewed failure modes at the CPI foundation boundary. The result remains a deterministic lexical project inventory and capability discovery system; it does not establish semantic equivalence or authorize project modification.
+
+**Remaining validation questions**:
+1. Does independent review confirm the follow-up fixes for e-invoice precision, ambiguous C/C++ headers, and evidence tokenization?
+2. Are there any further compatibility-profile false-positive cases that require conservative treatment?

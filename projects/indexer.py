@@ -41,7 +41,7 @@ class ProjectProfileIndexer:
     }
 
     SECRET_ASSIGNMENT = re.compile(
-        r'''(?im)(\b(?:api[_-]?key|client[_-]?secret|access[_-]?token|refresh[_-]?token|password|passwd|secret|private[_-]?key)\b\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;]+)'''
+        r'''(?im)(["']?\b(?:api[_-]?key|client[_-]?secret|access[_-]?token|refresh[_-]?token|password|passwd|secret|private[_-]?key)\b["']?\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;]+)'''
     )
     PRIVATE_KEY_BLOCK = re.compile(
         r"-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----",
@@ -133,6 +133,22 @@ class ProjectProfileIndexer:
                     technologies.add("go")
                 elif suffix == ".java":
                     technologies.add("java")
+                elif suffix == ".cs":
+                    technologies.add("csharp")
+                elif suffix == ".swift":
+                    technologies.add("swift")
+                elif suffix == ".php":
+                    technologies.add("php")
+                elif suffix == ".rb":
+                    technologies.add("ruby")
+                elif suffix in (".cpp", ".hpp"):
+                    technologies.add("cpp")
+                elif suffix == ".c":
+                    technologies.add("c")
+                elif suffix == ".scala":
+                    technologies.add("scala")
+                elif suffix == ".sql":
+                    technologies.add("sql")
 
             if name == "AndroidManifest.xml":
                 technologies.add("android")

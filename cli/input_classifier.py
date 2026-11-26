@@ -33,6 +33,11 @@ class InputBoundaryClassifier:
     """Classifies user input deterministically to prevent REPL prefix hijacking."""
 
     LITERAL_COMMANDS = {"help", "doctor", "compare", "switch", "exit", "quit", "list", "ls", "dir", "projects"}
+    PROJECT_SUBCOMMANDS = {
+        "add", "list", "ls", "use", "activate", "remove", "unregister",
+        "inspect", "profile", "find", "search", "compare", "compatibility",
+        "plan", "apply", "help",
+    }
 
     @classmethod
     def classify(cls, raw_input: str, project_path: Optional[str] = None) -> ClassificationResult:
@@ -48,7 +53,11 @@ class InputBoundaryClassifier:
             return ClassificationResult(InputClass.DIRECT_COMMAND, text_lower, None, text)
 
         # 2. Project management commands are deterministic CLI input.
-        if words[0].lower() == "project" and len(words) >= 2:
+        if (
+            words[0].lower() == "project"
+            and len(words) >= 2
+            and words[1].lower() in cls.PROJECT_SUBCOMMANDS
+        ):
             return ClassificationResult(InputClass.DIRECT_COMMAND, "project", " ".join(words[1:]), text)
 
         # 3. Command with Single Short File Target ('read BOOT.md', 'activity compact')

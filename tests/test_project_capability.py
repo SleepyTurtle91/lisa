@@ -60,6 +60,47 @@ class TestCapabilityDiscovery(unittest.TestCase):
         self.assertTrue(any("stocktake" in path for path in match.source_paths))
         self.assertEqual(match.score, 1.0)
 
+    def test_normalizes_underscore_aliases_for_matching_and_evidence(self):
+        readme = self.source / "README.md"
+        readme.write_text(
+            "# Retail capabilities\nMy_Invois integration supports e-invoice submission.",
+            encoding="utf-8",
+        )
+        result = self.discovery.execute(CapabilityDiscoveryRequest(query="einvoice"))
+        self.assertTrue(result.success, result.error)
+        self.assertEqual([item.project_id for item in result.matches], [self.source_id])
+        self.assertIn("einvoice", result.matches[0].matched_terms)
+        self.assertTrue(any(item.relative_path == "README.md" for item in result.matches[0].evidence))
+
+    def test_generic_invoice_evidence_does_not_match_einvoice_query(self):
+        (self.target / "README.md").write_text(
+            "# Billing\nInvoice history and invoice reports.",
+            encoding="utf-8",
+        )
+        result = self.discovery.execute(CapabilityDiscoveryRequest(query="einvoice"))
+        self.assertTrue(result.success, result.error)
+        self.assertEqual(result.matches, ())
+
+    def test_each_evidence_excerpt_is_tokenized_once_for_multi_term_query(self):
+        class CountingDiscovery(CapabilityDiscoveryExecutor):
+            excerpt_tokenizations = 0
+            expected_excerpt = ""
+
+            @classmethod
+            def _tokens(cls, text):
+                if text == cls.expected_excerpt:
+                    cls.excerpt_tokenizations += 1
+                return super()._tokens(text)
+
+        CountingDiscovery.expected_excerpt = (self.source / "README.md").read_text(encoding="utf-8")
+        counting = CountingDiscovery(
+            registry=self.registry,
+            profile_executor=self.discovery._profiles,
+        )
+        result = counting.execute(CapabilityDiscoveryRequest(query="inventory stocktake"))
+        self.assertTrue(result.success, result.error)
+        self.assertEqual(CountingDiscovery.excerpt_tokenizations, 1)
+
     def test_can_scope_discovery_to_selected_projects(self):
         result = self.discovery.execute(CapabilityDiscoveryRequest(
             query="customer crm", project_ids=(self.target_id,)

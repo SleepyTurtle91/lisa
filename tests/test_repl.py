@@ -6,10 +6,26 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from lisa.cli.repl import add_recent_project, get_recent_projects, scan_common_projects
+from lisa.cli.repl import add_recent_project, get_recent_projects, scan_common_projects, _active_project_target
 
 
 class TestReplFunctionality(unittest.TestCase):
+    def test_explicit_switch_does_not_restore_active_project(self):
+        from unittest.mock import Mock
+
+        executor = Mock()
+        self.assertIsNone(_active_project_target(executor, force_select=True))
+        executor.execute.assert_not_called()
+
+    def test_normal_repl_start_restores_active_project(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+
+        executor = Mock()
+        executor.execute.return_value.context = SimpleNamespace(root_path="/workspace/active")
+        self.assertEqual(_active_project_target(executor), "/workspace/active")
+        executor.execute.assert_called_once()
+
     def test_recent_projects_flow_uses_existing_user_path(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             project = Path(temp_dir) / "sample-project"
