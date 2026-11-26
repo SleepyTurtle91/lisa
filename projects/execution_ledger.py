@@ -9,6 +9,7 @@ import hmac
 import json
 import os
 import secrets
+import stat
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -180,7 +181,7 @@ class ProjectExecutionLedger:
         descriptor = os.open(str(lock_path), flags, 0o600)
         try:
             info = os.fstat(descriptor)
-            if not os.path.isfile(str(lock_path)) or not __import__("stat").S_ISREG(info.st_mode):
+            if not stat.S_ISREG(info.st_mode):
                 raise ValueError("Ledger lock must be a regular file.")
             if os.name == "posix":
                 if info.st_mode & 0o077:
