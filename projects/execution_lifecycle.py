@@ -118,7 +118,6 @@ class ProjectExecutionLifecycle:
         try:
             if not hasattr(os, "fchmod"):
                 raise ValueError("Safe descriptor-based permission restoration is unavailable.")
-            opened_info = os.fstat(descriptor)
             os.fchmod(descriptor, mode)
             entry_info = os.stat(path, follow_symlinks=False)
             current_info = os.fstat(descriptor)
