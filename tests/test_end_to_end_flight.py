@@ -105,7 +105,7 @@ class TestEndToEndFlight(unittest.TestCase):
             runtime.tool_registry.register(ReadFileTool())
 
             ctx = SessionContext(
-                project_path="/home/user/Projects/lisa",
+                project_path=tmpdir,
                 workspace_name="blind_objective_flight",
                 provider_id="end_to_end_flight_provider",
                 model_name="mock-flight",
