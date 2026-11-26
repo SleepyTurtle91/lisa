@@ -155,7 +155,7 @@ def run_project_command(args):
             operator_confirmation=confirmation,
         ))
         if not result.success:
-            print(f"Execution refused or failed: {result.error}")
+            print(f"Execution refused or failed: {_escape_terminal_controls(result.error, preserve_newlines=False)}")
             return
         print(f"Execution completed: {result.execution_id}")
         safe_changed_files = ", ".join(
