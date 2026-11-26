@@ -57,7 +57,10 @@ class ProjectExecutionExecutor:
             "target_project_id": plan.target_project_id,
             "target_root": str(Path(target_root).resolve()),
             "source_evidence": sorted(
-                getattr(item, "sha256", "") for item in plan.source_evidence
+                (item.relative_path, getattr(item, "sha256", "")) for item in plan.source_evidence
+            ),
+            "target_constraints": sorted(
+                (item.relative_path, getattr(item, "sha256", "")) for item in plan.target_constraints
             ),
             "changes": normalized,
         }
