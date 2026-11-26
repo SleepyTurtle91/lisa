@@ -155,3 +155,22 @@ Rollback never overwrites a target file whose current contents are neither the k
 - Validation cannot be recorded after rollback.
 
 These lifecycle operations do not grant permission to run arbitrary target code. They provide controlled recovery and an auditable place to record human-run regression results.
+
+
+## CPI-06.2 execution history and integrity inspection
+
+CPI-06.2 adds read-only history and verification commands:
+
+```text
+lisa project history [--project <project-id>]
+lisa project verify <execution-id>
+```
+
+- History lists execution IDs, source and target project names, timestamps, changed-file counts, lifecycle state, validation state, and integrity status, newest first.
+- The optional project filter matches either the source or target project ID.
+- Malformed execution records remain visible in history as failed-integrity entries rather than silently disappearing.
+- Verification checks execution identity against its approval digest, audit schema, duplicate/path-safe manifests, changed-file/backup manifest agreement, backup SHA-256 values, rollback digest/restoration manifest, and validation-record digest.
+- When a validation report was recorded and the target remains registered, verification rechecks the report file's size and SHA-256 against its captured metadata.
+- Both commands are read-only: they do not edit execution records, project files, backups, or validation evidence.
+
+**Integrity limitation:** these checks establish internal consistency and detect ordinary record/backup/evidence corruption. The current local JSON journal is not digitally signed, append-only, or tamper-proof. A local actor able to rewrite the audit and all related hashes can forge a coherent record. L.I.S.A. therefore reports `consistent`, not `authentic` or `tamper-proof`.
