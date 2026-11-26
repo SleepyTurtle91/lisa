@@ -1,4 +1,5 @@
 """Recovery and operator-reported validation for governed executions."""
+import errno
 import hashlib
 import json
 import os
@@ -61,6 +62,122 @@ class ProjectExecutionLifecycle:
         if not root.is_dir() or root != recorded:
             raise ValueError("The registered target root no longer matches the execution audit.")
         return root
+
+    @staticmethod
+    def _open_regular_file(path, relative):
+        """Open a regular target through descriptor-anchored, no-symlink traversal."""
+        if (
+            os.name != "posix"
+            or os.open not in getattr(os, "supports_dir_fd", set())
+            or os.stat not in getattr(os, "supports_dir_fd", set())
+            or not hasattr(os, "O_DIRECTORY")
+            or not getattr(os, "O_NOFOLLOW", 0)
+        ):
+            raise ValueError("Safe descriptor-anchored rollback traversal is unavailable.")
+
+        directory_flags = os.O_RDONLY | os.O_DIRECTORY | getattr(os, "O_NOFOLLOW", 0)
+        parent_descriptor = os.open(path.anchor or "/", directory_flags)
+        try:
+            for component in path.parent.parts[1:]:
+                next_descriptor = os.open(
+                    component, directory_flags, dir_fd=parent_descriptor
+                )
+                os.close(parent_descriptor)
+                parent_descriptor = next_descriptor
+
+            try:
+                path_info = os.stat(
+                    path.name, dir_fd=parent_descriptor, follow_symlinks=False
+                )
+            except FileNotFoundError:
+                return None
+            if not stat.S_ISREG(path_info.st_mode):
+                raise ValueError(
+                    f"Rollback path is a symlink or non-regular object: {relative.as_posix()}"
+                )
+
+            flags = (
+                os.O_RDONLY
+                | getattr(os, "O_NOFOLLOW", 0)
+                | getattr(os, "O_NONBLOCK", 0)
+            )
+            try:
+                descriptor = os.open(path.name, flags, dir_fd=parent_descriptor)
+            except FileNotFoundError:
+                return None
+            except OSError as exc:
+                if exc.errno in (errno.ELOOP, errno.EISDIR):
+                    raise ValueError(
+                        f"Rollback path is a symlink or non-regular object: {relative.as_posix()}"
+                    ) from exc
+                raise
+            info = os.fstat(descriptor)
+            if (
+                not stat.S_ISREG(info.st_mode)
+                or (info.st_dev, info.st_ino) != (path_info.st_dev, path_info.st_ino)
+            ):
+                os.close(descriptor)
+                raise ValueError(
+                    f"Rollback target changed while opening: {relative.as_posix()}"
+                )
+            return descriptor
+        finally:
+            os.close(parent_descriptor)
+
+    @classmethod
+    def _current_regular_file_hash_and_identity(cls, path, relative):
+        """Return the content hash and verified inode identity for a regular file."""
+        descriptor = cls._open_regular_file(path, relative)
+        if descriptor is None:
+            return None, None
+        with os.fdopen(descriptor, "rb") as handle:
+            info = os.fstat(handle.fileno())
+            return hashlib.sha256(handle.read()).hexdigest(), (info.st_dev, info.st_ino)
+
+    @classmethod
+    def _current_regular_file_hash(cls, path, relative):
+        """Return None only for an absent path; reject non-regular objects."""
+        return cls._current_regular_file_hash_and_identity(path, relative)[0]
+
+    @staticmethod
+    def _restore_mode_without_following_symlink(path, relative, mode, expected_identity=None):
+        """Restore mode on a validated file descriptor, never on a path referent."""
+        descriptor = ProjectExecutionLifecycle._open_regular_file(path, relative)
+        if descriptor is None:
+            raise ValueError(
+                f"Target file disappeared before permission restoration: {relative.as_posix()}"
+            )
+        try:
+            current_info = os.fstat(descriptor)
+            if expected_identity is not None and (
+                current_info.st_dev, current_info.st_ino
+            ) != expected_identity:
+                raise ValueError(
+                    f"Target inode changed before permission restoration: {relative.as_posix()}"
+                )
+            if current_info.st_nlink != 1:
+                raise ValueError(
+                    f"Refusing permission restoration on a multiply linked target: {relative.as_posix()}"
+                )
+            if not hasattr(os, "fchmod"):
+                raise ValueError("Safe descriptor-based permission restoration is unavailable.")
+            os.fchmod(descriptor, mode)
+            entry_info = os.stat(path, follow_symlinks=False)
+            current_info = os.fstat(descriptor)
+            if (
+                not stat.S_ISREG(entry_info.st_mode)
+                or (entry_info.st_dev, entry_info.st_ino)
+                != (current_info.st_dev, current_info.st_ino)
+            ):
+                raise ValueError(
+                    f"Target path changed during permission restoration: {relative.as_posix()}"
+                )
+            if stat.S_IMODE(current_info.st_mode) != mode:
+                raise ValueError(
+                    f"Original permission mode could not be restored: {relative.as_posix()}"
+                )
+        finally:
+            os.close(descriptor)
 
     @staticmethod
     def _rollback_digest(execution_id, audit):
@@ -127,7 +244,7 @@ class ProjectExecutionLifecycle:
                 before_hash, after_hash = item.get("before_sha256"), item.get("after_sha256")
                 if not after_hash:
                     raise ValueError(f"Audit is missing the post-change hash: {relative.as_posix()}")
-                current_hash = self._sha256(destination.read_bytes()) if destination.is_file() else None
+                current_hash = self._current_regular_file_hash(destination, relative)
                 if current_hash not in (after_hash, before_hash):
                     raise ValueError(f"Target file changed since execution; refusing rollback: {relative.as_posix()}")
                 backup_bytes, backup_mode = None, None
@@ -159,10 +276,21 @@ class ProjectExecutionLifecycle:
             restored = []
             for relative, destination, current_hash, before_hash, after_hash, backup_bytes, backup_mode in reversed(scoped):
                 ProjectExecutionExecutor._assert_no_symlink(root, relative)
-                latest_hash = self._sha256(destination.read_bytes()) if destination.is_file() else None
+                latest_hash, latest_identity = self._current_regular_file_hash_and_identity(
+                    destination, relative
+                )
                 if latest_hash not in (after_hash, before_hash):
                     raise ValueError(f"Target file changed during rollback; refusing write: {relative.as_posix()}")
                 if latest_hash == before_hash:
+                    if before_hash is None:
+                        # A file created by this execution is already absent.
+                        restored.append(relative.as_posix())
+                        continue
+                    if backup_mode is None or not isinstance(backup_mode, int) or backup_mode < 0 or backup_mode > 0o7777:
+                        raise ValueError(f"Backup permission mode is invalid: {relative.as_posix()}")
+                    self._restore_mode_without_following_symlink(
+                        destination, relative, backup_mode, expected_identity=latest_identity
+                    )
                     restored.append(relative.as_posix())
                     continue
                 if before_hash is None:

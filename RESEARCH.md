@@ -1568,3 +1568,48 @@ CPI-06 establishes a narrow, operator-approved file application boundary. It is 
 - Regression tests are not automatically run because executing arbitrary target build/test commands would create a separate code-execution boundary.
 - Manual rollback/recovery command and post-execution validation evidence capture remain follow-up work.
 - Verification is from the repository's GitHub Actions environment (Python 3.14); local Fedora execution has not been observed in this task.
+
+
+---
+
+## 🛡️ CPI-06.1 Review Remediation — Rollback Integrity
+
+**Date**: 2026-11-26
+
+**Observed review findings**:
+- Rollback treated an existing directory or other non-regular object at a newly-created file path as if the path were absent.
+- A target file whose bytes had already returned to the original hash could retain an independently changed permission mode.
+- The original rollback loop already rechecked the target hash immediately before restoration; a dedicated race regression is added to preserve this guard.
+
+**Implementation changes on the remediation branch**:
+- Distinguish a genuinely missing path from symlinks, directories, FIFOs, and other non-regular objects. The check uses `lstat`, non-blocking/no-follow open flags where supported, and descriptor metadata before reading.
+- Revalidate the current file hash immediately before each restore operation.
+- Restore and verify the original permission mode even when the original bytes are already present.
+- Add regression tests for non-regular replacement, a concurrent edit between preflight and restore, and mode restoration with already-restored bytes.
+
+**Evidence classification**:
+- `FILE_FACT`: implementation and regression tests are present on `fix/cpi-06-1-recovery-review-findings`.
+- `EXECUTION_FACT`: [CPI Contract CI run 45784635474](https://github.com/SleepyTurtle91/lisa/actions/runs/45784635474) passed 55/55 project/CLI tests and 6/6 input-boundary tests. The architecture/unit suite passed 168/168 tests and integration passed 1/1.
+
+
+---
+
+## CPI-06.1 Follow-up — No-Follow Permission Restoration
+
+**Date**: 2026-11-26
+
+A follow-up independent review identified a race in the permission restoration path: a target could be swapped to a symlink after the hash check but before path-based `chmod`, causing permissions on the symlink referent to be changed.
+
+**Implementation**:
+- Open the validated regular file with no-follow/non-blocking flags where supported.
+- Keep the descriptor open while restoring its mode with `fchmod`.
+- Re-check the directory entry without following symlinks and compare device/inode identity with the open descriptor before reporting success.
+- Add a regression that swaps the target path to an external symlink immediately before `fchmod` and verifies the external referent's mode is unchanged.
+
+**Evidence classification**:
+- `FILE_FACT`: code and regression test are present on `fix/cpi-06-1-no-follow-mode-restore`.
+- `EXECUTION_FACT`: [CPI Contract CI run 45786030592](https://github.com/SleepyTurtle91/lisa/actions/runs/45786030592) passed 56/56 project/CLI tests and 6/6 input-boundary tests. The architecture/unit suite passed 169/169 tests and integration passed 1/1.
+
+
+### Already-absent created-file rollback retry
+A follow-up review found that a file created by the execution may already be absent when a rollback retry begins. Because its original state is absence, rollback now treats that state as already restored and skips permission restoration. A regression verifies the retry reaches the `rolled_back` terminal state.

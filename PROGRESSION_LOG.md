@@ -1202,3 +1202,59 @@ Key per-case results:
 - Add a separately approved rollback/recovery command and post-execution validation evidence capture before expanding execution scope.
 - Keep CPI-06's first release deliberately narrower than a general-purpose code migration engine.
 \n\n---\n\n## 2026-11-26 — CPI-06.1 Recovery and Validation Evidence\n\n### Status\n- Implemented on a dedicated branch stacked on CPI-06 PR #3.\n- CPI contract, full architecture/unit, and integration CI passed.\n- PR #4 is open for review; no feature changes are merged to main.\n\n### What was added\n- Explicitly approved rollback with a digest bound to the execution, target root, changed-file manifest, and backups.\n- Backup SHA-256 verification, registered target-root verification, and refusal to overwrite files changed independently after execution.\n- Restoration of original file bytes and permission modes; removal of files created by the execution.\n- A retryable rollback journal with rollback_in_progress and rolled_back lifecycle states.\n- Operator-reported regression validation records, with exact digest approval and optional in-project report-file hash.\n- Validation checks that adapted files still match the post-execution hashes.\n- Explicit distinction between operator attestation and independently verified test results; L.I.S.A. does not run arbitrary target commands.\n\n### Evidence\n- [CPI Contract CI run 45752266578](https://github.com/SleepyTurtle91/lisa/actions/runs/45752266578): 51/51 project/CLI tests and 6/6 input-classifier tests passed.\n- Full Architecture & Unit suite: 164/164 tests passed.\n- Integration suite: 1/1 test passed.\n\n### Safety boundary\n- Rollback is refused when an affected file contains an unknown later version.\n- Validation cannot be recorded for a rolled-back execution.\n- Validation reports are operator attestations; report contents are not copied into the audit, only their path, size, and SHA-256.\n- No target build/test commands are run by the lifecycle subsystem.\n\n### Follow-up\n- Add a read-only execution history/status command and integrity verification for the complete audit chain.\n- Keep execution, rollback, and validation as separately authorized lifecycle transitions.\n
+
+---
+
+## 2026-11-26 — CPI-06.1 Rollback Review Remediation
+
+### Changes
+- Rollback now rejects existing non-regular objects rather than confusing them with absent files.
+- The restore pass rechecks current file state immediately before restoration; a concurrent edit remains a fail-closed condition.
+- Original file permission modes are restored and verified even if the original bytes are already present.
+- Added regression coverage for all three scenarios.
+
+### Status
+- Remediation is on a dedicated branch stacked on CPI-06.1.
+- CI passed: 55 project/CLI tests, 6 input-boundary tests, 168 architecture/unit tests, and 1 integration test. Independent review pending.
+- No merge or modification to the original PR #4 branch.
+
+
+---
+
+## 2026-11-26 — CPI-06.1 No-Follow Mode Restoration
+
+- Replaced path-based permission restoration with validated descriptor-based `fchmod`.
+- Rechecked path identity after mode restoration to detect a swapped symlink.
+- Added a regression proving an external symlink referent's permissions remain unchanged.
+- CI passed: 56 project/CLI tests, 6 input-boundary tests, 169 architecture/unit tests, and 1 integration test. Independent review pending; no merge performed.
+
+
+### Follow-up — Already-absent created-file rollback
+- Treat an already-absent execution-created file as successfully restored during rollback retry.
+- Added a regression verifying the lifecycle reaches `rolled_back`.
+- Follow-up CPI Contract CI and Architecture & Integration CI passed (run 45787096321).
+- Independent review re-requested on the updated head; no merge performed.
+
+### Follow-up — Hard-link-safe rollback mode restoration
+- Capture the verified target inode identity alongside the latest content hash.
+- Require the descriptor opened for permission restoration to match that verified inode before calling `fchmod`.
+- Added a regression that swaps the target path to a hard link between hash verification and mode restoration and verifies the external referent's permissions remain unchanged.
+- CPI Contract CI and Architecture & Integration CI passed (run 45791243979).
+- Independent review requested on the updated head; no merge performed.
+
+
+---
+
+## 2026-11-26 — Review Follow-up
+
+### Follow-up — Rollback inode and parent traversal hardening
+- Open rollback targets through descriptor-anchored directory traversal with no-follow semantics for every parent component and the final file.
+- Fail closed when the platform cannot provide the required POSIX descriptor-relative and no-follow primitives.
+- Refuse permission restoration for multiply linked files so a hard link outside the target cannot receive a mode change.
+- Added regressions for pre-existing hard links and a parent-directory symlink swap during permission restoration.
+- Full CPI and Architecture & Integration CI rerun pending on the updated implementation.
+
+
+### CI confirmation
+- Both `architecture-integration` and `cpi-contracts` jobs passed on the updated rollback traversal implementation.
+- [GitHub Actions run 45793778509](https://github.com/SleepyTurtle91/lisa/actions/runs/45793778509)
