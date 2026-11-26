@@ -307,6 +307,23 @@ class TestGovernedProjectExecution(unittest.TestCase):
         self.assertTrue(destination.is_symlink())
         self.assertEqual(outside.stat().st_mode & 0o777, outside_mode)
 
+    def test_rollback_retry_accepts_already_absent_created_file(self):
+        execution = self._apply_for_lifecycle([
+            ExecutionChange("app/AlreadyRemoved.kt", "class AlreadyRemoved {}\\n")
+        ])
+        destination = self.target / "app" / "AlreadyRemoved.kt"
+        destination.unlink()
+
+        lifecycle = ProjectExecutionLifecycle(self.registry, state_dir=self.state_dir)
+        digest = lifecycle.preview_rollback_digest(execution.execution_id)
+        result = lifecycle.rollback(execution.execution_id, f"ROLLBACK {digest}")
+
+        self.assertTrue(result["success"], result.get("error"))
+        self.assertFalse(destination.exists())
+        audit = json.loads(Path(execution.audit_path).read_text(encoding="utf-8"))
+        self.assertEqual(audit["lifecycle"]["status"], "rolled_back")
+        self.assertIn("app/AlreadyRemoved.kt", audit["lifecycle"]["restored_files"])
+
     def test_rollback_refuses_files_changed_after_execution(self):
         execution = self._apply_for_lifecycle([
             ExecutionChange("app/Changed.kt", "class Changed {}\n")
