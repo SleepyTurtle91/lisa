@@ -171,19 +171,60 @@ class ProjectExecutionLedger:
         except Exception as exc:
             return {"success": False, "status": "failed", "event_count": 0, "events": [], "error": str(exc)}
 
-    def append(self, event_type, execution_id, details=None):
-        """Append one authenticated event; concurrent writers fail closed."""
-        self._ensure_state_dir()
+    def _acquire_writer_lock(self):
+        """Acquire a process-released OS lock; the lock file itself may persist."""
         lock_path = self._state_dir / ".ledger.lock"
         if lock_path.is_symlink():
             raise ValueError("Ledger lock path is unsafe.")
+        flags = os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0)
+        descriptor = os.open(str(lock_path), flags, 0o600)
         try:
-            lock_fd = os.open(str(lock_path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-        except FileExistsError as exc:
-            raise ValueError("Ledger is busy or has a stale lock; inspect .ledger.lock before retrying.") from exc
+            info = os.fstat(descriptor)
+            if not os.path.isfile(str(lock_path)) or not __import__("stat").S_ISREG(info.st_mode):
+                raise ValueError("Ledger lock must be a regular file.")
+            if os.name == "posix":
+                if info.st_mode & 0o077:
+                    raise ValueError("Ledger lock permissions are too broad.")
+                import fcntl
+                try:
+                    fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                except BlockingIOError as exc:
+                    raise ValueError("Ledger is busy; another writer holds the OS lock.") from exc
+            elif os.name == "nt":
+                import msvcrt
+                if info.st_size == 0:
+                    os.write(descriptor, b"\\0")
+                    os.fsync(descriptor)
+                os.lseek(descriptor, 0, os.SEEK_SET)
+                try:
+                    msvcrt.locking(descriptor, msvcrt.LK_NBLCK, 1)
+                except OSError as exc:
+                    raise ValueError("Ledger is busy; another writer holds the OS lock.") from exc
+            else:
+                raise ValueError("This platform does not provide a supported ledger writer lock.")
+            return descriptor
+        except Exception:
+            os.close(descriptor)
+            raise
+
+    @staticmethod
+    def _release_writer_lock(descriptor):
         try:
-            os.write(lock_fd, str(os.getpid()).encode("ascii"))
-            os.fsync(lock_fd)
+            if os.name == "posix":
+                import fcntl
+                fcntl.flock(descriptor, fcntl.LOCK_UN)
+            elif os.name == "nt":
+                import msvcrt
+                os.lseek(descriptor, 0, os.SEEK_SET)
+                msvcrt.locking(descriptor, msvcrt.LK_UNLCK, 1)
+        finally:
+            os.close(descriptor)
+
+    def append(self, event_type, execution_id, details=None):
+        """Append one authenticated event with process-safe locking and tail recovery."""
+        self._ensure_state_dir()
+        lock_fd = self._acquire_writer_lock()
+        try:
             current = self.verify()
             if not current["success"]:
                 raise ValueError(f"Cannot append to an invalid ledger: {current['error']}")
@@ -201,23 +242,40 @@ class ProjectExecutionLedger:
             mac = hmac.new(key, self._canonical(body), hashlib.sha256).hexdigest()
             event = {**body, "mac": mac}
             event["event_hash"] = self._sha256(self._canonical(event))
-            encoded = self._canonical(event) + b"\n"
-            descriptor = os.open(str(self._ledger_path), os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
+            encoded = self._canonical(event) + b"\\n"
+
+            descriptor = os.open(
+                str(self._ledger_path),
+                os.O_WRONLY | os.O_APPEND | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0),
+                0o600,
+            )
+            original_size = os.fstat(descriptor).st_size
             try:
-                written = os.write(descriptor, encoded)
-                if written != len(encoded):
-                    raise OSError("Short write while appending execution ledger.")
-                os.fsync(descriptor)
+                offset = 0
+                try:
+                    while offset < len(encoded):
+                        written = os.write(descriptor, encoded[offset:])
+                        if written <= 0:
+                            raise OSError("Ledger append made no forward progress.")
+                        offset += written
+                    os.fsync(descriptor)
+                except Exception:
+                    try:
+                        os.ftruncate(descriptor, original_size)
+                        os.fsync(descriptor)
+                    except Exception as recovery_error:
+                        raise RuntimeError(
+                            "Ledger append failed and the incomplete tail could not be removed; "
+                            f"operator recovery is required: {recovery_error}"
+                        )
+                    raise
             finally:
                 os.close(descriptor)
+
             self._write_head(key, event["sequence"], event["event_hash"])
             return event
         finally:
-            os.close(lock_fd)
-            try:
-                lock_path.unlink()
-            except FileNotFoundError:
-                pass
+            self._release_writer_lock(lock_fd)
 
     def migrate_legacy(self):
         """Anchor current snapshots of pre-ledger records as explicitly legacy imports.
