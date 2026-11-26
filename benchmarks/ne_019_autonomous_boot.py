@@ -187,7 +187,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="NE-019 Autonomous Project Boot Benchmark")
-    parser.add_argument("project_path", nargs="?", default="/home/user/development/projects/retails")
+    parser.add_argument("project_path", nargs="?", default=os.getcwd())
     args = parser.parse_args()
 
     print("NE-019 — Autonomous Project Boot & Environment Discovery Benchmark")
