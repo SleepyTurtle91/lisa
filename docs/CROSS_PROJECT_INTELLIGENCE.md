@@ -28,7 +28,7 @@ CPI is a general L.I.S.A. capability. It must not depend on a particular project
 | CPI-06 | Explicit approval, bounded target file execution, backups, rollback, and audit | Implemented; see CPI-06.1 recovery lifecycle |
 | CPI-06.3 | Authenticated, hash-chained execution ledger and legacy snapshot migration | Implemented on PR #6; CI passed |
 | CPI-06.4 | Recoverable ledger appends, explicit interrupted-write recovery, and fault-injection coverage | Implemented; CI passed |
-| CPI-06.5 | Crash-safe execution journal, per-file state tracking, and explicit interrupted-apply rollback | Implemented on PR branch; CI pending |
+| CPI-06.5 | Crash-safe execution journal, per-file state tracking, and explicit interrupted-apply rollback | Implemented on PR #8; CI passing |
 
 ## Operator commands
 
@@ -234,6 +234,6 @@ CPI-06.5 persists a recovery manifest and the complete before/after file hashes 
 - Recovery preflights every target file before the first restoration. Each file must match either its recorded before-hash or after-hash. Unknown later changes, symlinks, missing/changed backups, unregistered targets, or changed target roots fail closed.
 - Recovery is retryable. If interrupted partway through, a new digest is shown for the updated journal and each restored file is rechecked against its known before/after state.
 - A successful recovery writes a normal rolled-back audit and an authenticated ledger event. Ledger append failure is surfaced as a warning; the target restoration remains completed.
-- Recovery locks fail closed if another recovery is running or a stale lock requires manual inspection.
+- Recovery locks fail closed if another recovery is running. A stale lock is removed only when its recorded PID is confirmed absent; unreadable or ambiguous locks require manual inspection.
 
 This milestone does not add arbitrary command execution, directory creation, deletion patches, or automatic acceptance of adaptations. It only makes the existing bounded file-replacement workflow recoverable.
