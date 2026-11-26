@@ -1202,3 +1202,27 @@ Key per-case results:
 - Add a separately approved rollback/recovery command and post-execution validation evidence capture before expanding execution scope.
 - Keep CPI-06's first release deliberately narrower than a general-purpose code migration engine.
 \n\n---\n\n## 2026-11-26 — CPI-06.1 Recovery and Validation Evidence\n\n### Status\n- Implemented on a dedicated branch stacked on CPI-06 PR #3.\n- CPI contract, full architecture/unit, and integration CI passed.\n- PR #4 is open for review; no feature changes are merged to main.\n\n### What was added\n- Explicitly approved rollback with a digest bound to the execution, target root, changed-file manifest, and backups.\n- Backup SHA-256 verification, registered target-root verification, and refusal to overwrite files changed independently after execution.\n- Restoration of original file bytes and permission modes; removal of files created by the execution.\n- A retryable rollback journal with rollback_in_progress and rolled_back lifecycle states.\n- Operator-reported regression validation records, with exact digest approval and optional in-project report-file hash.\n- Validation checks that adapted files still match the post-execution hashes.\n- Explicit distinction between operator attestation and independently verified test results; L.I.S.A. does not run arbitrary target commands.\n\n### Evidence\n- [CPI Contract CI run 45752266578](https://github.com/SleepyTurtle91/lisa/actions/runs/45752266578): 51/51 project/CLI tests and 6/6 input-classifier tests passed.\n- Full Architecture & Unit suite: 164/164 tests passed.\n- Integration suite: 1/1 test passed.\n\n### Safety boundary\n- Rollback is refused when an affected file contains an unknown later version.\n- Validation cannot be recorded for a rolled-back execution.\n- Validation reports are operator attestations; report contents are not copied into the audit, only their path, size, and SHA-256.\n- No target build/test commands are run by the lifecycle subsystem.\n\n### Follow-up\n- Add a read-only execution history/status command and integrity verification for the complete audit chain.\n- Keep execution, rollback, and validation as separately authorized lifecycle transitions.\n
+
+---
+
+## 2026-11-26 — CPI-06.2 Execution History and Integrity Inspection
+
+### Status
+- Implemented on a dedicated branch stacked on CPI-06.1 PR #4.
+- CI validation pending.
+
+### What was added
+- Read-only `lisa project history [--project <id>]` timeline across source/target project pairs.
+- Read-only `lisa project verify <execution-id>` integrity report.
+- Lifecycle and operator-reported validation states surfaced in history.
+- Audit identity/schema and manifest consistency checks.
+- Backup SHA-256 verification, rollback digest/restoration-manifest checks, and validation record/report hash verification.
+- Malformed execution records remain visible with failed integrity status.
+
+### Safety and integrity boundary
+- History and verification do not mutate projects, execution journals, backups, or validation reports.
+- A consistent record is not proof of authenticity. The current JSON journal is not signed or append-only; a local actor able to rewrite all related records and hashes can forge a coherent history.
+- No project commands, builds, or tests are executed by these features.
+
+### Follow-up
+- Consider a separately designed append-only, externally anchored audit format before claiming stronger tamper resistance.

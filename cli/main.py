@@ -33,6 +33,7 @@ from lisa.projects.adaptation_request import ProjectAdaptationRequest
 from lisa.projects.execution import ExecutionChange, ProjectExecutionRequest
 from lisa.projects.execution_executor import ProjectExecutionExecutor
 from lisa.projects.execution_lifecycle import ProjectExecutionLifecycle
+from lisa.projects.execution_history import ProjectExecutionHistory
 
 PROJECT_REGISTRY_PATH = Path.home() / ".lisa" / "projects.json"
 PROJECT_EXECUTION_STATE_PATH = Path.home() / ".lisa" / "executions"
@@ -60,6 +61,60 @@ def run_project_command(args):
             print(f" {active} {item.name}  [{item.project_id}]  {tech}")
             print(f"    {item.root_path}")
         return
+    if action == "history":
+        project_id = None
+        if len(args) == 3 and args[1] == "--project":
+            project_id = args[2]
+        elif len(args) != 1:
+            print("Usage: lisa project history [--project <project-id>]")
+            return
+        history = ProjectExecutionHistory(
+            ProjectRegistry(storage_path=PROJECT_REGISTRY_PATH),
+            state_dir=PROJECT_EXECUTION_STATE_PATH,
+        )
+        try:
+            records = history.list_history(project_id=project_id)
+        except Exception as exc:
+            print(f"Execution history unavailable: {exc}")
+            return
+        if not records:
+            print("No matching cross-project executions found.")
+            return
+        print("Cross-project execution history (newest first):")
+        for record in records:
+            print(
+                f"{record.get('execution_id')} | "
+                f"{record.get('source_project_name')} -> {record.get('target_project_name')} | "
+                f"{record.get('lifecycle_status')} | validation: {record.get('validation_status')} | "
+                f"files: {record.get('file_count')} | integrity: {record.get('integrity_status')}"
+            )
+            print(f"    Created: {record.get('created_at') or 'unknown'}")
+            if record.get("integrity_error"):
+                print(f"    Integrity error: {record['integrity_error']}")
+        print("History is read-only. Integrity consistency is not a cryptographic signature.")
+        return
+
+    if action == "verify" and len(args) == 2:
+        history = ProjectExecutionHistory(
+            ProjectRegistry(storage_path=PROJECT_REGISTRY_PATH),
+            state_dir=PROJECT_EXECUTION_STATE_PATH,
+        )
+        result = history.verify(args[1])
+        if not result["success"]:
+            print(f"Integrity verification FAILED: {result['error']}")
+            return
+        record = result["record"]
+        print(f"Integrity verification: {record['integrity_status']}")
+        print(f"Execution: {record['execution_id']}")
+        print(f"Projects: {record['source_project_name']} -> {record['target_project_name']}")
+        print(f"Lifecycle: {record['lifecycle_status']}")
+        print(f"Validation: {record['validation_status']} ({record['validation_integrity']})")
+        print(f"Backups: {record['backup_integrity']} ({record['file_count']} changed files)")
+        print(f"Current target files: {record['target_file_integrity']}")
+        for note in record["integrity_notes"]:
+            print(f"Note: {note}")
+        return
+
     if action == "rollback" and len(args) == 2:
         registry = ProjectRegistry(storage_path=PROJECT_REGISTRY_PATH)
         lifecycle = ProjectExecutionLifecycle(registry, state_dir=PROJECT_EXECUTION_STATE_PATH)
@@ -376,6 +431,8 @@ def print_help():
     print("  project compare <source-id> <target-id> [terms]  Triage reuse compatibility.")
     print("  project plan <source-id> <target-id> <terms>  Create a review-only adaptation plan.")
     print("  project apply <source-id> <target-id> <terms> --patch <patch.json>  Apply an explicitly approved patch.")
+    print("  project history [--project <id>]  List cross-project executions (read-only).")
+    print("  project verify <execution-id>  Verify audit, backup, and validation evidence integrity.")
     print("  project rollback <execution-id>  Restore verified pre-execution files with explicit approval.")
     print("  project validate <execution-id> --status passed|failed --command <text> --summary <text> [--evidence <path>]  Record operator-reported regression evidence.")
     print("  project add <path>     Register a project directory.")
