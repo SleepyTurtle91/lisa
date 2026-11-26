@@ -67,6 +67,22 @@ class TestProjectExecutionHistory(unittest.TestCase):
         self.assertEqual(len(self.history.list_history(self.target_id)), 1)
         self.assertEqual(self.history.list_history("prj_missing"), [])
 
+    def test_target_file_divergence_fails_verification(self):
+        destination = self.target / "app" / "Inventory.kt"
+        destination.write_text("changed after application", encoding="utf-8")
+        result = self.history.verify(self.execution.execution_id)
+        self.assertFalse(result["success"])
+        self.assertIn("no longer matches the applied version", result["error"])
+
+    def test_audit_manifest_tampering_fails_verification(self):
+        audit_path = Path(self.execution.audit_path)
+        audit = json.loads(audit_path.read_text(encoding="utf-8"))
+        audit["changed_files"][0]["after_sha256"] = "0" * 64
+        audit_path.write_text(json.dumps(audit), encoding="utf-8")
+        result = self.history.verify(self.execution.execution_id)
+        self.assertFalse(result["success"])
+        self.assertIn("Target file no longer matches the applied version", result["error"])
+
     def test_backup_tampering_fails_verification(self):
         backup = Path(self.execution.backup_directory) / "app" / "Inventory.kt"
         backup.write_text("tampered", encoding="utf-8")
