@@ -250,7 +250,7 @@ class TestProjectCLI(unittest.TestCase):
                 lisa_main.run_project_command(["add", str(source)])
                 lisa_main.run_project_command(["add", str(target)])
                 registry = ProjectRegistry(storage_path=lisa_main.PROJECT_REGISTRY_PATH)
-                listing = registry.list_projects()
+                listing = registry.list_manifests()
                 source_id = next(item.project_id for item in listing if item.name == "Source")
                 target_id = next(item.project_id for item in listing if item.name == "Target")
                 plan = ProjectAdaptationPlanner(registry).execute(ProjectAdaptationRequest(
