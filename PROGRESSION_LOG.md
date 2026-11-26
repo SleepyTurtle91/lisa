@@ -1254,4 +1254,5 @@ Key per-case results:
 - Apply filesystem-identity overlap checks to the execution-state root as well as source and target projects.
 - Require pre-existing POSIX execution-state directories to be owned by the current user.
 - Added regression coverage for unavailable mount metadata, state-root bind aliases, foreign ownership, and failure-path escaping.
-- CI pending; no merge performed.
+- CPI Contract CI passed on the corrected regression input (run 45791184524); full-suite rerun on this exact head is still pending.
+- Independent review requested on the updated head; no merge performed.
