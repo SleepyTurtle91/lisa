@@ -1,5 +1,7 @@
 import unittest
 import asyncio
+import tempfile
+from pathlib import Path
 from lisa.core.kernel import LisaRuntime
 from lisa.core.context import SessionContext, Capability
 from lisa.providers.base import BaseProvider, ChatRequest, ChatResponse
@@ -41,7 +43,7 @@ class ToolCallingMockProvider(BaseProvider):
                     {
                         "function": {
                             "name": "read_file",
-                            "arguments": {"path": "/home/user/development/projects/lisa/AGENTS.md"}
+                            "arguments": {"path": "AGENTS.md"}
                         }
                     }
                 ]
@@ -62,20 +64,24 @@ class TestToolCallingLoop(unittest.TestCase):
         asyncio.run(runtime.register_provider(provider))
         runtime.tool_registry.register(ReadFileTool())
 
-        ctx = SessionContext(
-            project_path="/tmp",
-            workspace_name="ws",
-            provider_id="tool_calling_mock",
-            model_name="mock-tool-calling",
-            capabilities=[Capability.CHAT, Capability.TOOLS]
-        )
-        session = runtime.create_session(ctx)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            (Path(temp_dir) / "AGENTS.md").write_text(
+                "L.I.S.A. Kernel instructions", encoding="utf-8"
+            )
+            ctx = SessionContext(
+                project_path=temp_dir,
+                workspace_name="ws",
+                provider_id="tool_calling_mock",
+                model_name="mock-tool-calling",
+                capabilities=[Capability.CHAT, Capability.TOOLS]
+            )
+            session = runtime.create_session(ctx)
 
-        # Trigger session execution - should execute Turn 1 -> ToolExecutor -> Turn 2 -> Final Answer
-        final_answer = asyncio.run(session.send_message("What is in AGENTS.md?"))
-        
-        self.assertEqual(final_answer, "The target file contains L.I.S.A. Kernel instructions.")
-        self.assertEqual(session.state.name, "READY")
+            # Trigger session execution - Turn 1 -> ToolExecutor -> Turn 2.
+            final_answer = asyncio.run(session.send_message("What is in AGENTS.md?"))
+
+            self.assertEqual(final_answer, "The target file contains L.I.S.A. Kernel instructions.")
+            self.assertEqual(session.state.name, "READY")
 
 if __name__ == "__main__":
     unittest.main()
