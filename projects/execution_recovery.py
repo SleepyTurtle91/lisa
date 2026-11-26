@@ -6,7 +6,6 @@ It never completes an interrupted apply or overwrites an unknown later version.
 import hashlib
 import json
 import os
-import stat
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -124,7 +123,7 @@ class ProjectExecutionRecovery:
             try:
                 journal = json.loads(journal_path.read_text(encoding="utf-8"))
                 if isinstance(journal, dict) and journal.get("status") in (
-                    "applying", "recovery_required", "recovery_in_progress"
+                    "applying", "recovery_required", "recovery_in_progress", "finalizing"
                 ):
                     pending.append({
                         "execution_id": directory.name,
@@ -176,6 +175,8 @@ class ProjectExecutionRecovery:
             if not isinstance(after_hash, str) or len(after_hash) != self.SHA256_LENGTH:
                 raise ValueError(f"Invalid post-execution hash for {key}.")
             destination = ProjectExecutionExecutor._assert_no_symlink(target_root, relative)
+            if destination.exists() and not destination.is_file():
+                raise ValueError(f"Target path is not a regular file: {key}")
             if not destination.parent.is_dir():
                 raise ValueError(f"Target parent directory is missing: {relative.parent.as_posix()}")
             backup_rel = item.get("backup")
@@ -199,14 +200,46 @@ class ProjectExecutionRecovery:
                     raise ValueError(f"Backup integrity check failed: {key}")
         return target_root
 
+    def _remove_stale_lock_if_dead(self, lock):
+        if lock.is_symlink():
+            raise ValueError("Recovery lock path is unsafe.")
+        try:
+            info = lock.lstat()
+        except FileNotFoundError:
+            return
+        if not lock.is_file():
+            raise ValueError("Recovery lock is not a regular file; inspect it manually.")
+        try:
+            pid = int(lock.read_text(encoding="ascii").strip())
+        except (OSError, ValueError) as exc:
+            raise ValueError("Recovery lock owner is unreadable; inspect it manually.") from exc
+        if pid <= 0:
+            raise ValueError("Recovery lock owner PID is invalid; inspect it manually.")
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            current = lock.lstat()
+            if (info.st_dev, info.st_ino) != (current.st_dev, current.st_ino):
+                raise ValueError("Recovery lock changed during stale-lock inspection; retry.")
+            lock.unlink()
+            self._fsync_directory(lock.parent)
+        except (PermissionError, OSError) as exc:
+            raise ValueError("Cannot confirm whether recovery lock owner is alive; refusing removal.") from exc
+        else:
+            raise ValueError(f"Execution recovery is active in process {pid}; refusing concurrent recovery.")
+
     def _acquire_lock(self, directory):
         lock = directory / self.LOCK_NAME
         if lock.is_symlink():
             raise ValueError("Recovery lock path is unsafe.")
         try:
             descriptor = os.open(str(lock), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-        except FileExistsError as exc:
-            raise ValueError("Execution recovery is already running or has a stale lock; inspect .recovery.lock manually.") from exc
+        except FileExistsError:
+            self._remove_stale_lock_if_dead(lock)
+            try:
+                descriptor = os.open(str(lock), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            except FileExistsError as exc:
+                raise ValueError("Execution recovery is already running; refusing concurrent recovery.") from exc
         try:
             data = str(os.getpid()).encode("ascii")
             os.write(descriptor, data)
