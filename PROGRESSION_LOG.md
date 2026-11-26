@@ -1226,4 +1226,4 @@ Key per-case results:
 - Replaced path-based permission restoration with validated descriptor-based `fchmod`.
 - Rechecked path identity after mode restoration to detect a swapped symlink.
 - Added a regression proving an external symlink referent's permissions remain unchanged.
-- CI and independent review pending; no merge performed.
+- CI passed: 56 project/CLI tests, 6 input-boundary tests, 169 architecture/unit tests, and 1 integration test. Independent review pending; no merge performed.
