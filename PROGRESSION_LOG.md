@@ -1237,6 +1237,7 @@ Key per-case results:
 
 ### What was added
 - Separate JSONL event ledger with sequence numbers, previous-event hash links, event hashes, and HMAC-SHA256 authentication.
+- Separately authenticated head checkpoint binds the expected final sequence/hash and detects tail truncation.
 - Random 256-bit local ledger key stored separately with restrictive file permissions; missing keys are never silently regenerated when a ledger already exists.
 - Automatic ledger events for governed execution, completed rollback, and recorded validation.
 - Read-only ledger verification and explicit legacy snapshot migration commands.
