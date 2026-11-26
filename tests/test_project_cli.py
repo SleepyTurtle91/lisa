@@ -17,7 +17,7 @@ class TestProjectCLI(unittest.TestCase):
         self.assertEqual(visible, "name\\x1b[2J\\x0d\\x0anext\\x09line")
         self.assertNotIn(chr(27), visible)
         path_error = lisa_main._escape_terminal_controls(
-            "protected path\\nforged summary", preserve_newlines=False
+            "protected path\nforged summary", preserve_newlines=False
         )
         self.assertEqual(path_error, "protected path\\x0aforged summary")
 
