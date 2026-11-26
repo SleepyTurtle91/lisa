@@ -141,6 +141,25 @@ class ProjectExecutionHistory:
         lifecycle_status = lifecycle.get("status", "applied")
         if lifecycle_status not in ("applied", "rollback_in_progress", "rolled_back"):
             raise ValueError("Unknown execution lifecycle state.")
+
+        target_file_integrity = "not_checked_target_unregistered"
+        if target_root is not None:
+            states = []
+            for item in changed:
+                relative = ProjectExecutionExecutor._validated_relative_path(item["path"])
+                destination = ProjectExecutionExecutor._assert_no_symlink(target_root, relative)
+                actual = self._sha256(destination.read_bytes()) if destination.is_file() else None
+                before_hash = item.get("before_sha256")
+                after_hash = item.get("after_sha256")
+                if lifecycle_status == "applied" and actual != after_hash:
+                    raise ValueError(f"Target file no longer matches the applied version: {relative.as_posix()}")
+                if lifecycle_status == "rolled_back" and actual != before_hash:
+                    raise ValueError(f"Target file does not match the recorded rollback state: {relative.as_posix()}")
+                if lifecycle_status == "rollback_in_progress" and actual not in (before_hash, after_hash):
+                    raise ValueError(f"Target file has an unknown version during rollback: {relative.as_posix()}")
+                states.append(actual)
+            target_file_integrity = "verified"
+
         if lifecycle_status == "rolled_back":
             expected = self._canonical_digest({
                 "approval_digest": approval,
@@ -165,6 +184,10 @@ class ProjectExecutionHistory:
             record = json.loads(validation_path.read_text(encoding="utf-8"))
             if not isinstance(record, dict) or record.get("execution_id") != execution_id:
                 raise ValueError("Validation record identity is invalid.")
+            if record.get("status") != validation_status:
+                raise ValueError("Validation record status does not match the audit.")
+            if record.get("status") not in ("operator_reported_passed", "operator_reported_failed"):
+                raise ValueError("Validation record contains an unknown status.")
             digest = self._validation_digest(execution_id, audit, record)
             if record.get("evidence_digest") != digest or validation.get("evidence_digest") != digest:
                 raise ValueError("Validation record digest does not match its contents.")
@@ -206,6 +229,7 @@ class ProjectExecutionHistory:
             "validation_integrity": validation_result,
             "backup_integrity": "verified",
             "backup_results": backup_results,
+            "target_file_integrity": target_file_integrity,
             "integrity_status": "consistent",
             "integrity_notes": [
                 "Audit structure, execution identity, manifests, and available backup/evidence hashes are consistent.",
