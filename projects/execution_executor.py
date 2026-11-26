@@ -137,6 +137,11 @@ class ProjectExecutionExecutor:
             if not target_root.is_dir() or not source_root.is_dir():
                 raise ValueError("Source and target project roots must be existing directories.")
 
+            digest = self.approval_digest(plan, request.changes, target_root)
+            if request.operator_confirmation != f"APPLY {digest}":
+                raise ValueError("Explicit approval mismatch. Review the exact patch and confirm with: APPLY <approval-digest>.")
+            execution_id = "exec_" + digest[:20]
+
             scoped = []
             seen = set()
             for change in request.changes:
@@ -166,10 +171,6 @@ class ProjectExecutionExecutor:
                     mode = None
                 scoped.append((change, relative, destination, current, mode))
 
-            digest = self.approval_digest(plan, request.changes, target_root)
-            if request.operator_confirmation != f"APPLY {digest}":
-                raise ValueError("Explicit approval mismatch. Review the exact patch and confirm with: APPLY <approval-digest>.")
-
             state_root = self._state_dir.resolve(strict=False)
             if (
                 state_root == target_root or target_root in state_root.parents
@@ -182,7 +183,6 @@ class ProjectExecutionExecutor:
             ):
                 raise ValueError("Execution backups/audit must be stored outside the source project.")
 
-            execution_id = "exec_" + digest[:20]
             execution_dir = self._state_dir / execution_id
             backup_dir = execution_dir / "backups"
             if execution_dir.exists():
