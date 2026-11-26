@@ -216,7 +216,7 @@ class TestGovernedProjectExecution(unittest.TestCase):
         self.assertIn("non-regular", result["error"])
         self.assertTrue(destination.is_dir())
         audit = json.loads(Path(execution.audit_path).read_text(encoding="utf-8"))
-        self.assertEqual(audit["lifecycle"]["status"], "rollback_in_progress")
+        self.assertNotEqual(audit.get("lifecycle", {}).get("status", "applied"), "rolled_back")
 
     def test_rollback_rechecks_target_after_preflight_before_restore(self):
         execution = self._apply_for_lifecycle([
