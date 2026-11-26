@@ -81,7 +81,7 @@ def run_project_command(args):
             try:
                 confirmation = input(f"Type exactly 'RECOVER {digest}' to authorize recovery: ").strip()
             except (EOFError, KeyboardInterrupt):
-                print("\\nLedger recovery cancelled.")
+                print("Ledger recovery cancelled.")
                 return
             result = ledger.recover(confirmation)
             if not result["success"]:
