@@ -309,7 +309,7 @@ class TestGovernedProjectExecution(unittest.TestCase):
 
     def test_rollback_retry_accepts_already_absent_created_file(self):
         execution = self._apply_for_lifecycle([
-            ExecutionChange("app/AlreadyRemoved.kt", "class AlreadyRemoved {}\\n")
+            ExecutionChange("app/AlreadyRemoved.kt", "class AlreadyRemoved {}\n")
         ])
         destination = self.target / "app" / "AlreadyRemoved.kt"
         destination.unlink()
