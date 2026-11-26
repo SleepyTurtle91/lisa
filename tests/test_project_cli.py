@@ -371,5 +371,15 @@ class TestProjectCLI(unittest.TestCase):
                 lisa_main.PROJECT_EXECUTION_STATE_PATH = original_state
 
 
+    def test_project_recover_command_reports_no_pending_executions(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            state_path = Path(temp_dir) / "executions"
+            output = io.StringIO()
+            with mock.patch.object(lisa_main, "PROJECT_EXECUTION_STATE_PATH", state_path):
+                with redirect_stdout(output):
+                    lisa_main.run_project_command(["recover"])
+            self.assertIn("No interrupted executions require recovery", output.getvalue())
+
+
 if __name__ == "__main__":
     unittest.main()

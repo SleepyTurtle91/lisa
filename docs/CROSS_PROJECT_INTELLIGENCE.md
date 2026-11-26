@@ -27,7 +27,8 @@ CPI is a general L.I.S.A. capability. It must not depend on a particular project
 | CPI-05 | Review-only adaptation planning | Implemented; focused CI passing |
 | CPI-06 | Explicit approval, bounded target file execution, backups, rollback, and audit | Implemented; see CPI-06.1 recovery lifecycle |
 | CPI-06.3 | Authenticated, hash-chained execution ledger and legacy snapshot migration | Implemented on PR #6; CI passed |
-| CPI-06.4 | Recoverable ledger appends, explicit interrupted-write recovery, and fault-injection coverage | Implemented on PR branch; CI pending |
+| CPI-06.4 | Recoverable ledger appends, explicit interrupted-write recovery, and fault-injection coverage | Implemented; CI passed |
+| CPI-06.5 | Crash-safe execution journal, per-file state tracking, and explicit interrupted-apply rollback | Implemented on PR #8; CI passed |
 
 ## Operator commands
 
@@ -220,3 +221,19 @@ lisa project ledger recover
 - Directory metadata is fsynced after atomic state replacements and lock/pending cleanup on POSIX systems.
 
 Recovery does not infer or fabricate events. It completes only the exact event already authenticated in the pending transaction. The local key and checkpoint remain user-controlled files; this still does not provide an external trust anchor or non-repudiation.
+
+## CPI-06.5 crash-safe execution journal
+
+CPI-06.5 persists a recovery manifest and the complete before/after file hashes before the first target write. Backups are written and fsynced before the journal is committed. Every successful replacement is followed by an atomic journal update recording the file as applied.
+
+- The journal records execution identity, source/target project IDs, canonical target root, approval digest, file paths, pre/post hashes, backup references, original modes, and per-file apply state.
+- The audit is created in an explicit `applying` lifecycle state before target writes begin.
+- The journal remains in `finalizing` until the authenticated execution-ledger event is recorded.
+- `lisa project recover` lists interrupted applications. `lisa project recover <execution-id>` previews the exact journal digest and requires `RECOVER <digest>`.
+- Recovery always rolls the interrupted application back to its exact pre-execution state. It never silently completes an apply.
+- Recovery preflights every target file before the first restoration. Each file must match either its recorded before-hash or after-hash. Unknown later changes, symlinks, missing/changed backups, unregistered targets, or changed target roots fail closed.
+- Recovery is retryable. If interrupted partway through, a new digest is shown for the updated journal and each restored file is rechecked against its known before/after state.
+- A successful recovery writes a normal rolled-back audit and an authenticated ledger event. Ledger append failure is surfaced as a warning; the target restoration remains completed.
+- Recovery locks fail closed if another recovery is running. A stale lock is removed only when its recorded PID is confirmed absent; unreadable or ambiguous locks require manual inspection.
+
+This milestone does not add arbitrary command execution, directory creation, deletion patches, or automatic acceptance of adaptations. It only makes the existing bounded file-replacement workflow recoverable.

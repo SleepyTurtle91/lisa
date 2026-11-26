@@ -23,6 +23,7 @@ class ProjectExecutionExecutor:
     MAX_FILES = 100
     MAX_FILE_BYTES = 1024 * 1024
     MAX_TOTAL_BYTES = 5 * 1024 * 1024
+    JOURNAL_NAME = "execution.journal.json"
 
     PROTECTED_PARTS = {
         ".git", ".lisa", ".env", ".ssh", "secrets", "credentials",
@@ -111,6 +112,16 @@ class ProjectExecutionExecutor:
                 raise ValueError(f"{label} evidence changed since planning: {relative.as_posix()}")
 
     @staticmethod
+    def _fsync_directory(directory):
+        if os.name != "posix":
+            return
+        descriptor = os.open(str(directory), os.O_RDONLY)
+        try:
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
+
+    @staticmethod
     def _atomic_write(path, content, mode=None):
         temp_path = None
         try:
@@ -124,6 +135,7 @@ class ProjectExecutionExecutor:
                 os.fsync(handle.fileno())
             os.chmod(temp_path, stat.S_IMODE(mode) if mode is not None else 0o644)
             os.replace(str(temp_path), str(path))
+            ProjectExecutionExecutor._fsync_directory(path.parent)
         finally:
             if temp_path is not None and temp_path.exists():
                 temp_path.unlink()
@@ -163,7 +175,9 @@ class ProjectExecutionExecutor:
             execution_id = "exec_" + digest[:20]
             execution_dir = self._state_dir / execution_id
             if execution_dir.exists():
-                raise ValueError("This approval digest has already been executed; refusing replay.")
+                if not (execution_dir / self.JOURNAL_NAME).exists():
+                    raise ValueError("An incomplete pre-journal execution directory exists. No target writes occur before the journal is durable; inspect this state directory before retrying.")
+                raise ValueError("This approval digest has already been executed or has a recoverable journal; refusing replay.")
             if len(request.changes) > self.MAX_FILES:
                 raise ValueError(f"Execution scope exceeds the {self.MAX_FILES}-file limit.")
 
@@ -217,68 +231,134 @@ class ProjectExecutionExecutor:
 
             backup_dir = execution_dir / "backups"
             backup_dir.mkdir(parents=True, exist_ok=False)
+            self._fsync_directory(self._state_dir)
+            self._fsync_directory(execution_dir)
 
             backup_manifest = []
+            journal_files = []
             for change, relative, destination, current, mode in scoped:
                 if current is not None:
                     backup_path = backup_dir.joinpath(*relative.parts)
                     backup_path.parent.mkdir(parents=True, exist_ok=True)
-                    backup_path.write_bytes(current)
+                    with backup_path.open("xb") as handle:
+                        handle.write(current)
+                        handle.flush()
+                        os.fsync(handle.fileno())
+                    os.chmod(backup_path, 0o600)
+                    self._fsync_directory(backup_path.parent)
+                    backup_rel = backup_path.relative_to(execution_dir).as_posix()
+                    before_hash = self._sha256(current)
                     backup_manifest.append({
                         "path": relative.as_posix(),
-                        "backup": backup_path.relative_to(execution_dir).as_posix(),
-                        "sha256": self._sha256(current),
+                        "backup": backup_rel,
+                        "sha256": before_hash,
                         "mode": stat.S_IMODE(mode),
                     })
                 else:
+                    backup_rel = None
+                    before_hash = None
                     backup_manifest.append({
                         "path": relative.as_posix(), "backup": None,
                         "sha256": None, "mode": None,
                     })
+                journal_files.append({
+                    "path": relative.as_posix(),
+                    "before_sha256": before_hash,
+                    "after_sha256": self._sha256(change.content.encode("utf-8")),
+                    "backup": backup_rel,
+                    "backup_sha256": before_hash,
+                    "mode": stat.S_IMODE(mode) if mode is not None else None,
+                    "applied": False,
+                })
+
+            audit = {
+                "schema_version": 1,
+                "execution_id": execution_id,
+                "plan_id": plan.plan_id,
+                "source_project_id": plan.source_project_id,
+                "target_project_id": plan.target_project_id,
+                "target_root": str(target_root),
+                "approval_digest": digest,
+                "approved_confirmation": f"APPLY {digest}",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "changed_files": [
+                    {
+                        "path": item["path"],
+                        "before_sha256": item["before_sha256"],
+                        "after_sha256": item["after_sha256"],
+                    }
+                    for item in journal_files
+                ],
+                "backups": backup_manifest,
+                "lifecycle": {"status": "applying"},
+                "validation": {
+                    "status": "required_not_run",
+                    "note": "CPI-06 does not execute project commands. Run the target project's approved regression suite before accepting this adaptation.",
+                },
+            }
+            journal = {
+                "schema_version": 1,
+                "execution_id": execution_id,
+                "approval_digest": digest,
+                "source_project_id": plan.source_project_id,
+                "target_project_id": plan.target_project_id,
+                "target_root": str(target_root),
+                "plan_id": plan.plan_id,
+                "created_at": audit["created_at"],
+                "status": "applying",
+                "files": journal_files,
+                "recovered_files": [],
+            }
+            journal_path = execution_dir / self.JOURNAL_NAME
+            audit_path = execution_dir / "audit.json"
+            journal_bytes = (json.dumps(journal, indent=2, sort_keys=True) + "\n").encode("utf-8")
+            self._atomic_write(journal_path, journal_bytes)
+            self._atomic_write(
+                audit_path,
+                (json.dumps(audit, indent=2, sort_keys=True) + "\n").encode("utf-8"),
+            )
 
             applied = []
+            ledger_attempted = False
+            ledger_recorded = False
             try:
-                for change, relative, destination, current, mode in scoped:
+                for index, (change, relative, destination, current, mode) in enumerate(scoped):
                     self._assert_no_symlink(target_root, relative)
-                    if destination.exists():
-                        latest = destination.read_bytes()
-                        if current is None or self._sha256(latest) != self._sha256(current):
-                            raise ValueError(f"Target changed during execution; refusing write: {relative.as_posix()}")
-                    elif current is not None:
-                        raise ValueError(f"Target file disappeared during execution; refusing write: {relative.as_posix()}")
-                    content = change.content.encode("utf-8")
-                    self._atomic_write(destination, content, mode=mode)
-                    applied.append((destination, current, mode))
-                audit = {
-                    "schema_version": 1,
-                    "execution_id": execution_id,
-                    "plan_id": plan.plan_id,
-                    "source_project_id": plan.source_project_id,
-                    "target_project_id": plan.target_project_id,
-                    "target_root": str(target_root),
-                    "approval_digest": digest,
-                    "approved_confirmation": f"APPLY {digest}",
-                    "created_at": datetime.now(timezone.utc).isoformat(),
-                    "changed_files": [
-                        {
-                            "path": relative.as_posix(),
-                            "before_sha256": self._sha256(current) if current is not None else None,
-                            "after_sha256": self._sha256(change.content.encode("utf-8")),
-                        }
-                        for change, relative, destination, current, mode in scoped
-                    ],
-                    "backups": backup_manifest,
-                    "validation": {
-                        "status": "required_not_run",
-                        "note": "CPI-06 does not execute project commands. Run the target project's approved regression suite before accepting this adaptation.",
-                    },
-                }
-                audit_path = execution_dir / "audit.json"
+                    if destination.exists() and not destination.is_file():
+                        raise ValueError(f"Target path is no longer a regular file: {relative.as_posix()}")
+                    latest = destination.read_bytes() if destination.is_file() else None
+                    latest_hash = self._sha256(latest) if latest is not None else None
+                    before_hash = journal_files[index]["before_sha256"]
+                    if latest_hash != before_hash:
+                        raise ValueError(
+                            f"Target changed during execution; refusing write: {relative.as_posix()}"
+                        )
+                    # Register the candidate before replace: if the replace succeeds
+                    # but a subsequent fsync raises, the in-process rollback still sees it.
+                    applied.append((relative, destination, current, mode, journal_files[index]["after_sha256"]))
+                    self._atomic_write(destination, change.content.encode("utf-8"), mode=mode)
+                    journal_files[index]["applied"] = True
+                    journal_files[index]["applied_at"] = datetime.now(timezone.utc).isoformat()
+                    journal["files"] = journal_files
+                    self._atomic_write(
+                        journal_path,
+                        (json.dumps(journal, indent=2, sort_keys=True) + "\n").encode("utf-8"),
+                    )
+
+                audit["lifecycle"] = {"status": "applied"}
                 self._atomic_write(
                     audit_path,
                     (json.dumps(audit, indent=2, sort_keys=True) + "\n").encode("utf-8"),
                 )
+                journal["status"] = "finalizing"
+                journal["files"] = journal_files
+                journal["finalizing_at"] = datetime.now(timezone.utc).isoformat()
+                self._atomic_write(
+                    journal_path,
+                    (json.dumps(journal, indent=2, sort_keys=True) + "\n").encode("utf-8"),
+                )
                 audit_bytes = audit_path.read_bytes()
+                ledger_attempted = True
                 ProjectExecutionLedger(self._state_dir).append(
                     "execution_applied", execution_id,
                     {
@@ -287,21 +367,79 @@ class ProjectExecutionExecutor:
                         "target_project_id": plan.target_project_id,
                     },
                 )
-            except Exception:
+                ledger_recorded = True
+                journal["status"] = "completed"
+                journal["completed_at"] = datetime.now(timezone.utc).isoformat()
+                self._atomic_write(
+                    journal_path,
+                    (json.dumps(journal, indent=2, sort_keys=True) + "\n").encode("utf-8"),
+                )
+            except Exception as execution_error:
+                if ledger_recorded:
+                    return ProjectExecutionResult(
+                        success=True,
+                        execution_id=execution_id,
+                        changed_files=tuple(relative.as_posix() for _, relative, _, _, _ in scoped),
+                        backup_directory=str(backup_dir),
+                        audit_path=str(audit_path),
+                        validation_required=True,
+                        warning=(
+                            "Target files and authenticated execution event are committed, "
+                            "but the journal finalization write failed. The journal remains "
+                            "in finalizing state: " + str(execution_error)
+                        ),
+                    )
                 rollback_errors = []
-                for destination, current, mode in reversed(applied):
+                for relative, destination, current, mode, after_hash in reversed(applied):
                     try:
+                        self._assert_no_symlink(target_root, relative)
+                        if destination.exists() and not destination.is_file():
+                            raise ValueError(f"Target path is no longer a regular file: {relative.as_posix()}")
+                        latest = destination.read_bytes() if destination.is_file() else None
+                        latest_hash = self._sha256(latest) if latest is not None else None
+                        before_hash = self._sha256(current) if current is not None else None
+                        if latest_hash == before_hash:
+                            continue
+                        if latest_hash != after_hash:
+                            raise ValueError(
+                                f"Target changed during automatic rollback; refusing overwrite: {relative.as_posix()}"
+                            )
                         if current is None:
-                            destination.unlink(missing_ok=True)
+                            destination.unlink()
+                            self._fsync_directory(destination.parent)
                         else:
                             self._atomic_write(destination, current, mode=mode)
                     except Exception as rollback_error:
                         rollback_errors.append(str(rollback_error))
                 if rollback_errors:
-                    raise RuntimeError("Execution failed and rollback was incomplete: " + "; ".join(rollback_errors))
-                if execution_dir.exists():
+                    journal["status"] = "recovery_required"
+                    journal["rollback_errors"] = rollback_errors
+                    try:
+                        self._atomic_write(
+                            journal_path,
+                            (json.dumps(journal, indent=2, sort_keys=True) + "\n").encode("utf-8"),
+                        )
+                    except Exception:
+                        pass
+                    raise RuntimeError(
+                        "Execution failed and automatic rollback was incomplete; "
+                        "use 'lisa project recover' after inspecting the journal: "
+                        + "; ".join(rollback_errors)
+                    )
+                if ledger_attempted:
+                    journal["status"] = "recovery_required"
+                    journal["rollback_errors"] = [
+                        "Ledger append was attempted but did not complete cleanly; "
+                        "verify/recover the ledger before finalizing this execution."
+                    ]
+                    self._atomic_write(
+                        journal_path,
+                        (json.dumps(journal, indent=2, sort_keys=True) + "\n").encode("utf-8"),
+                    )
+                elif execution_dir.exists():
                     import shutil
                     shutil.rmtree(execution_dir)
+                    self._fsync_directory(self._state_dir)
                 raise
 
             return ProjectExecutionResult(

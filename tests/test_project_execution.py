@@ -4,6 +4,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
@@ -13,6 +14,8 @@ from lisa.projects.adaptation_request import ProjectAdaptationRequest
 from lisa.projects.execution import ExecutionChange, ProjectExecutionRequest
 from lisa.projects.execution_executor import ProjectExecutionExecutor
 from lisa.projects.execution_lifecycle import ProjectExecutionLifecycle
+from lisa.projects.execution_recovery import ProjectExecutionRecovery
+from lisa.projects.execution_history import ProjectExecutionHistory
 
 
 class TestGovernedProjectExecution(unittest.TestCase):
@@ -267,6 +270,154 @@ class TestGovernedProjectExecution(unittest.TestCase):
         )
         self.assertFalse(result["success"])
         self.assertIn("not rolled-back", result["error"])
+
+
+    def _simulate_interrupted_apply(self, changes, interrupt_path):
+        request = self.request(changes)
+        original_atomic_write = self.executor._atomic_write
+
+        def interrupt_after_target_replace(path, data, mode=None):
+            result = original_atomic_write(path, data, mode=mode)
+            if Path(path) == interrupt_path:
+                raise SystemExit("simulated process interruption")
+            return result
+
+        with mock.patch.object(self.executor, "_atomic_write", side_effect=interrupt_after_target_replace):
+            with self.assertRaises(SystemExit):
+                self.executor.execute(request)
+        return "exec_" + self.executor.approval_digest(self.plan, changes, self.target)[:20]
+
+    def test_interrupted_multi_file_apply_is_listed_and_explicitly_rolled_back(self):
+        existing = self.target / "app" / "Main.kt"
+        original = existing.read_bytes()
+        changes = [
+            ExecutionChange("app/Main.kt", "class Main { val changed = true }\\n", hashlib.sha256(original).hexdigest()),
+            ExecutionChange("app/New.kt", "class New {}\\n"),
+        ]
+        execution_id = self._simulate_interrupted_apply(changes, existing)
+        created = self.target / "app" / "New.kt"
+        self.assertNotEqual(existing.read_bytes(), original)
+        self.assertFalse(created.exists())
+
+        recovery = ProjectExecutionRecovery(self.registry, state_dir=self.state_dir)
+        pending = recovery.list_pending()
+        self.assertEqual([item["execution_id"] for item in pending], [execution_id])
+        digest = recovery.preview_digest(execution_id)
+        refused = recovery.recover(execution_id, "RECOVER wrong")
+        self.assertFalse(refused["success"])
+        self.assertNotEqual(existing.read_bytes(), original)
+
+        result = recovery.recover(execution_id, f"RECOVER {digest}")
+        self.assertTrue(result["success"], result.get("error"))
+        self.assertEqual(existing.read_bytes(), original)
+        self.assertFalse(created.exists())
+        self.assertEqual(result["restored_files"], ("app/Main.kt", "app/New.kt"))
+        self.assertEqual(recovery.list_pending(), [])
+
+        verified = ProjectExecutionHistory(self.registry, state_dir=self.state_dir).verify(execution_id)
+        self.assertTrue(verified["success"], verified.get("error"))
+        self.assertEqual(verified["record"]["lifecycle_status"], "rolled_back")
+        self.assertEqual(verified["record"]["ledger_status"], "locally_authenticated")
+
+    def test_interrupted_apply_refuses_unknown_later_file_without_partial_recovery(self):
+        existing = self.target / "app" / "Main.kt"
+        original = existing.read_bytes()
+        changes = [
+            ExecutionChange("app/Main.kt", "class Main { val changed = true }\\n", hashlib.sha256(original).hexdigest()),
+            ExecutionChange("app/New.kt", "class New {}\\n"),
+        ]
+        execution_id = self._simulate_interrupted_apply(changes, existing)
+        created = self.target / "app" / "New.kt"
+        created.write_text("independent later change", encoding="utf-8")
+
+        recovery = ProjectExecutionRecovery(self.registry, state_dir=self.state_dir)
+        digest = recovery.preview_digest(execution_id)
+        result = recovery.recover(execution_id, f"RECOVER {digest}")
+        self.assertFalse(result["success"])
+        self.assertIn("unknown version", result["error"])
+        self.assertNotEqual(existing.read_bytes(), original)
+        self.assertEqual(created.read_text(encoding="utf-8"), "independent later change")
+
+    def test_successful_apply_keeps_completed_journal_and_history_consistent(self):
+        execution = self._apply_for_lifecycle([
+            ExecutionChange("app/Completed.kt", "class Completed {}\\n")
+        ])
+        journal_path = Path(execution.audit_path).parent / "execution.journal.json"
+        journal = json.loads(journal_path.read_text(encoding="utf-8"))
+        self.assertEqual(journal["status"], "completed")
+        self.assertTrue(journal["files"][0]["applied"])
+        history = ProjectExecutionHistory(self.registry, state_dir=self.state_dir)
+        verified = history.verify(execution.execution_id)
+        self.assertTrue(verified["success"], verified.get("error"))
+        self.assertEqual(verified["record"]["lifecycle_status"], "applied")
+
+
+    def test_recovery_can_resume_after_a_second_interruption(self):
+        existing = self.target / "app" / "Main.kt"
+        original = existing.read_bytes()
+        changes = [
+            ExecutionChange("app/Main.kt", "class Main { val changed = true }\\n", hashlib.sha256(original).hexdigest()),
+            ExecutionChange("app/New.kt", "class New {}\\n"),
+        ]
+        execution_id = self._simulate_interrupted_apply(changes, existing)
+        recovery = ProjectExecutionRecovery(self.registry, state_dir=self.state_dir)
+        digest = recovery.preview_digest(execution_id)
+        original_atomic_write = ProjectExecutionExecutor._atomic_write
+
+        def interrupt_after_restore(path, data, mode=None):
+            result = original_atomic_write(path, data, mode=mode)
+            if Path(path) == existing:
+                raise SystemExit("simulated interruption during recovery")
+            return result
+
+        with mock.patch.object(ProjectExecutionExecutor, "_atomic_write", side_effect=interrupt_after_restore):
+            with self.assertRaises(SystemExit):
+                recovery.recover(execution_id, f"RECOVER {digest}")
+
+        self.assertEqual(existing.read_bytes(), original)
+        self.assertIn(execution_id, [item["execution_id"] for item in recovery.list_pending()])
+        retry_digest = recovery.preview_digest(execution_id)
+        result = recovery.recover(execution_id, f"RECOVER {retry_digest}")
+        self.assertTrue(result["success"], result.get("error"))
+        self.assertEqual(existing.read_bytes(), original)
+        self.assertFalse((self.target / "app" / "New.kt").exists())
+        self.assertEqual(recovery.list_pending(), [])
+
+
+    def test_recovery_removes_stale_lock_only_after_owner_pid_is_gone(self):
+        existing = self.target / "app" / "Main.kt"
+        original = existing.read_bytes()
+        changes = [
+            ExecutionChange("app/Main.kt", "class Main { val changed = true }\\n", hashlib.sha256(original).hexdigest())
+        ]
+        execution_id = self._simulate_interrupted_apply(changes, existing)
+        recovery = ProjectExecutionRecovery(self.registry, state_dir=self.state_dir)
+        digest = recovery.preview_digest(execution_id)
+        lock = self.state_dir / execution_id / ".recovery.lock"
+        lock.write_text("42424242", encoding="ascii")
+        with mock.patch("os.kill", side_effect=ProcessLookupError):
+            result = recovery.recover(execution_id, f"RECOVER {digest}")
+        self.assertTrue(result["success"], result.get("error"))
+        self.assertFalse(lock.exists())
+        self.assertEqual(existing.read_bytes(), original)
+
+    def test_recovery_refuses_live_lock_owner(self):
+        existing = self.target / "app" / "Main.kt"
+        original = existing.read_bytes()
+        changes = [
+            ExecutionChange("app/Main.kt", "class Main { val changed = true }\\n", hashlib.sha256(original).hexdigest())
+        ]
+        execution_id = self._simulate_interrupted_apply(changes, existing)
+        recovery = ProjectExecutionRecovery(self.registry, state_dir=self.state_dir)
+        digest = recovery.preview_digest(execution_id)
+        lock = self.state_dir / execution_id / ".recovery.lock"
+        lock.write_text("42424242", encoding="ascii")
+        with mock.patch("os.kill", return_value=None):
+            result = recovery.recover(execution_id, f"RECOVER {digest}")
+        self.assertFalse(result["success"])
+        self.assertIn("active in process", result["error"])
+        self.assertTrue(lock.exists())
+        self.assertNotEqual(existing.read_bytes(), original)
 
 
 if __name__ == "__main__":
