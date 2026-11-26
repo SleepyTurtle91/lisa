@@ -1413,9 +1413,8 @@ Evaluated `QuestionDrivenInvestigationEngine` (`benchmarks/ne_018_2_investigatio
 CPI-01 now has an operator-facing registry workflow and persistent local project selection. This is a foundation for project isolation, not evidence that L.I.S.A. can yet understand or safely transfer features between projects.
 
 **Open validation questions**:
-1. Does the new registry test suite pass in the repository's supported Python environment?
-2. Does CLI command classification preserve natural-language routing for compound prompts?
-3. Does the CI baseline fail independently because of the existing hard-coded test paths and provider health assumptions?
+1. Do the follow-up CPI and full-suite workflows pass with the new precision, ambiguity, and tokenization regressions?
+2. Does independent review confirm the follow-up fixes?
 
 
 
@@ -1557,6 +1556,9 @@ The adaptation plan preview is evidence-bearing and review-only. It cannot apply
 - Added technology mappings for C#, Swift, PHP, Ruby, C/C++, Scala, and SQL source suffixes already inventoried by the profiler.
 - Extended secret assignment redaction to quoted JSON property names.
 - Applied the same tokenizer to capability aliases and evidence attribution.
+- Follow-up review found that the one-character `e` in `e_invoice` was discarded, allowing generic invoice evidence to match e-invoice queries. Added explicit e-invoice canonicalization so generic invoice evidence does not satisfy an e-invoice request.
+- Follow-up review found that `.h` headers are ambiguous between C and C++; stopped assigning them to C while retaining explicit `.c`, `.cpp`, and `.hpp` mappings.
+- Tokenized each evidence excerpt once during attribution rather than re-tokenizing it for every matched query term.
 - Restricted direct `project` classification to recognized subcommands.
 - Added an explicit force-selection path for REPL project switching.
 - Added focused regression tests for these cases.
