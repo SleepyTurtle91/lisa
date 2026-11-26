@@ -1,5 +1,6 @@
 import hashlib
 import os
+import re
 from pathlib import Path
 from typing import Iterable, List, Set, Tuple
 
@@ -35,6 +36,14 @@ class ProjectProfileIndexer:
         "CMakeLists.txt", "Makefile",
     }
 
+    SECRET_ASSIGNMENT = re.compile(
+        r'''(?im)(\b(?:api[_-]?key|client[_-]?secret|access[_-]?token|refresh[_-]?token|password|passwd|secret|private[_-]?key)\b\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;]+)'''
+    )
+    PRIVATE_KEY_BLOCK = re.compile(
+        r"-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----",
+        re.DOTALL,
+    )
+
     SOURCE_SUFFIXES: Set[str] = {
         ".py", ".kt", ".kts", ".java", ".dart", ".ts", ".tsx", ".js",
         ".jsx", ".go", ".rs", ".cs", ".swift", ".php", ".rb", ".cpp",
@@ -58,6 +67,16 @@ class ProjectProfileIndexer:
                     continue
                 yield path
 
+    @classmethod
+    def _redact_excerpt(cls, text: str) -> Tuple[str, bool]:
+        redacted, assignment_count = cls.SECRET_ASSIGNMENT.subn(
+            lambda match: match.group(1) + "[REDACTED]", text
+        )
+        redacted, key_count = cls.PRIVATE_KEY_BLOCK.subn(
+            "[PRIVATE KEY REDACTED]", redacted
+        )
+        return redacted, bool(assignment_count or key_count)
+
     def index(
         self,
         manifest: ProjectManifest,
@@ -69,7 +88,10 @@ class ProjectProfileIndexer:
         if not root.is_dir():
             raise ValueError(f"Registered project root is not a directory: {root}")
 
-        all_files = sorted(self._walk(root, max_depth=4), key=lambda p: p.relative_to(root).as_posix())
+        all_files = sorted(
+            self._walk(root, max_depth=4),
+            key=lambda path: path.relative_to(root).as_posix(),
+        )
         evidence_candidates: List[Tuple[Path, str]] = []
         source_paths: List[str] = []
         technologies = set(manifest.capabilities)
@@ -117,6 +139,7 @@ class ProjectProfileIndexer:
             inspected = raw[:max_bytes_per_file]
             digest = hashlib.sha256(inspected).hexdigest()
             excerpt = inspected.decode("utf-8", errors="replace")
+            excerpt, redactions_applied = self._redact_excerpt(excerpt)
             if truncated:
                 excerpt += "\n[Excerpt truncated at configured byte limit.]"
             evidence.append(ProjectEvidence(
@@ -126,6 +149,7 @@ class ProjectProfileIndexer:
                 bytes_inspected=len(inspected),
                 excerpt=excerpt,
                 truncated=truncated,
+                redactions_applied=redactions_applied,
             ))
 
         top_level = tuple(sorted(

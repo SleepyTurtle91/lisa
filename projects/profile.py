@@ -12,6 +12,7 @@ class ProjectEvidence:
     bytes_inspected: int
     excerpt: str
     truncated: bool
+    redactions_applied: bool = False
 
 
 @dataclass(frozen=True)

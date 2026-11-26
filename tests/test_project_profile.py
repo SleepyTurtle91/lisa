@@ -20,14 +20,27 @@ class TestProjectProfile(unittest.TestCase):
         self.root = Path(self.temp_dir.name)
         self.project = self.root / "sample_android"
         self.project.mkdir()
-        (self.project / "README.md").write_text("# Sample\nA demo project.", encoding="utf-8")
-        (self.project / "ARCHITECTURE.md").write_text("# Architecture\nModules are isolated.", encoding="utf-8")
-        (self.project / "settings.gradle.kts").write_text('include(":app")\n', encoding="utf-8")
+        (self.project / "README.md").write_text(
+            "# Sample\nA demo project.\nAPI_KEY=should-not-leak",
+            encoding="utf-8",
+        )
+        (self.project / "ARCHITECTURE.md").write_text(
+            "# Architecture\nModules are isolated.", encoding="utf-8"
+        )
+        (self.project / "settings.gradle.kts").write_text(
+            'include(":app")\n', encoding="utf-8"
+        )
         app = self.project / "app"
         (app / "src" / "main" / "kotlin").mkdir(parents=True)
-        (app / "build.gradle.kts").write_text('plugins { id("com.android.application") }', encoding="utf-8")
-        (app / "src" / "main" / "kotlin" / "Main.kt").write_text("class Main {}", encoding="utf-8")
-        (app / "src" / "main" / "AndroidManifest.xml").write_text("<manifest />", encoding="utf-8")
+        (app / "build.gradle.kts").write_text(
+            'plugins { id("com.android.application") }', encoding="utf-8"
+        )
+        (app / "src" / "main" / "kotlin" / "Main.kt").write_text(
+            "class Main {}", encoding="utf-8"
+        )
+        (app / "src" / "main" / "AndroidManifest.xml").write_text(
+            "<manifest />", encoding="utf-8"
+        )
         (self.project / ".env").write_text("SECRET=value", encoding="utf-8")
         ignored = self.project / "build" / "generated"
         ignored.mkdir(parents=True)
@@ -54,6 +67,9 @@ class TestProjectProfile(unittest.TestCase):
         self.assertEqual(profile.source_file_count, 1)
         self.assertIn("kotlin", profile.technologies)
         self.assertIn("android", profile.technologies)
+        readme = next(item for item in profile.evidence if item.relative_path == "README.md")
+        self.assertTrue(readme.redactions_applied)
+        self.assertNotIn("should-not-leak", readme.excerpt)
         self.assertNotIn(".env", evidence_paths)
         self.assertNotIn("build/generated/Generated.kt", profile.source_files_sample)
 
@@ -63,7 +79,9 @@ class TestProjectProfile(unittest.TestCase):
         ))
         self.assertTrue(result.success, result.error)
         readme = next(item for item in result.profile.evidence if item.relative_path == "README.md")
-        expected = hashlib.sha256(b"# Sample\nA demo project.").hexdigest()
+        expected = hashlib.sha256(
+            b"# Sample\nA demo project.\nAPI_KEY=should-not-leak"
+        ).hexdigest()
         self.assertEqual(readme.sha256, expected)
         self.assertFalse(readme.truncated)
         self.assertLessEqual(readme.bytes_inspected, 1024)
