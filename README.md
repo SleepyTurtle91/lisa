@@ -78,7 +78,7 @@ L.I.S.A. is intended to reduce dependence on any single model's context window, 
 - **Evidence-first decisions:** disagreements, unknowns, and provenance remain visible.
 - **Operator authority:** models propose; L.I.S.A. governs; the operator retains control over consequential actions.
 
-Read the full [L.I.S.A. Founding Philosophy](docs/FOUNDING_PHILOSOPHY.md) for the principles, design consequences, safety boundaries, and proposed subsystem responsibilities.
+Read the [L.I.S.A. Founding Philosophy](docs/FOUNDING_PHILOSOPHY.md) for the principles and safety boundaries. The proposed [Brain Orchestration Engine Contract](docs/BRAIN_ORCHESTRATION_CONTRACT.md) translates those principles into provider-neutral contracts, task lifecycle rules, selection policy, handoff, and staged implementation criteria. BOE-01 is a specification, not an implemented runtime.
 
 ---
 
@@ -168,7 +168,8 @@ lisa/
 ├── tests/               # Regression and contract tests
 ├── tools/               # TargetInspector, Dispatcher, Filesystem capabilities
 ├── docs/
-│   └── FOUNDING_PHILOSOPHY.md # Model-independent intelligence and orchestration doctrine
+│   ├── FOUNDING_PHILOSOPHY.md # Model-independent intelligence and orchestration doctrine
+│   └── BRAIN_ORCHESTRATION_CONTRACT.md # Proposed BOE-01 contracts and governance boundaries
 ├── ARCHITECTURE.md       # Immutable OS Engineering Laws (L1–L7) + Research Subsystem Contract
 ├── PROGRESSION_LOG.md    # Chronological experimental evidence log
 ├── RESEARCH.md           # Bounded empirical claims per NE milestone
@@ -183,6 +184,7 @@ lisa/
 |---|---|
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | Immutable kernel laws, OS diagrams, Research Subsystem Contract |
 | [`docs/FOUNDING_PHILOSOPHY.md`](docs/FOUNDING_PHILOSOPHY.md) | Founding purpose, model independence, multi-brain coordination, context continuity, and design consequences |
+| [`docs/BRAIN_ORCHESTRATION_CONTRACT.md`](docs/BRAIN_ORCHESTRATION_CONTRACT.md) | Proposed BOE-01 provider-neutral contracts, resource selection, task lifecycle, handoff, reconciliation, and safety rules |
 | [`PROGRESSION_LOG.md`](PROGRESSION_LOG.md) | Chronological experimental evidence and milestone records |
 | [`RESEARCH.md`](RESEARCH.md) | Bounded empirical claims — each claim tied to observed evidence |
 | [`PROJECT_MEMORY.md`](PROJECT_MEMORY.md) | OS version, frozen NE baseline, and continuation checkpoint |
