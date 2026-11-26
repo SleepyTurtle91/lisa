@@ -1413,9 +1413,8 @@ Evaluated `QuestionDrivenInvestigationEngine` (`benchmarks/ne_018_2_investigatio
 CPI-01 now has an operator-facing registry workflow and persistent local project selection. This is a foundation for project isolation, not evidence that L.I.S.A. can yet understand or safely transfer features between projects.
 
 **Open validation questions**:
-1. Does the new registry test suite pass in the repository's supported Python environment?
-2. Does CLI command classification preserve natural-language routing for compound prompts?
-3. Does the CI baseline fail independently because of the existing hard-coded test paths and provider health assumptions?
+1. Does independent review identify additional path, permission, or recovery edge cases?
+2. Does the remediation remain valid after integration with the CPI foundation branch?
 
 
 
@@ -1591,7 +1590,7 @@ CPI-06 establishes a narrow, operator-approved file application boundary. It is 
 
 **Evidence classification**:
 - `FILE_FACT`: changes and regression tests are present on `fix/cpi-06-execution-review-findings`.
-- `EXECUTION_FACT`: pending GitHub Actions validation on the remediation head. No passing test claim is made in this checkpoint.
+- `EXECUTION_FACT`: [CPI Contract CI run 45782684047](https://github.com/SleepyTurtle91/lisa/actions/runs/45782684047) passed 50/50 project/CLI tests and 6/6 input-boundary tests. The same run passed the full architecture/unit suite (163/163) and integration suite (1/1).
 
 **Open validation questions**:
 1. Do all new regressions and the existing CPI-06 contract tests pass on the remediation branch?
