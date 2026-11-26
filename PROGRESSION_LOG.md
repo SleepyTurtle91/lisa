@@ -1273,3 +1273,9 @@ Key per-case results:
 - Dedicated remediation branch stacked on CPI-06.3.
 - CI and independent review pending.
 - No merge performed.
+
+### Follow-up — Authenticated ledger record delimiter
+- Corrected append framing to terminate JSONL events with an actual newline byte rather than the two-character backslash-`n` sequence.
+- Added a regression asserting the ledger ends with real newline bytes and contains no literal escaped terminator.
+- Corrected Windows lock-file initialization to write an actual NUL byte.
+- CI pending; no merge performed.
