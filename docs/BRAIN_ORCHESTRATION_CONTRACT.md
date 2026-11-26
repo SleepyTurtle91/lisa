@@ -326,3 +326,46 @@ MCP, CLI, desktop, and IDE integrations are interfaces over these contracts. Non
 ---
 
 **Design rule:** BOE does not ask, “Which model is the smartest?” It asks, “Which authorized reasoning resource is suitable for this task, with this context, under these constraints — and how will L.I.S.A. know whether the result is trustworthy?”
+
+
+## 15. Existing repository mapping and migration notes
+
+A read-only inspection of the current provider implementation identified an existing foundation. BOE should extend these contracts rather than create a parallel provider stack.
+
+### Existing components observed
+
+| Existing component | Observed responsibility | BOE relationship |
+|---|---|---|
+| providers/base.py | BaseProvider, ChatRequest, ChatResponse | Retain as provider-adapter boundary; evolve normalized metadata carefully |
+| providers/manifest.py | ProviderManifest with provider id, health, priority, capabilities, model list, configuration, limits, metadata | Preserve compatibility while adding evidence-backed model/resource profiles |
+| providers/registry.py | In-memory provider and manifest registration; handshake and duplicate checks | Evolve as provider adapter registry, not the complete brain/account registry |
+| providers/selector.py | Exact capability matching, healthy flag, numeric priority | Replace/augment with hard eligibility plus explainable task suitability |
+| engine/auto_selector.py | Prompt analysis, model-tier string heuristics, provider selection | Integrate with BOE task contracts; remove silent requirement relaxation |
+| core/context.py | Provider capability enum and session context | Reuse capability vocabulary where semantically correct; do not confuse provider capability with model-specific capability |
+
+### Verified gaps and risks
+
+1. **Provider identity is not brain identity.** Current registry keys one provider instance by provider id. It does not separately represent multiple models, authorized accounts, endpoints, or local runtime instances under one provider.
+2. **Registry state is process-local.** The current registry uses in-memory dictionaries. It is not a persistent, versioned resource inventory.
+3. **Manifest evidence is thin.** Capability declarations and healthy status have no explicit provenance, observation timestamp, freshness, or confidence.
+4. **Selection is coarse.** ProviderSelector checks a healthy boolean and exact capability membership, then sorts by provider priority. It does not evaluate task sensitivity, model context limits, quota, cost, latency, or observed task performance.
+5. **Model choice is heuristic.** AutoSelector selects models using name fragments such as large, 70b, pro, mini, flash, and 3b. These are hints, not reliable capability evidence.
+6. **Requirements can be weakened.** AutoSelector catches broad exceptions and retries selection using CHAT. This can conceal the actual selection failure and may dispatch a task without its original required capabilities. BOE integration must remove this behavior or make fallback an explicit, policy-approved task transformation with operator-visible rationale.
+7. **Provider adapter behavior differs in maturity.** The current OpenAI adapter is a placeholder: it defaults to a mock key, reports healthy without a live check, and returns a synthetic response. It must not be treated as a verified live provider connection or source of real capability/availability evidence.
+8. **Blocking I/O exists in the Ollama adapter.** Its async methods call synchronous urllib operations. This is a reliability/latency concern for concurrent orchestration and should be addressed before relying on high-concurrency dispatch.
+9. **Existing tests cover basic selection, not BOE guarantees.** Current provider tests exercise registration, health rejection, capability matching, and basic AutoSelector behavior. They do not yet establish persistence, provenance freshness, quota handling, model/account separation, safe handoff, explainable selection, or concurrency isolation.
+
+These observations are a source-code inspection, not a runtime test report. No provider was contacted and no tests were run as part of this documentation update.
+
+### Recommended migration order
+
+1. Keep BaseProvider and ProviderRegistry as the adapter foundation.
+2. Introduce a separate Brain/Resource descriptor that references a provider adapter and identifies a concrete model/runtime/account resource without storing credentials.
+3. Add versioned persistent resource metadata and timestamped observations; preserve the current registry API through a compatibility layer where practical.
+4. Add a deterministic suitability evaluator that never silently drops required capabilities.
+5. Make model-specific capability/context observations distinct from provider-level interface capabilities.
+6. Replace name-fragment model selection with explicit profiles and evidence-backed observations; retain name heuristics only as low-confidence hints.
+7. Implement task and handoff persistence before multi-brain parallel dispatch.
+8. Treat live provider connectivity and adapter conformance as separate from declared manifests. Mock adapters must be explicitly labelled as test fixtures.
+
+Do not start BOE-02 by rewriting every provider. First define the compatibility seam between the existing ProviderRegistry and the new Brain Registry, then add contract tests for that seam.
